@@ -47,6 +47,9 @@ int main(int argc, char *argv[]) {
 	*my_RIG='\0';
 	*my_ANT='\0';
 
+	reset_values_static(&log_variables);
+	reset_values(&log_variables);
+
 /*confuguration storage*/
 	ConfigAttribute config_attributes[] = {
 		{"my_QRA", CONFIG_String, my_QRA},
@@ -69,8 +72,9 @@ int main(int argc, char *argv[]) {
 		fprintf(stderr, "Config file read in '%s'\n", "./"CONFIG_FILE_NAME);
 	}
 
+	ret=0;
 
-	while ((opt = getopt(argc, argv, "q:r:R:f:a:")) !=-1) {
+	while ((opt = getopt(argc, argv, "q:r:R:f:a:n:")) !=-1) {
 		switch (opt) {
 		case 'f':
 			strncpy(logfile, optarg, LOGFILE_LEN);
@@ -85,6 +89,10 @@ int main(int argc, char *argv[]) {
 		break;
 		case 'R':
 			strncpy(my_RIG, optarg, RIG_LEN);
+		break;
+		case 'n':
+			log_variables.tx_nr=strtoul(optarg, NULL, 10);
+			ret=1;
 		break;
 		case '?':
 		case ':':
@@ -106,11 +114,21 @@ int main(int argc, char *argv[]) {
 	fprintf(stderr, "Using local settings: \n\n");
 	fprintf(stderr, "\tQTH: %s\n\tQRA: %s\n\tRIG: %s\n\tANT: %s\n", my_QTH, my_QRA, my_RIG, my_ANT);
 
-	strcpy(log_variables.default_rst, "59");
 
-	reset_values(&log_variables);
-	reset_values_static(&log_variables);
-
+	if (ret==0) {
+		rewind(fp);
+		while (1) {
+			line=fgets(f_line, LINE_LEN, fp);
+			if (line==NULL) {
+				break;
+			}
+			if (csv_parse(f_line, csv_list, CSV_LIST_LEN)<CSV_LIST_LEN) {
+				continue;
+			}
+			log_variables.tx_nr=1 + strtoul(csv_list[CSV_TXNR_POS], NULL, 10);
+		}
+		fseek(fp, 0L, SEEK_END);
+	}
 	line=NULL;
 
 	while (1) {
@@ -132,6 +150,7 @@ int main(int argc, char *argv[]) {
 			continue;
 		}
 
+		/*check for duplicate QSOs*/
 		rewind(fp);
 		while (1) {
 			line=fgets(f_line, LINE_LEN, fp);
@@ -143,7 +162,6 @@ int main(int argc, char *argv[]) {
 				fprintf(stderr, "DUP QSO on %s at %s\n", csv_list[CSV_DATE_POS], csv_list[CSV_TIME_POS]);
 			}
 		}
-
 		fseek(fp, 0L, SEEK_END);
 
 		printf("TXRST [%s]", log_variables.txrst);
@@ -347,6 +365,7 @@ void reset_values_static(llog_t *data) {
 	*data->QRG='\0';
 	*data->mode='\0';
 	data->tx_nr=1;
+	strcpy(data->default_rst, "59");
 
 	return;
 }
