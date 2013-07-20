@@ -1,5 +1,5 @@
-/*	This is dbsym, a database driven component selector client for the gEDA system.
- *	Copyright (C) 2007  Levente Kovacs
+/*	This is llog, a minimalist HAM logging software.
+ *	Copyright (C) 2013  Levente Kovacs
  *	
  *	This program is free software; you can redistribute it and/or modify
  *	it under the terms of the GNU General Public License as published by
