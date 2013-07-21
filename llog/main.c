@@ -48,7 +48,8 @@ int main(int argc, char *argv[]) {
 	char my_QTH[QTH_LEN];
 	char my_RIG[RIG_LEN];
 	char my_ANT[ANT_LEN];
-
+	char my_call[CALL_LEN];
+	char qsl_stat[QSL_LEN];
 	struct timeval tv;
 	struct tm bdt;
 	FILE *fp;
@@ -60,6 +61,8 @@ int main(int argc, char *argv[]) {
 /*defaults*/
 
 	strcpy(logfile, "log.csv");
+	strcpy(qsl_stat, "TX0RX0");
+	*my_call='\0';
 	*my_QRA='\0';
 	*my_QTH='\0';
 	*my_RIG='\0';
@@ -70,6 +73,7 @@ int main(int argc, char *argv[]) {
 
 /*confuguration storage*/
 	ConfigAttribute config_attributes[] = {
+		{"my_call", CONFIG_String, my_call},
 		{"my_QRA", CONFIG_String, my_QRA},
 		{"my_QTH", CONFIG_String, my_QTH},
 		{"my_RIG", CONFIG_String, my_RIG},
@@ -130,7 +134,7 @@ int main(int argc, char *argv[]) {
 
 	fprintf(stderr, "Using logfile '%s'\n", logfile);
 	fprintf(stderr, "Using local settings: \n\n");
-	fprintf(stderr, "\tQTH: %s\n\tQRA: %s\n\tRIG: %s\n\tANT: %s\n", my_QTH, my_QRA, my_RIG, my_ANT);
+	fprintf(stderr, "\tCall: %s\n\tQTH: %s\n\tQRA: %s\n\tRIG: %s\n\tANT: %s\n", my_call, my_QTH, my_QRA, my_RIG, my_ANT);
 
 
 	if (ret==0) {
@@ -344,9 +348,9 @@ int main(int argc, char *argv[]) {
 		strcat(f_line, substr);
 		sprintf(substr, "%04u,%04u,", log_variables.rx_nr, log_variables.tx_nr);
 		strcat(f_line, substr);
-		sprintf(substr, "%s,", log_variables.comment);
+		sprintf(substr, "%s,%s,", log_variables.comment, qsl_stat);
 		strcat(f_line, substr);
-		sprintf(substr, "%s,%s,%s,%s\n", my_QTH, my_QRA, my_RIG, my_ANT);
+		sprintf(substr, "%s,%s,%s,%s,%s\n", my_call, my_QTH, my_QRA, my_RIG, my_ANT);
 		strcat(f_line, substr);
 		printf("%s", f_line);
 		fprintf(fp, "%s", f_line);
@@ -372,7 +376,7 @@ void reset_values(llog_t *data) {
 	*data->name='\0';
 	strcpy(data->rxrst, data->default_rst);
 	strcpy(data->txrst, data->default_rst);
-	strcpy(data->comment, "TNX for nice QSO! 73 es DX!");
+	strcpy(data->comment, "73 DX!");
 	data->rx_nr=0;
 
 	return;

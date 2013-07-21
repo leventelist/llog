@@ -29,6 +29,7 @@
 #define ANT_LEN 20
 #define RST_LEN 10
 #define CALL_LEN 40
+#define QSL_LEN 10
 #define LIST_LEN 50
 #define LINE_LEN 1024
 #define SUBSTR_LEN 512
@@ -41,7 +42,7 @@
 #define PROMPT ": "
 
 /*CSV stuff*/
-#define CSV_LIST_LEN 17
+#define CSV_LIST_LEN 19
 /*CSV field positions*/
 #define CSV_DATE_POS 0
 #define CSV_TIME_POS 1
@@ -56,10 +57,12 @@
 #define CSV_RXNR_POS 10
 #define CSV_TXNR_POS 11
 #define CSV_COMMENT_POS 12
-#define CSV_LOCAL_QTH_POS 13
-#define CSV_LOCAL_QRA_POS 14
-#define CSV_LOCAL_RIG_POS 15
-#define CSV_LOCAL_ANT_POS 16
+#define CSV_QSL_POS 13
+#define CSV_LOCAL_CALL_POS 14
+#define CSV_LOCAL_QTH_POS 15
+#define CSV_LOCAL_QRA_POS 16
+#define CSV_LOCAL_RIG_POS 17
+#define CSV_LOCAL_ANT_POS 18
 
 typedef struct {
 
