@@ -49,6 +49,7 @@ int main(int argc, char *argv[]) {
 	char my_RIG[RIG_LEN];
 	char my_ANT[ANT_LEN];
 	char my_call[CALL_LEN];
+	char my_alt[ALT_LEN];
 	char qsl_stat[QSL_LEN];
 	struct timeval tv;
 	struct tm bdt;
@@ -67,6 +68,7 @@ int main(int argc, char *argv[]) {
 	*my_QTH='\0';
 	*my_RIG='\0';
 	*my_ANT='\0';
+	*my_alt='\0';
 
 	reset_values_static(&log_variables);
 	reset_values(&log_variables);
@@ -78,6 +80,8 @@ int main(int argc, char *argv[]) {
 		{"my_QTH", CONFIG_String, my_QTH},
 		{"my_RIG", CONFIG_String, my_RIG},
 		{"my_ANT", CONFIG_String, my_ANT},
+		{"my_ALT", CONFIG_String, my_alt},
+		{"my_PWR", CONFIG_String, log_variables.pwr},
 		{"logfile", CONFIG_String, logfile},
 		{NULL, CONFIG_Unused, NULL}
 	};
@@ -96,10 +100,20 @@ int main(int argc, char *argv[]) {
 
 	ret=0;
 
-	while ((opt = getopt(argc, argv, "q:r:R:f:a:n:")) !=-1) {
+	while ((opt = getopt(argc, argv, "q:r:R:f:a:n:c:l:p:")) !=-1) {
 		switch (opt) {
+		case 'l':
+			strncpy(my_alt, optarg, ALT_LEN);
+		break;
+		case 'p':
+			strncpy(log_variables.pwr, optarg, PWR_LEN);
+		break;
+		case 'c':
+			strncpy(my_call, optarg, CALL_LEN);
+		break;
 		case 'f':
 			strncpy(logfile, optarg, LOGFILE_LEN);
+		break;
 		case 'q':
 			strncpy(my_QTH, optarg, QTH_LEN);
 		break;
@@ -135,7 +149,7 @@ int main(int argc, char *argv[]) {
 	fprintf(stderr, "Using logfile '%s'\n", logfile);
 	fprintf(stderr, "Using local settings: \n\n");
 	fprintf(stderr, "\tCall: %s\n\tQTH: %s\n\tQRA: %s\n\tRIG: %s\n\tANT: %s\n", my_call, my_QTH, my_QRA, my_RIG, my_ANT);
-
+	fprintf(stderr, "\tAltitude: %s\n\tPower: %s\n", my_alt, log_variables.pwr);
 
 	if (ret==0) {
 		rewind(fp);
@@ -153,6 +167,8 @@ int main(int argc, char *argv[]) {
 	}
 	line=NULL;
 
+	fprintf(stderr, "\tTX serial number: %04d\n", log_variables.tx_nr);
+
 	while (1) {
 
 		free(line);
@@ -164,7 +180,7 @@ int main(int argc, char *argv[]) {
 			break;
 		}
 		if (*line!='\0') {
-			strcpy(log_variables.call, line);
+			strncpy(log_variables.call, line, CALL_LEN);
 		}
 		free(line);
 		line=NULL;
@@ -186,7 +202,7 @@ int main(int argc, char *argv[]) {
 		}
 		fseek(fp, 0L, SEEK_END);
 
-		printf("TXRST [%s]", log_variables.txrst);
+		printf("TX_RST [%s]", log_variables.txrst);
 		line=readline(prompt);
 		if (line==NULL) {
 			break;
@@ -196,11 +212,11 @@ int main(int argc, char *argv[]) {
 			continue;
 		}
 		if (*line!='\0') {
-			strcpy(log_variables.txrst, line);
+			strncpy(log_variables.txrst, line, RST_LEN);
 		}
 		free(line);
 
-		printf("RXRST [%s]", log_variables.rxrst);
+		printf("RX_RST [%s]", log_variables.rxrst);
 		line=readline(prompt);
 		if (line==NULL) {
 			break;
@@ -210,7 +226,7 @@ int main(int argc, char *argv[]) {
 			continue;
 		}
 		if (*line!='\0') {
-			strcpy(log_variables.rxrst, line);
+			strncpy(log_variables.rxrst, line, RST_LEN);
 		}
 		free(line);
 
@@ -224,7 +240,7 @@ int main(int argc, char *argv[]) {
 			continue;
 		}
 		if (*line!='\0') {
-			strcpy(log_variables.name, line);
+			strncpy(log_variables.name, line, NAME_LEN);
 		}
 		free(line);
 
@@ -238,7 +254,7 @@ int main(int argc, char *argv[]) {
 			continue;
 		}
 		if (*line!='\0') {
-			strcpy(log_variables.QTH, line);
+			strncpy(log_variables.QTH, line, QTH_LEN);
 		}
 		free(line);
 
@@ -252,11 +268,11 @@ int main(int argc, char *argv[]) {
 			continue;
 		}
 		if (*line!='\0') {
-			strcpy(log_variables.QRA, line);
+			strncpy(log_variables.QRA, line, QRA_LEN);
 		}
 		free(line);
 
-		printf("RX NR [%04u]", log_variables.rx_nr);
+		printf("RX_NR [%04u]", log_variables.rx_nr);
 		line=readline(prompt);
 		if (line==NULL) {
 			break;
@@ -270,7 +286,7 @@ int main(int argc, char *argv[]) {
 		}
 		free(line);
 
-		printf("TX NR [%04u]", log_variables.tx_nr);
+		printf("TX_NR [%04u]", log_variables.tx_nr);
 		line=readline(prompt);
 		if (line==NULL) {
 			break;
@@ -294,7 +310,7 @@ int main(int argc, char *argv[]) {
 			continue;
 		}
 		if (*line!='\0') {
-			strcpy(log_variables.QRG, line);
+			strncpy(log_variables.QRG, line, QRG_LEN);
 		}
 		free(line);
 
@@ -308,7 +324,21 @@ int main(int argc, char *argv[]) {
 			continue;
 		}
 		if (*line!='\0') {
-			strcpy(log_variables.mode, line);
+			strncpy(log_variables.mode, line, MODE_LEN);
+		}
+		free(line);
+
+		printf("PWR [%s]", log_variables.pwr);
+		line=readline(prompt);
+		if (line==NULL) {
+			break;
+		}
+		if (strcmp(line, CANCEL_SEQ)==0) {
+			reset_values(&log_variables);
+			continue;
+		}
+		if (*line!='\0') {
+			strncpy(log_variables.pwr, line, PWR_LEN);
 		}
 		free(line);
 
@@ -322,7 +352,7 @@ int main(int argc, char *argv[]) {
 			continue;
 		}
 		if (*line!='\0') {
-			strcpy(log_variables.comment, line);
+			strncpy(log_variables.comment, line, COMMENT_LEN);
 		}
 		free(line);
 
@@ -348,9 +378,9 @@ int main(int argc, char *argv[]) {
 		strcat(f_line, substr);
 		sprintf(substr, "%04u,%04u,", log_variables.rx_nr, log_variables.tx_nr);
 		strcat(f_line, substr);
-		sprintf(substr, "%s,%s,", log_variables.comment, qsl_stat);
+		sprintf(substr, "\"%s\",%s,", log_variables.comment, qsl_stat);
 		strcat(f_line, substr);
-		sprintf(substr, "%s,%s,%s,%s,%s\n", my_call, my_QTH, my_QRA, my_RIG, my_ANT);
+		sprintf(substr, "%s,%s,%s,%s,%s,%s,%s\n", my_call, my_QTH, my_QRA, my_alt, my_RIG, log_variables.pwr, my_ANT);
 		strcat(f_line, substr);
 		printf("%s", f_line);
 		fprintf(fp, "%s", f_line);
@@ -359,7 +389,6 @@ int main(int argc, char *argv[]) {
 		reset_values(&log_variables);
 		
 	}
-
 
 	printf("\n");
 	fclose(fp);
@@ -386,6 +415,7 @@ void reset_values_static(llog_t *data) {
 
 	*data->QRG='\0';
 	*data->mode='\0';
+	*data->pwr='\0';
 	data->tx_nr=1;
 	strcpy(data->default_rst, "59");
 
