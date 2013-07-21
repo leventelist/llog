@@ -25,11 +25,17 @@
 #define LOGFILE_LEN 100
 #define QTH_LEN 100
 #define QRA_LEN 20
+#define QRG_LEN 20
+#define MODE_LEN 20
 #define RIG_LEN 50
 #define ANT_LEN 20
 #define RST_LEN 10
 #define CALL_LEN 40
+#define NAME_LEN 100
+#define COMMENT_LEN 200
 #define QSL_LEN 10
+#define ALT_LEN 20
+#define PWR_LEN 20
 #define LIST_LEN 50
 #define LINE_LEN 1024
 #define SUBSTR_LEN 512
@@ -42,7 +48,7 @@
 #define PROMPT ": "
 
 /*CSV stuff*/
-#define CSV_LIST_LEN 19
+#define CSV_LIST_LEN 21
 /*CSV field positions*/
 #define CSV_DATE_POS 0
 #define CSV_TIME_POS 1
@@ -61,8 +67,10 @@
 #define CSV_LOCAL_CALL_POS 14
 #define CSV_LOCAL_QTH_POS 15
 #define CSV_LOCAL_QRA_POS 16
-#define CSV_LOCAL_RIG_POS 17
-#define CSV_LOCAL_ANT_POS 18
+#define CSV_LOCAL_ALT_POS 17
+#define CSV_LOCAL_RIG_POS 18
+#define CSV_LOCAL_PWR_POS 19
+#define CSV_LOCAL_ANT_POS 20
 
 typedef struct {
 
@@ -70,12 +78,13 @@ typedef struct {
 	char rxrst[RST_LEN];
 	char txrst[RST_LEN];
 	char QTH[QTH_LEN];
-	char name[100];
-	char comment[200];
+	char name[NAME_LEN];
+	char comment[COMMENT_LEN];
 	char default_rst[RST_LEN];
 	char QRA[QRA_LEN];
-	char QRG[20];
-	char mode[20];
+	char QRG[QRG_LEN];
+	char mode[MODE_LEN];
+	char pwr[PWR_LEN];
 	uint32_t tx_nr;
 	uint32_t rx_nr;
 
