@@ -187,7 +187,8 @@ int main(int argc, char *argv[]) {
 		if (*log_variables.call=='\0') {
 			continue;
 		}
-
+		/*get the time*/
+		gettimeofday(&tv, NULL);
 		/*check for duplicate QSOs*/
 		rewind(fp);
 		while (1) {
@@ -366,7 +367,6 @@ int main(int argc, char *argv[]) {
 		}
 
 		*f_line='\0';
-		gettimeofday(&tv, NULL);
 		gmtime_r(&(tv.tv_sec), &bdt);
 		sprintf(substr, "%d-%02d-%02d,%02d:%02d,", 1900+bdt.tm_year, 1+bdt.tm_mon, bdt.tm_mday, bdt.tm_hour, bdt.tm_min);
 		strcat(f_line, substr);
