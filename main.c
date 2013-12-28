@@ -138,13 +138,13 @@ int main(int argc, char *argv[]) {
 			break;
 		}
 	}
-
+	/*Try to open the logfile. Just for test.*/
 	fp=fopen(logfile, "a+");
-
 	if (fp==NULL) {
 		fprintf(stderr, "Could not open log file '%s'\n", logfile);
 		return FILE_ERR;
 	}
+	fclose (fp);
 
 	fprintf(stderr, "Using logfile '%s'\n", logfile);
 	fprintf(stderr, "Using local settings: \n\n");
@@ -152,7 +152,11 @@ int main(int argc, char *argv[]) {
 	fprintf(stderr, "\tAltitude: %s\n\tPower: %s\n", my_alt, log_variables.pwr);
 
 	if (ret==0) {
-		rewind(fp);
+		fp=fopen(logfile, "r");
+		if (fp==NULL) {
+			fprintf(stderr, "Could not open log file '%s'\n", logfile);
+			return FILE_ERR;
+		}
 		while (1) {
 			line=fgets(f_line, LINE_LEN, fp);
 			if (line==NULL) {
@@ -163,7 +167,7 @@ int main(int argc, char *argv[]) {
 			}
 			log_variables.tx_nr=1 + strtoul(csv_list[CSV_TXNR_POS], NULL, 10);
 		}
-		fseek(fp, 0L, SEEK_END);
+		fclose(fp);
 	}
 	line=NULL;
 
@@ -189,8 +193,13 @@ int main(int argc, char *argv[]) {
 		}
 		/*get the time*/
 		gettimeofday(&tv, NULL);
+
 		/*check for duplicate QSOs*/
-		rewind(fp);
+		fp=fopen(logfile, "r");
+		if (fp==NULL) {
+			fprintf(stderr, "Could not open log file '%s'\n", logfile);
+			return FILE_ERR;
+		}
 		while (1) {
 			line=fgets(f_line, LINE_LEN, fp);
 			if (line==NULL) {
@@ -201,7 +210,7 @@ int main(int argc, char *argv[]) {
 				fprintf(stderr, "DUP QSO on %s at %s\n", csv_list[CSV_DATE_POS], csv_list[CSV_TIME_POS]);
 			}
 		}
-		fseek(fp, 0L, SEEK_END);
+		fclose(fp);
 
 		printf("TX_RST [%s]", log_variables.txrst);
 		line=readline(prompt);
@@ -383,15 +392,20 @@ int main(int argc, char *argv[]) {
 		sprintf(substr, "%s,%s,%s,%s,%s,%s,%s\n", my_call, my_QTH, my_QRA, my_alt, my_RIG, log_variables.pwr, my_ANT);
 		strcat(f_line, substr);
 		printf("%s", f_line);
-		fprintf(fp, "%s", f_line);
-		fflush(fp);
-		log_variables.tx_nr++;
-		reset_values(&log_variables);
-		
+		fp=fopen(logfile, "a+");
+		if (fp==NULL) {
+			fprintf(stderr, "Could not open log file '%s'\n", logfile);
+			return FILE_ERR;
+		} else {
+			fprintf(fp, "%s", f_line);
+			fflush(fp);
+			fclose(fp);
+			log_variables.tx_nr++;
+			reset_values(&log_variables);
+		}
 	}
 
 	printf("\n");
-	fclose(fp);
 	free(line);
 
 	return OK;
