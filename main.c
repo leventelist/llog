@@ -19,7 +19,6 @@
 #define _GNU_SOURCE
 #include "conf.h"
 #include "csv.h"
-#include "conf.h"
 #include "llog.h"
 
 #include <unistd.h>
@@ -37,6 +36,7 @@ int main(int argc, char *argv[]) {
 
 	int opt;
 	int ret;
+	uint32_t i;
 	char *line;
 	const char *prompt=PROMPT;
 	char substr[SUBSTR_LEN];
@@ -85,6 +85,25 @@ int main(int argc, char *argv[]) {
 		{"logfile", CONFIG_String, logfile},
 		{NULL, CONFIG_Unused, NULL}
 	};
+
+/*log data schema and storage setup*/
+
+	llog_at llog_data[] = {
+		{"Call", LLOG_STR, log_variables.call},
+		{"RXRST", LLOG_STR, log_variables.rxrst},
+		{"RXNR", LLOG_UINT, &log_variables.rx_nr},
+		{"QRA", LLOG_STR, log_variables.QRA},
+		{"Name", LLOG_STR, log_variables.name},
+		{"QTH", LLOG_STR, log_variables.QTH},
+		{"TXRST", LLOG_STR, log_variables.txrst},
+		{"TXNR", LLOG_UINT, &log_variables.tx_nr},
+		{"QRG", LLOG_STR, log_variables.QRG},
+		{"Mode", LLOG_STR, log_variables.mode},
+		{"PWR", LLOG_STR, log_variables.pwr},
+		{"Comment", LLOG_STR, log_variables.comment},
+		{NULL, LLOG_NA, NULL}
+
+};
 
 	fprintf(stderr, "\n");
 
@@ -174,6 +193,36 @@ int main(int argc, char *argv[]) {
 	fprintf(stderr, "\tTX serial number: %04d\n", log_variables.tx_nr);
 
 	while (1) {
+		reset_values(&log_variables);
+		for (i=0; i<LLOG_MAGIC; i++) {
+			if (llog_data[i].name==NULL) {
+				i=LLOG_MAGIC;
+				break;
+			}
+			switch (llog_data[i].type){
+				case LLOG_STR:
+				strcmp(line, "\n%s [%s]");
+				break;
+				case LLOG_UINT:
+				strcmp(line, "\n%s [%04u]");
+				break;
+			}
+			printf(line, llog_data[i].name, llog_data[i].val);
+			ret=get_data(prompt, line);
+			if (ret==LLOG_EOF) {
+				i=LLOG_MAGIC;
+				break;
+			} else if (ret==LLOG_CANCEL) {
+				break;
+			} else if (ret==LLOG_ERR) {
+				i=LLOG_MAGIC;
+				break;
+			}
+		}
+	}
+
+
+	while (1) {
 
 		free(line);
 		/*input the data*/
@@ -195,22 +244,13 @@ int main(int argc, char *argv[]) {
 		gettimeofday(&tv, NULL);
 
 		/*check for duplicate QSOs*/
-		fp=fopen(logfile, "r");
-		if (fp==NULL) {
-			fprintf(stderr, "Could not open log file '%s'\n", logfile);
+		switch(dup_check(log_variables.call, logfile)){
+			case FILE_ERR:
 			return FILE_ERR;
+			case OK:
+			default:
+			break;
 		}
-		while (1) {
-			line=fgets(f_line, LINE_LEN, fp);
-			if (line==NULL) {
-				break;
-			}
-			csv_parse(f_line, csv_list, CSV_LIST_LEN);
-			if (strcasestr(csv_list[CSV_CALL_POS], log_variables.call)!=NULL) {
-				fprintf(stderr, "DUP QSO on %s at %s\n", csv_list[CSV_DATE_POS], csv_list[CSV_TIME_POS]);
-			}
-		}
-		fclose(fp);
 
 		printf("TX_RST [%s]", log_variables.txrst);
 		line=readline(prompt);
@@ -435,4 +475,51 @@ void reset_values_static(llog_t *data) {
 
 	return;
 }
+
+int dup_check(char *call, char *logfile) {
+
+	FILE *fp;
+	char *line;
+	char f_line[LINE_LEN];
+	char *csv_list[CSV_LIST_LEN];
+
+	fp=fopen(logfile, "r");
+	if (fp==NULL) {
+		fprintf(stderr, "Could not open log file '%s'\n", logfile);
+		return FILE_ERR;
+	}
+	while (1) {
+		line=fgets(f_line, LINE_LEN, fp);
+		if (line==NULL) {
+			break;
+		}
+		csv_parse(f_line, csv_list, CSV_LIST_LEN);
+		if (strcasestr(csv_list[CSV_CALL_POS], call)!=NULL) {
+			fprintf(stderr, "DUP QSO on %s at %s\n", csv_list[CSV_DATE_POS], csv_list[CSV_TIME_POS]);
+		}
+	}
+	fclose(fp);
+	return OK;
+}
+
+int get_data(const char *prompt, char *data) {
+
+	char *line;
+	int ret;
+
+	ret=LLOG_ERR;
+	line=readline(prompt);
+	if (line==NULL) {
+		ret=LLOG_EOF;
+	} else if (strcmp(line, CANCEL_SEQ)==0) {
+		ret = LLOG_CANCEL; 
+	} else if (*line!='\0') {
+		data=line;
+		ret=OK;
+	}
+
+	free(line);
+	return ret;
+}
+
 

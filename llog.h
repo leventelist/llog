@@ -44,6 +44,12 @@
 #define FILE_ERR 1
 #define CMD_LINE_ERR 2
 
+#define LLOG_EOF 1
+#define LLOG_CANCEL 2
+#define LLOG_ERR 3
+
+#define LLOG_MAGIC 0xffff
+
 #define CANCEL_SEQ ":c"
 #define PROMPT ": "
 
@@ -72,6 +78,18 @@
 #define CSV_LOCAL_PWR_POS 19
 #define CSV_LOCAL_ANT_POS 20
 
+enum{
+	LLOG_STR,
+	LLOG_UINT,
+	LLOG_NA
+};
+
+typedef struct {
+	char *name;
+	uint8_t type;
+	void* val;
+} llog_at;
+
 typedef struct {
 
 	char call[CALL_LEN];
@@ -92,6 +110,8 @@ typedef struct {
 
 void reset_values(llog_t *data);
 void reset_values_static(llog_t *data);
+int dup_check(char *call, char *logfile);
+int get_data(const char *prompt, char *data);
 
 #endif
 
