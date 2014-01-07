@@ -210,7 +210,8 @@ int main(int argc, char *argv[]) {
 			printf(line, llog_data[i].name, llog_data[i].val);
 			ret=get_data(prompt, line);
 			if (ret==LLOG_EOF) {
-				i=LLOG_MAGIC;
+/*start it over, with the values intact*/
+				i=0;
 				break;
 			} else if (ret==LLOG_CANCEL) {
 				break;
