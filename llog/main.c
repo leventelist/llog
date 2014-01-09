@@ -1,5 +1,5 @@
 /*	This is llog, a minimalist HAM logging software.
- *	Copyright (C) 2013  Levente Kovacs
+ *	Copyright (C) 2013-2014  Levente Kovacs
  *	
  *	This program is free software; you can redistribute it and/or modify
  *	it under the terms of the GNU General Public License as published by
@@ -30,29 +30,17 @@
 #include <time.h>
 #include <readline/readline.h>
 #include <readline/history.h>
-
+#include "getch.h"
 
 int main(int argc, char *argv[]) {
 
 	int opt;
 	int ret;
-	uint32_t i;
+	int qrt=0;
 	char *line;
-	const char *prompt=PROMPT;
-	char substr[SUBSTR_LEN];
 	char f_line[LINE_LEN];
+	const char *prompt=PROMPT;
 
-	char logfile[LOGFILE_LEN];
-
-	char my_QRA[QRA_LEN];
-	char my_QTH[QTH_LEN];
-	char my_RIG[RIG_LEN];
-	char my_ANT[ANT_LEN];
-	char my_call[CALL_LEN];
-	char my_alt[ALT_LEN];
-	char qsl_stat[QSL_LEN];
-	struct timeval tv;
-	struct tm bdt;
 	FILE *fp;
 
 	char *csv_list[CSV_LIST_LEN];
@@ -61,49 +49,30 @@ int main(int argc, char *argv[]) {
 
 /*defaults*/
 
-	strcpy(logfile, "log.csv");
-	strcpy(qsl_stat, "TX0RX0");
-	*my_call='\0';
-	*my_QRA='\0';
-	*my_QTH='\0';
-	*my_RIG='\0';
-	*my_ANT='\0';
-	*my_alt='\0';
+	strcpy(log_variables.logfile, "log.csv");
+	strcpy(log_variables.qsl_stat, "TX0RX0");
+	*log_variables.my_call='\0';
+	*log_variables.my_QRA='\0';
+	*log_variables.my_QTH='\0';
+	*log_variables.my_RIG='\0';
+	*log_variables.my_ANT='\0';
+	*log_variables.my_alt='\0';
 
 	reset_values_static(&log_variables);
 	reset_values(&log_variables);
 
 /*confuguration storage*/
 	ConfigAttribute config_attributes[] = {
-		{"my_call", CONFIG_String, my_call},
-		{"my_QRA", CONFIG_String, my_QRA},
-		{"my_QTH", CONFIG_String, my_QTH},
-		{"my_RIG", CONFIG_String, my_RIG},
-		{"my_ANT", CONFIG_String, my_ANT},
-		{"my_ALT", CONFIG_String, my_alt},
+		{"my_call", CONFIG_String, log_variables.my_call},
+		{"my_QRA", CONFIG_String, log_variables.my_QRA},
+		{"my_QTH", CONFIG_String, log_variables.my_QTH},
+		{"my_RIG", CONFIG_String, log_variables.my_RIG},
+		{"my_ANT", CONFIG_String, log_variables.my_ANT},
+		{"my_ALT", CONFIG_String, log_variables.my_alt},
 		{"my_PWR", CONFIG_String, log_variables.pwr},
-		{"logfile", CONFIG_String, logfile},
+		{"logfile", CONFIG_String, log_variables.logfile},
 		{NULL, CONFIG_Unused, NULL}
 	};
-
-/*log data schema and storage setup*/
-
-	llog_at llog_data[] = {
-		{"Call", LLOG_STR, log_variables.call},
-		{"RXRST", LLOG_STR, log_variables.rxrst},
-		{"RXNR", LLOG_UINT, &log_variables.rx_nr},
-		{"QRA", LLOG_STR, log_variables.QRA},
-		{"Name", LLOG_STR, log_variables.name},
-		{"QTH", LLOG_STR, log_variables.QTH},
-		{"TXRST", LLOG_STR, log_variables.txrst},
-		{"TXNR", LLOG_UINT, &log_variables.tx_nr},
-		{"QRG", LLOG_STR, log_variables.QRG},
-		{"Mode", LLOG_STR, log_variables.mode},
-		{"PWR", LLOG_STR, log_variables.pwr},
-		{"Comment", LLOG_STR, log_variables.comment},
-		{NULL, LLOG_NA, NULL}
-
-};
 
 	fprintf(stderr, "\n");
 
@@ -122,28 +91,28 @@ int main(int argc, char *argv[]) {
 	while ((opt = getopt(argc, argv, "q:r:R:f:a:n:c:l:p:")) !=-1) {
 		switch (opt) {
 		case 'l':
-			strncpy(my_alt, optarg, ALT_LEN);
+			strncpy(log_variables.my_alt, optarg, ALT_LEN);
 		break;
 		case 'p':
 			strncpy(log_variables.pwr, optarg, PWR_LEN);
 		break;
 		case 'c':
-			strncpy(my_call, optarg, CALL_LEN);
+			strncpy(log_variables.my_call, optarg, CALL_LEN);
 		break;
 		case 'f':
-			strncpy(logfile, optarg, LOGFILE_LEN);
+			strncpy(log_variables.logfile, optarg, LOGFILE_LEN);
 		break;
 		case 'q':
-			strncpy(my_QTH, optarg, QTH_LEN);
+			strncpy(log_variables.my_QTH, optarg, QTH_LEN);
 		break;
 		case 'r':
-			strncpy(my_QRA, optarg, QRA_LEN);
+			strncpy(log_variables.my_QRA, optarg, QRA_LEN);
 		break;
 		case 'a':
-			strncpy(my_ANT, optarg, ANT_LEN);
+			strncpy(log_variables.my_ANT, optarg, ANT_LEN);
 		break;
 		case 'R':
-			strncpy(my_RIG, optarg, RIG_LEN);
+			strncpy(log_variables.my_RIG, optarg, RIG_LEN);
 		break;
 		case 'n':
 			log_variables.tx_nr=strtoul(optarg, NULL, 10);
@@ -158,22 +127,22 @@ int main(int argc, char *argv[]) {
 		}
 	}
 	/*Try to open the logfile. Just for test.*/
-	fp=fopen(logfile, "a+");
+	fp=fopen(log_variables.logfile, "a+");
 	if (fp==NULL) {
-		fprintf(stderr, "Could not open log file '%s'\n", logfile);
+		fprintf(stderr, "Could not open log file '%s'\n", log_variables.logfile);
 		return FILE_ERR;
 	}
 	fclose (fp);
 
-	fprintf(stderr, "Using logfile '%s'\n", logfile);
+	fprintf(stderr, "Using logfile '%s'\n", log_variables.logfile);
 	fprintf(stderr, "Using local settings: \n\n");
-	fprintf(stderr, "\tCall: %s\n\tQTH: %s\n\tQRA: %s\n\tRIG: %s\n\tANT: %s\n", my_call, my_QTH, my_QRA, my_RIG, my_ANT);
-	fprintf(stderr, "\tAltitude: %s\n\tPower: %s\n", my_alt, log_variables.pwr);
+	fprintf(stderr, "\tCall: %s\n\tQTH: %s\n\tQRA: %s\n\tRIG: %s\n\tANT: %s\n", log_variables.my_call, log_variables.my_QTH, log_variables.my_QRA, log_variables.my_RIG, log_variables.my_ANT);
+	fprintf(stderr, "\tAltitude: %s\n\tPower: %s\n", log_variables.my_alt, log_variables.pwr);
 
 	if (ret==0) {
-		fp=fopen(logfile, "r");
+		fp=fopen(log_variables.logfile, "r");
 		if (fp==NULL) {
-			fprintf(stderr, "Could not open log file '%s'\n", logfile);
+			fprintf(stderr, "\nCould not open log file '%s'\n", log_variables.logfile);
 			return FILE_ERR;
 		}
 		while (1) {
@@ -188,268 +157,83 @@ int main(int argc, char *argv[]) {
 		}
 		fclose(fp);
 	}
-	line=NULL;
 
 	fprintf(stderr, "\tTX serial number: %04d\n", log_variables.tx_nr);
 
 	while (1) {
-		reset_values(&log_variables);
-		for (i=0; i<LLOG_MAGIC; i++) {
-			if (llog_data[i].name==NULL) {
-				i=LLOG_MAGIC;
-				break;
-			}
-			switch (llog_data[i].type){
-				case LLOG_STR:
-				strcmp(line, "\n%s [%s]");
-				break;
-				case LLOG_UINT:
-				strcmp(line, "\n%s [%04u]");
-				break;
-			}
-			printf(line, llog_data[i].name, llog_data[i].val);
-			ret=get_data(prompt, line);
-			if (ret==LLOG_EOF) {
-/*start it over, with the values intact*/
-				i=0;
-				break;
-			} else if (ret==LLOG_CANCEL) {
-				break;
-			} else if (ret==LLOG_ERR) {
-				i=LLOG_MAGIC;
-				break;
-			}
+		print_log_data(&log_variables);
+		dup_check(&log_variables);
+		printf(prompt);
+		fflush(stdout);
+		opt=getch();
+		printf("\n");
+		switch (opt) {
+			case 'c':
+				ret=get_data("Call: ", log_variables.call);
+				gettimeofday(&log_variables.tv, NULL);
+				strupper(log_variables.call);
+			break;
+			case 'o':
+				ret=get_data("Operator name: ", log_variables.name);
+			break;
+			case 'r':
+				ret=get_data("RXRST: ", log_variables.rxrst);
+			break;
+			case 'R':
+				ret=get_data("TXRST: ", log_variables.txrst);
+			break;
+			case 'n':
+				ret=get_data("RXNR: ", f_line);
+				log_variables.rx_nr=strtoul(f_line, NULL, 10);;
+			break;
+			case 'N':
+				ret=get_data("TXNR: ", f_line);
+				log_variables.tx_nr=strtoul(f_line, NULL, 10);;
+			break;
+			case 't':
+				ret=get_data("QTH: ", log_variables.QTH);
+			break;
+			case 'a':
+				ret=get_data("QRA: ", log_variables.QRA);
+				strupper(log_variables.QRA);
+			break;
+			case 'g':
+				ret=get_data("QRG: ", log_variables.QRG);
+			break;
+			case 'm':
+				ret=get_data("Mode: ", log_variables.mode);
+				strupper(log_variables.mode);
+			break;
+			case 'p':
+				ret=get_data("Power: ", log_variables.pwr);
+			break;
+			case 'e':
+				ret=get_data("Comment: ", log_variables.comment);
+			break;
+			case 'w':
+				if (*log_variables.call=='\0') {
+					break;
+				}
+				ret=fwrite_log_data(&log_variables);
+				if (ret==OK) {
+					log_variables.tx_nr++;
+					reset_values(&log_variables);
+					printf("\nWritten OK.\n");
+				} else {
+					printf("\nError writing record.\n");
+				}
+			break;
+			case 'q':
+				printf("\n");
+				qrt=1;
+			break;
+		}
+		if (qrt==1) {
+			break;
 		}
 	}
 
-
-	while (1) {
-
-		free(line);
-		/*input the data*/
-
-		printf("\nCall [%s]", log_variables.call);
-		line=readline(prompt);
-		if (line==NULL) {
-			break;
-		}
-		if (*line!='\0') {
-			strncpy(log_variables.call, line, CALL_LEN);
-		}
-		free(line);
-		line=NULL;
-		if (*log_variables.call=='\0') {
-			continue;
-		}
-		/*get the time*/
-		gettimeofday(&tv, NULL);
-
-		/*check for duplicate QSOs*/
-		switch(dup_check(log_variables.call, logfile)){
-			case FILE_ERR:
-			return FILE_ERR;
-			case OK:
-			default:
-			break;
-		}
-
-		printf("TX_RST [%s]", log_variables.txrst);
-		line=readline(prompt);
-		if (line==NULL) {
-			break;
-		}
-		if (strcmp(line, CANCEL_SEQ)==0) {
-			reset_values(&log_variables);
-			continue;
-		}
-		if (*line!='\0') {
-			strncpy(log_variables.txrst, line, RST_LEN);
-		}
-		free(line);
-
-		printf("RX_RST [%s]", log_variables.rxrst);
-		line=readline(prompt);
-		if (line==NULL) {
-			break;
-		}
-		if (strcmp(line, CANCEL_SEQ)==0) {
-			reset_values(&log_variables);
-			continue;
-		}
-		if (*line!='\0') {
-			strncpy(log_variables.rxrst, line, RST_LEN);
-		}
-		free(line);
-
-		printf("Name [%s]", log_variables.name);
-		line=readline(prompt);
-		if (line==NULL) {
-			break;
-		}
-		if (strcmp(line, CANCEL_SEQ)==0) {
-			reset_values(&log_variables);
-			continue;
-		}
-		if (*line!='\0') {
-			strncpy(log_variables.name, line, NAME_LEN);
-		}
-		free(line);
-
-		printf("QTH [%s]", log_variables.QTH);
-		line=readline(prompt);
-		if (line==NULL) {
-			break;
-		}
-		if (strcmp(line, CANCEL_SEQ)==0) {
-			reset_values(&log_variables);
-			continue;
-		}
-		if (*line!='\0') {
-			strncpy(log_variables.QTH, line, QTH_LEN);
-		}
-		free(line);
-
-		printf("QRA [%s]", log_variables.QRA);
-		line=readline(prompt);
-		if (line==NULL) {
-			break;
-		}
-		if (strcmp(line, CANCEL_SEQ)==0) {
-			reset_values(&log_variables);
-			continue;
-		}
-		if (*line!='\0') {
-			strncpy(log_variables.QRA, line, QRA_LEN);
-		}
-		free(line);
-
-		printf("RX_NR [%04u]", log_variables.rx_nr);
-		line=readline(prompt);
-		if (line==NULL) {
-			break;
-		}
-		if (strcmp(line, CANCEL_SEQ)==0) {
-			reset_values(&log_variables);
-			continue;
-		}
-		if (*line!='\0') {
-			log_variables.rx_nr = strtoul(line, NULL, 0);
-		}
-		free(line);
-
-		printf("TX_NR [%04u]", log_variables.tx_nr);
-		line=readline(prompt);
-		if (line==NULL) {
-			break;
-		}
-		if (strcmp(line, CANCEL_SEQ)==0) {
-			reset_values(&log_variables);
-			continue;
-		}
-		if (*line!='\0') {
-			log_variables.tx_nr = strtoul(line, NULL, 0);
-		}
-		free(line);
-
-		printf("QRG [%s]", log_variables.QRG);
-		line=readline(prompt);
-		if (line==NULL) {
-			break;
-		}
-		if (strcmp(line, CANCEL_SEQ)==0) {
-			reset_values(&log_variables);
-			continue;
-		}
-		if (*line!='\0') {
-			strncpy(log_variables.QRG, line, QRG_LEN);
-		}
-		free(line);
-
-		printf("MODE [%s]", log_variables.mode);
-		line=readline(prompt);
-		if (line==NULL) {
-			break;
-		}
-		if (strcmp(line, CANCEL_SEQ)==0) {
-			reset_values(&log_variables);
-			continue;
-		}
-		if (*line!='\0') {
-			strncpy(log_variables.mode, line, MODE_LEN);
-		}
-		free(line);
-
-		printf("PWR [%s]", log_variables.pwr);
-		line=readline(prompt);
-		if (line==NULL) {
-			break;
-		}
-		if (strcmp(line, CANCEL_SEQ)==0) {
-			reset_values(&log_variables);
-			continue;
-		}
-		if (*line!='\0') {
-			strncpy(log_variables.pwr, line, PWR_LEN);
-		}
-		free(line);
-
-		printf("Comment [%s]", log_variables.comment);
-		line=readline(prompt);
-		if (line==NULL) {
-			break;
-		}
-		if (strcmp(line, CANCEL_SEQ)==0) {
-			reset_values(&log_variables);
-			continue;
-		}
-		if (*line!='\0') {
-			strncpy(log_variables.comment, line, COMMENT_LEN);
-		}
-		free(line);
-
-		printf("Confirm? [Y|n]");
-		line=readline(prompt);
-		if (line==NULL) {
-			break;
-		}
-		if (*line!='\0' && *line!='y' && *line!='Y') {
-			continue;
-		}
-
-		*f_line='\0';
-		gmtime_r(&(tv.tv_sec), &bdt);
-		sprintf(substr, "%d-%02d-%02d,%02d:%02d,", 1900+bdt.tm_year, 1+bdt.tm_mon, bdt.tm_mday, bdt.tm_hour, bdt.tm_min);
-		strcat(f_line, substr);
-		sprintf(substr, "%s,%s,%s,", log_variables.call, log_variables.rxrst, log_variables.txrst);
-		strcat(f_line, substr);
-		sprintf(substr, "%s,%s,%s,", log_variables.QTH, log_variables.QRA, log_variables.name);
-		strcat(f_line, substr);
-		sprintf(substr, "%s,%s,", log_variables.QRG, log_variables.mode);
-		strcat(f_line, substr);
-		sprintf(substr, "%04u,%04u,", log_variables.rx_nr, log_variables.tx_nr);
-		strcat(f_line, substr);
-		sprintf(substr, "\"%s\",%s,", log_variables.comment, qsl_stat);
-		strcat(f_line, substr);
-		sprintf(substr, "%s,%s,%s,%s,%s,%s,%s\n", my_call, my_QTH, my_QRA, my_alt, my_RIG, log_variables.pwr, my_ANT);
-		strcat(f_line, substr);
-		printf("%s", f_line);
-		fp=fopen(logfile, "a+");
-		if (fp==NULL) {
-			fprintf(stderr, "Could not open log file '%s'\n", logfile);
-			return FILE_ERR;
-		} else {
-			fprintf(fp, "%s", f_line);
-			fflush(fp);
-			fclose(fp);
-			log_variables.tx_nr++;
-			reset_values(&log_variables);
-		}
-	}
-
-	printf("\n");
-	free(line);
-
-	return OK;
+	return ret;
 }
 
 void reset_values(llog_t *data) {
@@ -477,16 +261,20 @@ void reset_values_static(llog_t *data) {
 	return;
 }
 
-int dup_check(char *call, char *logfile) {
+int dup_check(llog_t *data) {
 
 	FILE *fp;
 	char *line;
 	char f_line[LINE_LEN];
 	char *csv_list[CSV_LIST_LEN];
 
-	fp=fopen(logfile, "r");
+	if (*data->call=='\0') {
+		return OK;
+	}
+
+	fp=fopen(data->logfile, "r");
 	if (fp==NULL) {
-		fprintf(stderr, "Could not open log file '%s'\n", logfile);
+		fprintf(stderr, "Could not open log file '%s'\n", data->logfile);
 		return FILE_ERR;
 	}
 	while (1) {
@@ -495,8 +283,8 @@ int dup_check(char *call, char *logfile) {
 			break;
 		}
 		csv_parse(f_line, csv_list, CSV_LIST_LEN);
-		if (strcasestr(csv_list[CSV_CALL_POS], call)!=NULL) {
-			fprintf(stderr, "DUP QSO on %s at %s\n", csv_list[CSV_DATE_POS], csv_list[CSV_TIME_POS]);
+		if (strcasestr(csv_list[CSV_CALL_POS], data->call)!=NULL) {
+			fprintf(stderr, "DUP QSO on %s at %s; RXNR: %s TXNR: %s \n", csv_list[CSV_DATE_POS], csv_list[CSV_TIME_POS], csv_list[CSV_RXNR_POS], csv_list[CSV_TXNR_POS]);
 		}
 	}
 	fclose(fp);
@@ -511,16 +299,74 @@ int get_data(const char *prompt, char *data) {
 	ret=LLOG_ERR;
 	line=readline(prompt);
 	if (line==NULL) {
+		*data='\0';
 		ret=LLOG_EOF;
-	} else if (strcmp(line, CANCEL_SEQ)==0) {
-		ret = LLOG_CANCEL; 
-	} else if (*line!='\0') {
-		data=line;
+	} else if (*line=='\0') {
+		ret=LLOG_CANCEL;
+	} else {
+		strcpy(data, line);
 		ret=OK;
 	}
+	if (line!=NULL) {
+		free(line);
+	}
 
-	free(line);
 	return ret;
 }
 
+void print_log_data(llog_t *data) {
+
+	printf("\nc: Call [%s]\to: Operator's name: [%s]\n", data->call, data->name);
+	printf("r: RXRST [%s]\tR: TXRST [%s]\n", data->rxrst, data->txrst);
+	printf("n: RXNR [%04u]\tN: TXNR [%04u]\n", data->rx_nr, data->tx_nr);
+	printf("t: QTH [%s]\ta: QRA [%s]\n", data->QTH, data->QRA);
+	printf("g: QRG [%s]\tm: mode [%s]\tp: Power: [%s]\n", data->QRG, data->mode, data->pwr);
+	printf("e: Comment [%s]\n\n", data->comment);
+	printf("w: Write!\tq: QRT\n");
+	return;
+}
+
+int fwrite_log_data(llog_t *data) {
+
+	char substr[SUBSTR_LEN];
+	char f_line[LINE_LEN];
+	struct tm bdt;
+	FILE *fp;
+
+	*f_line='\0';
+	gmtime_r(&(data->tv.tv_sec), &bdt);
+	sprintf(substr, "%d-%02d-%02d,%02d:%02d,", 1900+bdt.tm_year, 1+bdt.tm_mon, bdt.tm_mday, bdt.tm_hour, bdt.tm_min);
+	strcat(f_line, substr);
+	sprintf(substr, "%s,%s,%s,", data->call, data->rxrst, data->txrst);
+	strcat(f_line, substr);
+	sprintf(substr, "%s,%s,%s,", data->QTH, data->QRA, data->name);
+	strcat(f_line, substr);
+	sprintf(substr, "%s,%s,", data->QRG, data->mode);
+	strcat(f_line, substr);
+	sprintf(substr, "%04u,%04u,", data->rx_nr, data->tx_nr);
+	strcat(f_line, substr);
+	sprintf(substr, "\"%s\",%s,", data->comment, data->qsl_stat);
+	strcat(f_line, substr);
+	sprintf(substr, "%s,%s,%s,%s,%s,%s,%s\n", data->my_call, data->my_QTH, data->my_QRA, data->my_alt, data->my_RIG, data->pwr, data->my_ANT);
+	strcat(f_line, substr);
+	fp=fopen(data->logfile, "a+");
+	if (fp==NULL) {
+		fprintf(stderr, "Could not open log file '%s'\n", data->logfile);
+		return FILE_ERR;
+	}
+	fprintf(fp, "%s", f_line);
+	fflush(fp);
+	fclose(fp);
+
+	return OK;
+}
+
+void strupper(char *s) {
+	while (*s) {
+		if ((*s >= 'a' ) && (*s <= 'z')) {
+			*s -= ('a'-'A');
+		}
+		s++;
+	}
+}
 
