@@ -5,7 +5,7 @@ LDFLAGS=-L/usr/lib -lm -lreadline
 
 BINDIR=${PREFIX}/bin
 
-SOURCES=main.c csv.c conf.c
+SOURCES=main.c csv.c conf.c getch.c
 
 TEST_SOURCES=
 

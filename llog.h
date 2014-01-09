@@ -1,5 +1,5 @@
 /*	This is llog, a minimalist HAM logging software.
- *	Copyright (C) 2013  Levente Kovacs
+ *	Copyright (C) 2013-2014  Levente Kovacs
  *	
  *	This program is free software; you can redistribute it and/or modify
  *	it under the terms of the GNU General Public License as published by
@@ -20,6 +20,8 @@
 #define LLOG_H
 
 #include <stdint.h>
+#include <sys/time.h>
+#include <time.h>
 
 #define CONFIG_FILE_NAME "llog.conf"
 #define LOGFILE_LEN 100
@@ -48,10 +50,7 @@
 #define LLOG_CANCEL 2
 #define LLOG_ERR 3
 
-#define LLOG_MAGIC 0xffff
-
-#define CANCEL_SEQ ":c"
-#define PROMPT ": "
+#define PROMPT "\n: "
 
 /*CSV stuff*/
 #define CSV_LIST_LEN 21
@@ -78,20 +77,7 @@
 #define CSV_LOCAL_PWR_POS 19
 #define CSV_LOCAL_ANT_POS 20
 
-enum{
-	LLOG_STR,
-	LLOG_UINT,
-	LLOG_NA
-};
-
 typedef struct {
-	char *name;
-	uint8_t type;
-	void* val;
-} llog_at;
-
-typedef struct {
-
 	char call[CALL_LEN];
 	char rxrst[RST_LEN];
 	char txrst[RST_LEN];
@@ -105,13 +91,24 @@ typedef struct {
 	char pwr[PWR_LEN];
 	uint32_t tx_nr;
 	uint32_t rx_nr;
-
+	char logfile[LOGFILE_LEN];
+	struct timeval tv;
+	char my_QRA[QRA_LEN];
+	char my_QTH[QTH_LEN];
+	char my_RIG[RIG_LEN];
+	char my_ANT[ANT_LEN];
+	char my_call[CALL_LEN];
+	char my_alt[ALT_LEN];
+	char qsl_stat[QSL_LEN];
 } llog_t;
 
 void reset_values(llog_t *data);
 void reset_values_static(llog_t *data);
-int dup_check(char *call, char *logfile);
+int dup_check(llog_t *data);
 int get_data(const char *prompt, char *data);
+void print_log_data(llog_t *data);
+int fwrite_log_data(llog_t *data);
+void strupper(char *s);
 
 #endif
 
