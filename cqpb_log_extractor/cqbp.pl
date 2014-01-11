@@ -5,6 +5,8 @@ use Geo::Distance::XS;
 use Ham::Locator;
 use Math::Round;
 use Text::CSV;
+use Math::Trig;
+use Math::Trig 'great_circle_direction';
 
 my $my_category="B";
 
@@ -38,9 +40,6 @@ my $numfields;
 #output file
 open(my $out_data, '>', "out.csv") or die "Could not open 'out.csv' $!\n";
 
-#some crap
-print $out_data "Category,$my_category\n";
-
 #write CSV header
 push (@fields, "YYYY-MM-DD");
 push (@fields, "UTC");
@@ -64,6 +63,11 @@ push (@fields, "LOCAL_RIG");
 push (@fields, "LOCAL_PWR");
 push (@fields, "LOCAL_ANT");
 push (@fields, "QRB");
+push (@fields, "AZIMUTH");
+push (@fields, "LOCAL_LAT");
+push (@fields, "LOCAL_LON");
+push (@fields, "FAR_LAT");
+push (@fields, "FAR_LON");
 push (@fields, "MULTIPLIER");
 push (@fields, "SCORE");
 
@@ -90,20 +94,31 @@ while (my $line = <$data>) {
 					$roundend_distance=5;
 				}
 				push (@fields, $roundend_distance);
+				my $az = rad2deg(great_circle_direction(deg2rad($my_longitude), deg2rad(90-$my_latitude), deg2rad($his_longitude), deg2rad(90-$his_latitude)));
+				push (@fields, nearest(1, $az));
 				my $mult;
-				if ($fields[$llog_MODE_field]=~/SSB/i || $fields[$llog_MODE_field]=~/USB/i) {
+				if ($fields[$llog_MODE_field]=~/SSB/i || $fields[$llog_MODE_field]=~/LSB/i || $fields[$llog_MODE_field]=~/USB/i) {
 					$mult=$ssb_mult;
 				} elsif ($fields[$llog_MODE_field]=~/CW/i){
 					$mult=$cw_mult;
 				} else {
 					$mult=1;
 				}
+				push (@fields, $my_latitude);
+				push (@fields, $my_longitude);
+				push (@fields, $his_latitude);
+				push (@fields, $his_longitude);
 				push (@fields, $mult);
 				$score=$mult*$roundend_distance;
 				$total_score+=($score);
 				push (@fields, $score);
 			} else {
 				push (@fields, 0);
+				push (@fields, 0);
+				push (@fields, "NaN");
+				push (@fields, "NaN");
+				push (@fields, "NaN");
+				push (@fields, "NaN");
 				push (@fields, 1);
 				push (@fields, 0);
 				print STDERR "QRA ERROR!!! Line skipped\n";
