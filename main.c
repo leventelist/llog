@@ -36,7 +36,6 @@ int main(int argc, char *argv[]) {
 
 	int opt;
 	int ret;
-	int qrt=0;
 	char *line;
 	char f_line[LINE_LEN];
 	const char *prompt=PROMPT;
@@ -135,9 +134,7 @@ int main(int argc, char *argv[]) {
 	fclose (fp);
 
 	fprintf(stderr, "Using logfile '%s'\n", log_variables.logfile);
-	fprintf(stderr, "Using local settings: \n\n");
-	fprintf(stderr, "\tCall: %s\n\tQTH: %s\n\tQRA: %s\n\tRIG: %s\n\tANT: %s\n", log_variables.my_call, log_variables.my_QTH, log_variables.my_QRA, log_variables.my_RIG, log_variables.my_ANT);
-	fprintf(stderr, "\tAltitude: %s\n\tPower: %s\n", log_variables.my_alt, log_variables.pwr);
+	print_local_values(&log_variables, 0);
 
 	if (ret==0) {
 		fp=fopen(log_variables.logfile, "r");
@@ -160,7 +157,12 @@ int main(int argc, char *argv[]) {
 
 	fprintf(stderr, "\tTX serial number: %04d\n", log_variables.tx_nr);
 
+	opt=0;
+
 	while (1) {
+		if (opt=='q') {
+			break;
+		}
 		print_log_data(&log_variables);
 		dup_check(&log_variables);
 		printf(prompt);
@@ -225,10 +227,9 @@ int main(int argc, char *argv[]) {
 			break;
 			case 'q':
 				printf("\n");
-				qrt=1;
 			break;
-		}
-		if (qrt==1) {
+			case 's':
+				llog_setup(&log_variables);
 			break;
 		}
 	}
@@ -322,7 +323,7 @@ void print_log_data(llog_t *data) {
 	printf("t: QTH [%s]\ta: QRA [%s]\n", data->QTH, data->QRA);
 	printf("g: QRG [%s]\tm: mode [%s]\tp: Power: [%s]\n", data->QRG, data->mode, data->pwr);
 	printf("e: Comment [%s]\n\n", data->comment);
-	printf("w: Write!\tq: QRT\n");
+	printf("w: Write!\tq: QRT\t s: Setup\n");
 	return;
 }
 
@@ -370,3 +371,56 @@ void strupper(char *s) {
 	}
 }
 
+int print_local_values(llog_t *data, int n) {
+
+	if (n==0) {
+	fprintf(stderr, "Using local settings: \n\n");
+	fprintf(stderr, "\tCall: %s\n\tQTH: %s\n\tQRA: %s\n\tRIG: %s\n\tANT: %s\n", data->my_call, data->my_QTH, data->my_QRA, data->my_RIG, data->my_ANT);
+	fprintf(stderr, "\tAltitude: %s\n\tPower: %s\n", data->my_alt, data->pwr);
+	} else {
+	fprintf(stderr, "c: Call [%s]\nt: QTH: [%s]\na: QRA [%s]\nr: RIG [%s]\nn: ANT [%s]\nl: Altitude [%s]\n", data->my_call, data->my_QTH, data->my_QRA, data->my_RIG, data->my_ANT, data->my_alt);
+	fprintf(stderr, "\nq: Quit\n");
+	}
+	return OK;
+}
+
+int llog_setup(llog_t *data) {
+
+	char c;
+	const char *prompt=PROMPT;
+	c=0;
+
+	while (1) {
+		if (c=='q'){
+			break;
+		}
+		print_local_values(data, 1);
+		printf(prompt);
+		fflush(stdout);
+		c=getch();
+		printf("\n");
+		switch (c) {
+			case 'c':
+				get_data("QTH: ", data->my_call);
+			break;
+			case 't':
+				get_data("QTH: ", data->my_QTH);
+			break;
+			case 'a':
+				get_data("QRA: ", data->my_QRA);
+			break;
+			case 'r':
+				get_data("RIG: ", data->my_RIG);
+			break;
+			case 'n':
+				get_data("ANT: ", data->my_ANT);
+			break;
+			case 'l':
+				get_data("ALT: ", data->my_alt);
+			break;
+
+		}
+	}
+
+	return OK;
+}
