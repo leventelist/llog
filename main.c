@@ -168,7 +168,6 @@ int main(int argc, char *argv[]) {
 		printf(prompt);
 		fflush(stdout);
 		opt=getch();
-		printf("\n");
 		switch (opt) {
 			case 'c':
 				ret=get_data("Call: ", log_variables.call);
@@ -225,6 +224,12 @@ int main(int argc, char *argv[]) {
 					printf("\nError writing record.\n");
 				}
 			break;
+			case 'x':
+				ret=get_data("Extra: ", log_variables.rx_x);
+			break;
+			case 'X':
+				ret=get_data("Extra: ", log_variables.tx_x);
+			break;
 			case 'q':
 				printf("\n");
 			break;
@@ -247,6 +252,7 @@ void reset_values(llog_t *data) {
 	strcpy(data->txrst, data->default_rst);
 	strcpy(data->comment, "73 DX!");
 	data->rx_nr=0;
+	*data->rx_x='\0';
 
 	return;
 }
@@ -258,6 +264,7 @@ void reset_values_static(llog_t *data) {
 	*data->pwr='\0';
 	data->tx_nr=1;
 	strcpy(data->default_rst, "59");
+	*data->tx_x='\0';
 
 	return;
 }
@@ -317,11 +324,12 @@ int get_data(const char *prompt, char *data) {
 
 void print_log_data(llog_t *data) {
 
-	printf("\nc: Call [%s]\to: Operator's name: [%s]\n", data->call, data->name);
-	printf("r: RXRST [%s]\tR: TXRST [%s]\n", data->rxrst, data->txrst);
-	printf("n: RXNR [%04u]\tN: TXNR [%04u]\n", data->rx_nr, data->tx_nr);
-	printf("t: QTH [%s]\ta: QRA [%s]\n", data->QTH, data->QRA);
-	printf("g: QRG [%s]\tm: mode [%s]\tp: Power: [%s]\n", data->QRG, data->mode, data->pwr);
+	printf("\nc: Call [%s]\t\t\to: Operator's name: [%s]\n", data->call, data->name);
+	printf("r: RXRST [%s]\t\t\tR: TXRST [%s]\n", data->rxrst, data->txrst);
+	printf("n: RXNR [%04u]\t\t\tN: TXNR [%04u]\n", data->rx_nr, data->tx_nr);
+	printf("x: RX_EXTRA [%s]\t\t\tX: TX_EXTRA [%s]\n", data->rx_x, data->tx_x);
+	printf("t: QTH [%s]\t\t\ta: QRA [%s]\n", data->QTH, data->QRA);
+	printf("g: QRG [%s]\t\t\ttm: mode [%s]\t\t\tp: Power: [%s]\n", data->QRG, data->mode, data->pwr);
 	printf("e: Comment [%s]\n\n", data->comment);
 	printf("w: Write!\tq: QRT\t s: Setup\n");
 	return;
@@ -336,7 +344,7 @@ int fwrite_log_data(llog_t *data) {
 
 	*f_line='\0';
 	gmtime_r(&(data->tv.tv_sec), &bdt);
-	sprintf(substr, "%d-%02d-%02d,%02d:%02d,", 1900+bdt.tm_year, 1+bdt.tm_mon, bdt.tm_mday, bdt.tm_hour, bdt.tm_min);
+	sprintf(substr, "%d-%02d-%02d,%02d%02d,", 1900+bdt.tm_year, 1+bdt.tm_mon, bdt.tm_mday, bdt.tm_hour, bdt.tm_min);
 	strcat(f_line, substr);
 	sprintf(substr, "%s,%s,%s,", data->call, data->rxrst, data->txrst);
 	strcat(f_line, substr);
@@ -345,6 +353,8 @@ int fwrite_log_data(llog_t *data) {
 	sprintf(substr, "%s,%s,", data->QRG, data->mode);
 	strcat(f_line, substr);
 	sprintf(substr, "%04u,%04u,", data->rx_nr, data->tx_nr);
+	strcat(f_line, substr);
+	sprintf(substr, "%s,%s,", data->rx_x, data->tx_x);
 	strcat(f_line, substr);
 	sprintf(substr, "\"%s\",%s,", data->comment, data->qsl_stat);
 	strcat(f_line, substr);
@@ -378,7 +388,7 @@ int print_local_values(llog_t *data, int n) {
 	fprintf(stderr, "\tCall: %s\n\tQTH: %s\n\tQRA: %s\n\tRIG: %s\n\tANT: %s\n", data->my_call, data->my_QTH, data->my_QRA, data->my_RIG, data->my_ANT);
 	fprintf(stderr, "\tAltitude: %s\n\tPower: %s\n", data->my_alt, data->pwr);
 	} else {
-	fprintf(stderr, "c: Call [%s]\nt: QTH: [%s]\na: QRA [%s]\nr: RIG [%s]\nn: ANT [%s]\nl: Altitude [%s]\n", data->my_call, data->my_QTH, data->my_QRA, data->my_RIG, data->my_ANT, data->my_alt);
+	fprintf(stderr, "\nc: Call [%s]\nt: QTH: [%s]\na: QRA [%s]\nr: RIG [%s]\nn: ANT [%s]\nl: Altitude [%s]\n", data->my_call, data->my_QTH, data->my_QRA, data->my_RIG, data->my_ANT, data->my_alt);
 	fprintf(stderr, "\nq: Quit\n");
 	}
 	return OK;
@@ -398,7 +408,6 @@ int llog_setup(llog_t *data) {
 		printf(prompt);
 		fflush(stdout);
 		c=getch();
-		printf("\n");
 		switch (c) {
 			case 'c':
 				get_data("QTH: ", data->my_call);
@@ -424,3 +433,4 @@ int llog_setup(llog_t *data) {
 
 	return OK;
 }
+
