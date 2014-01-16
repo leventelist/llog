@@ -14,10 +14,10 @@ my $ssb_mult=2;
 my $cw_mult=3;
 
 #llog stuff
-my $llog_fields=21;
+my $llog_fields=23;
 my $llog_QRA_field=6;
 my $llog_MODE_field=9;
-my $llog_MYQRA_field=16;
+my $llog_MYQRA_field=18;
 
 
 my $csv = Text::CSV->new({ sep_char => ',' });
@@ -53,6 +53,8 @@ push (@fields, "QRG");
 push (@fields, "MODE");
 push (@fields, "RXNR");
 push (@fields, "TXNR");
+push (@fields, "RX_EXTRA");
+push (@fields, "TX_EXTRA");
 push (@fields, "COMMENT");
 push (@fields, "QSL");
 push (@fields, "LOCAL_CALL");
