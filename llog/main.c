@@ -326,12 +326,12 @@ void print_log_data(llog_t *data) {
 
 	printf("\nc: Call [%s]\t\t\to: Operator's name: [%s]\n", data->call, data->name);
 	printf("r: RXRST [%s]\t\t\tR: TXRST [%s]\n", data->rxrst, data->txrst);
-	printf("n: RXNR [%04u]\t\t\tN: TXNR [%04u]\n", data->rx_nr, data->tx_nr);
-	printf("x: RX_EXTRA [%s]\t\t\tX: TX_EXTRA [%s]\n", data->rx_x, data->tx_x);
 	printf("t: QTH [%s]\t\t\ta: QRA [%s]\n", data->QTH, data->QRA);
 	printf("g: QRG [%s]\t\t\tm: mode [%s]\t\t\tp: Power: [%s]\n", data->QRG, data->mode, data->pwr);
+	printf("n: RXNR [%04u]\t\t\tN: TXNR [%04u]\n", data->rx_nr, data->tx_nr);
+	printf("x: RX_EXTRA [%s]\t\t\tX: TX_EXTRA [%s]\n", data->rx_x, data->tx_x);
 	printf("e: Comment [%s]\n\n", data->comment);
-	printf("w: Write!\tq: QRT\t s: Setup\n");
+	printf("w: Write!\tq: QRT\t\ts: Setup\n");
 	return;
 }
 
@@ -389,7 +389,7 @@ int print_local_values(llog_t *data, int n) {
 	fprintf(stderr, "\tAltitude: %s\n\tPower: %s\n", data->my_alt, data->pwr);
 	} else {
 	fprintf(stderr, "\nc: Call [%s]\nt: QTH: [%s]\na: QRA [%s]\nr: RIG [%s]\nn: ANT [%s]\nl: Altitude [%s]\n", data->my_call, data->my_QTH, data->my_QRA, data->my_RIG, data->my_ANT, data->my_alt);
-	fprintf(stderr, "\nq: Quit\n");
+	fprintf(stderr, "\nq: Quit\t\tw: Write!\n");
 	}
 	return OK;
 }
@@ -427,9 +427,54 @@ int llog_setup(llog_t *data) {
 			case 'l':
 				get_data("ALT: ", data->my_alt);
 			break;
+			case 'w':
+				write_local_values(data);
+			break;
 
 		}
 	}
+
+	return OK;
+}
+
+int write_local_values(llog_t *data) {
+
+	FILE *fp;
+
+	fp=fopen(CONFIG_FILE_NAME, "w");
+
+	if (fp==NULL) {
+		fprintf(stderr, "\nCould not open config file '%s'\n", CONFIG_FILE_NAME);
+		return FILE_ERR;
+	}
+
+	if (*data->my_call!='\0') {
+		fprintf(fp, "my_call = %s\n", data->my_call);
+	}
+	if (*data->my_QTH!='\0') {
+		fprintf(fp, "my_QTH = %s\n", data->my_QTH);
+	}
+	if (*data->my_QRA!='\0') {
+		fprintf(fp, "my_QRA = %s\n", data->my_QRA);
+	}
+	if (*data->my_RIG!='\0') {
+		fprintf(fp, "my_RIG = %s\n", data->my_RIG);
+	}
+	if (*data->my_ANT!='\0') {
+		fprintf(fp, "my_ANT = %s\n", data->my_ANT);
+	}
+	if (*data->my_alt!='\0') {
+		fprintf(fp, "my_ALT = %s\n", data->my_alt);
+	}
+	if (*data->pwr!='\0') {
+		fprintf(fp, "my_PWR = %s\n", data->pwr);
+	}
+	if (*data->logfile!='\0') {
+		fprintf(fp, "logfile = %s\n\n", data->logfile);
+	}
+	fflush(fp);
+	fclose(fp);
+	fprintf(stderr, "\nConfiguration written to file '%s'\n", CONFIG_FILE_NAME);
 
 	return OK;
 }
