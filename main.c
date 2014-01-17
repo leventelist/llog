@@ -329,7 +329,7 @@ void print_log_data(llog_t *data) {
 	printf("n: RXNR [%04u]\t\t\tN: TXNR [%04u]\n", data->rx_nr, data->tx_nr);
 	printf("x: RX_EXTRA [%s]\t\t\tX: TX_EXTRA [%s]\n", data->rx_x, data->tx_x);
 	printf("t: QTH [%s]\t\t\ta: QRA [%s]\n", data->QTH, data->QRA);
-	printf("g: QRG [%s]\t\t\ttm: mode [%s]\t\t\tp: Power: [%s]\n", data->QRG, data->mode, data->pwr);
+	printf("g: QRG [%s]\t\t\tm: mode [%s]\t\t\tp: Power: [%s]\n", data->QRG, data->mode, data->pwr);
 	printf("e: Comment [%s]\n\n", data->comment);
 	printf("w: Write!\tq: QRT\t s: Setup\n");
 	return;
