@@ -116,6 +116,7 @@ int fwrite_log_data(llog_t *data);
 void strupper(char *s);
 int llog_setup(llog_t *data);
 int print_local_values(llog_t *data, int n);
+int write_local_values(llog_t *data);
 
 #endif
 
