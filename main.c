@@ -157,7 +157,7 @@ int main(int argc, char *argv[]) {
 
 	fprintf(stderr, "\tTX serial number: %04d\n", log_variables.tx_nr);
 
-	opt=0;
+	opt='c';
 
 	while (1) {
 		if (opt=='q') {
@@ -165,14 +165,17 @@ int main(int argc, char *argv[]) {
 		}
 		print_log_data(&log_variables);
 		dup_check(&log_variables);
-		printf(prompt);
-		fflush(stdout);
-		opt=getch();
+		if (opt!='c') {
+			printf(prompt);
+			fflush(stdout);
+			opt=getch();
+		}
 		switch (opt) {
 			case 'c':
 				ret=get_data("Call: ", log_variables.call);
 				gettimeofday(&log_variables.tv, NULL);
 				strupper(log_variables.call);
+				opt=0;
 			break;
 			case 'o':
 				ret=get_data("Operator name: ", log_variables.name);
@@ -223,6 +226,7 @@ int main(int argc, char *argv[]) {
 				} else {
 					printf("\nError writing record.\n");
 				}
+				opt='c';
 			break;
 			case 'x':
 				ret=get_data("Extra: ", log_variables.rx_x);
