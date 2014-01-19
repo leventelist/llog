@@ -229,16 +229,17 @@ int main(int argc, char *argv[]) {
 				opt='c';
 			break;
 			case 'x':
-				ret=get_data("Extra: ", log_variables.rx_x);
+				ret=get_data("RX extra: ", log_variables.rx_x);
 			break;
 			case 'X':
-				ret=get_data("Extra: ", log_variables.tx_x);
+				ret=get_data("TX extra: ", log_variables.tx_x);
 			break;
 			case 'q':
 				printf("\n");
 			break;
 			case 's':
 				llog_setup(&log_variables);
+				opt='c';
 			break;
 		}
 	}
@@ -328,12 +329,12 @@ int get_data(const char *prompt, char *data) {
 
 void print_log_data(llog_t *data) {
 
-	printf("\nc: Call [%s]\t\t\to: Operator's name: [%s]\n", data->call, data->name);
-	printf("r: RXRST [%s]\t\t\tR: TXRST [%s]\n", data->rxrst, data->txrst);
-	printf("t: QTH [%s]\t\t\ta: QRA [%s]\n", data->QTH, data->QRA);
-	printf("g: QRG [%s]\t\t\tm: mode [%s]\t\t\tp: Power: [%s]\n", data->QRG, data->mode, data->pwr);
-	printf("n: RXNR [%04u]\t\t\tN: TXNR [%04u]\n", data->rx_nr, data->tx_nr);
-	printf("x: RX_EXTRA [%s]\t\t\tX: TX_EXTRA [%s]\n", data->rx_x, data->tx_x);
+	printf("\nc: Call [%s]\no: Operator's name: [%s]\n", data->call, data->name);
+	printf("r: RXRST [%s]\nR: TXRST [%s]\n", data->rxrst, data->txrst);
+	printf("t: QTH [%s]\na: QRA [%s]\n", data->QTH, data->QRA);
+	printf("g: QRG [%s]\nm: mode [%s]\np: Power: [%s]\n", data->QRG, data->mode, data->pwr);
+	printf("n: RXNR [%04u]\nN: TXNR [%04u]\n", data->rx_nr, data->tx_nr);
+	printf("x: RX_EXTRA [%s]\nX: TX_EXTRA [%s]\n", data->rx_x, data->tx_x);
 	printf("e: Comment [%s]\n\n", data->comment);
 	printf("w: Write!\tq: QRT\t\ts: Setup\n");
 	return;
