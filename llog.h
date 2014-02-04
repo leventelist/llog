@@ -19,6 +19,7 @@
 #ifndef LLOG_H
 #define LLOG_H
 
+#define VERSION "v1.0.0"
 #include <stdint.h>
 #include <sys/time.h>
 #include <time.h>
@@ -117,6 +118,7 @@ void strupper(char *s);
 int llog_setup(llog_t *data);
 int print_local_values(llog_t *data, int n);
 int write_local_values(llog_t *data);
+void printver(void);
 
 #endif
 

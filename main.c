@@ -87,7 +87,7 @@ int main(int argc, char *argv[]) {
 
 	ret=0;
 
-	while ((opt = getopt(argc, argv, "q:r:R:f:a:n:c:l:p:")) !=-1) {
+	while ((opt = getopt(argc, argv, "q:r:R:f:a:n:c:l:p:v")) !=-1) {
 		switch (opt) {
 		case 'l':
 			strncpy(log_variables.my_alt, optarg, ALT_LEN);
@@ -117,6 +117,9 @@ int main(int argc, char *argv[]) {
 			log_variables.tx_nr=strtoul(optarg, NULL, 10);
 			ret=1;
 		break;
+		case 'v':
+			printver();
+			return(OK);
 		case '?':
 		case ':':
 		default:
@@ -235,7 +238,6 @@ int main(int argc, char *argv[]) {
 			break;
 			case 's':
 				llog_setup(&log_variables);
-				opt='c';
 			break;
 		}
 	}
@@ -478,5 +480,13 @@ int write_local_values(llog_t *data) {
 	fprintf(stderr, "\nConfiguration written to file '%s'\n", CONFIG_FILE_NAME);
 
 	return OK;
+}
+
+void printver(void) {
+
+	printf("\nThis is llog, a minimalist HAM log software.\n");
+	printf("\nLicense: GNU 2.0.\n");
+	printf("Version: %s.\n", VERSION);
+	printf("Author: ha5ogl@logonex.eu.\n\n");
 }
 
