@@ -110,6 +110,7 @@ typedef struct {
 
 void reset_values(llog_t *data);
 void reset_values_static(llog_t *data);
+void set_default_rst(llog_t *data);
 int dup_check(llog_t *data);
 int get_data(const char *prompt, char *data);
 void print_log_data(llog_t *data);
