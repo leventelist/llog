@@ -207,6 +207,7 @@ int main(int argc, char *argv[]) {
 			case 'm':
 				ret=get_data("Mode: ", log_variables.mode);
 				strupper(log_variables.mode);
+				set_default_rst(&log_variables);
 			break;
 			case 'p':
 				ret=get_data("Power: ", log_variables.pwr);
@@ -266,9 +267,19 @@ void reset_values_static(llog_t *data) {
 	*data->mode='\0';
 	*data->pwr='\0';
 	data->tx_nr=1;
-	strcpy(data->default_rst, "59");
+	strcpy(data->default_rst, "599");
 	*data->tx_x='\0';
 
+	return;
+}
+
+void set_default_rst(llog_t *data) {
+
+	if (strstr(data->mode, "FM") || strstr(data->mode, "USB") || strstr(data->mode, "LSB") || strstr(data->mode, "SSB")) {
+		strcpy(data->default_rst, "59");
+	} else {
+		strcpy(data->default_rst, "599");
+	}
 	return;
 }
 
