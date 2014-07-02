@@ -19,7 +19,7 @@
 #ifndef LLOG_H
 #define LLOG_H
 
-#define VERSION "v1.0.0"
+#define VERSION "v1.1.1"
 #include <stdint.h>
 #include <sys/time.h>
 #include <time.h>

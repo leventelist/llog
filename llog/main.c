@@ -424,13 +424,15 @@ int llog_setup(llog_t *data) {
 		c=getch();
 		switch (c) {
 			case 'c':
-				get_data("QTH: ", data->my_call);
+				get_data("CALL: ", data->my_call);
+				strupper(data->my_call);
 			break;
 			case 't':
 				get_data("QTH: ", data->my_QTH);
 			break;
 			case 'a':
 				get_data("QRA: ", data->my_QRA);
+				strupper(data->my_QRA);
 			break;
 			case 'r':
 				get_data("RIG: ", data->my_RIG);
@@ -444,7 +446,6 @@ int llog_setup(llog_t *data) {
 			case 'w':
 				write_local_values(data);
 			break;
-
 		}
 	}
 
