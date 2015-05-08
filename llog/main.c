@@ -1,5 +1,5 @@
 /*	This is llog, a minimalist HAM logging software.
- *	Copyright (C) 2013-2014  Levente Kovacs
+ *	Copyright (C) 2013-2015  Levente Kovacs
  *	
  *	This program is free software; you can redistribute it and/or modify
  *	it under the terms of the GNU General Public License as published by
@@ -70,6 +70,7 @@ int main(int argc, char *argv[]) {
 		{"my_ALT", CONFIG_String, log_variables.my_alt},
 		{"my_PWR", CONFIG_String, log_variables.pwr},
 		{"logfile", CONFIG_String, log_variables.logfile},
+		{"tx_x", CONFIG_String, log_variables.tx_x},
 		{NULL, CONFIG_Unused, NULL}
 	};
 
@@ -87,7 +88,7 @@ int main(int argc, char *argv[]) {
 
 	ret=0;
 
-	while ((opt = getopt(argc, argv, "q:r:R:f:a:n:c:l:p:v")) !=-1) {
+	while ((opt = getopt(argc, argv, "q:r:R:f:a:n:c:l:p:x:v")) !=-1) {
 		switch (opt) {
 		case 'l':
 			strncpy(log_variables.my_alt, optarg, ALT_LEN);
@@ -112,6 +113,9 @@ int main(int argc, char *argv[]) {
 		break;
 		case 'R':
 			strncpy(log_variables.my_RIG, optarg, RIG_LEN);
+		break;
+		case 'x':
+			strncpy(log_variables.tx_x, optarg, X_LEN);
 		break;
 		case 'n':
 			log_variables.tx_nr=strtoul(optarg, NULL, 10);
