@@ -1,5 +1,5 @@
 /*	This is llog, a minimalist HAM logging software.
- *	Copyright (C) 2013-2014  Levente Kovacs
+ *	Copyright (C) 2013-2015  Levente Kovacs
  *	
  *	This program is free software; you can redistribute it and/or modify
  *	it under the terms of the GNU General Public License as published by
@@ -19,7 +19,7 @@
 #ifndef LLOG_H
 #define LLOG_H
 
-#define VERSION "v1.1.1"
+#define VERSION "v1.2.0"
 #include <stdint.h>
 #include <sys/time.h>
 #include <time.h>
