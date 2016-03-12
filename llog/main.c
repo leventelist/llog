@@ -1,5 +1,5 @@
 /*	This is llog, a minimalist HAM logging software.
- *	Copyright (C) 2013-2015  Levente Kovacs
+ *	Copyright (C) 2013-2016  Levente Kovacs
  *	
  *	This program is free software; you can redistribute it and/or modify
  *	it under the terms of the GNU General Public License as published by
@@ -31,6 +31,9 @@
 #include <readline/readline.h>
 #include <readline/history.h>
 #include "getch.h"
+
+void printver(void);
+void printhelp(void);
 
 int main(int argc, char *argv[]) {
 
@@ -88,8 +91,12 @@ int main(int argc, char *argv[]) {
 
 	ret=0;
 
-	while ((opt = getopt(argc, argv, "q:r:R:f:a:n:c:l:p:x:v")) !=-1) {
+	while ((opt = getopt(argc, argv, "q:r:R:f:a:n:c:l:p:x:vt:h")) !=-1) {
 		switch (opt) {
+		case 'h': /*print help*/
+			printhelp();
+			return(OK);
+		break;
 		case 'l':
 			strncpy(log_variables.my_alt, optarg, ALT_LEN);
 		break;
@@ -504,5 +511,24 @@ void printver(void) {
 	printf("\nLicense: GNU 2.0.\n");
 	printf("Version: %s.\n", VERSION);
 	printf("Author: ha5ogl@logonex.eu.\n\n");
+}
+
+void printhelp(void) {
+
+	printver();
+	printf("\nCommand line options\n\n");
+	printf("\t-c FILE\t\tUse config file FILE.\n");
+	printf("\t-f FILE\t\tWrite output to logfile FILE.\n");
+	printf("\t-l CALL\t\tUse callsigne CALL.\n");
+	printf("\t-r QRA\t\tUse QRA.\n");
+	printf("\t-q QTH\t\tUse QTH.\n");
+	printf("\t-t ALT\t\tUse altitude ALT.\n");
+	printf("\t-p PWR\t\tSet output power to PWR.\n");
+	printf("\t-a ANT\t\tUse ANT as antenna.\n");
+	printf("\t-R RIG\t\tUse RIG.\n");
+	printf("\t-n NR\t\tSet number to be transmitted to NR.\n");
+	printf("\t-x INFO\t\tSet information to be transmitted to INFO.\n");
+	printf("\t-h\t\tGet help.\n");
+	printf("\t-v\t\tPrint version information.\n\n");
 }
 
