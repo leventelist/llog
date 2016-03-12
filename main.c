@@ -97,13 +97,19 @@ int main(int argc, char *argv[]) {
 			printhelp();
 			return(OK);
 		break;
-		case 'l':
+		case 'c': /*use config file*/
+			ret=config_file_read(optarg, config_attributes);
+			if (ret==CONF_OK){
+				fprintf(stderr, "Config file read in '%s'\n", optarg);
+			}
+		break;
+		case 't':
 			strncpy(log_variables.my_alt, optarg, ALT_LEN);
 		break;
 		case 'p':
 			strncpy(log_variables.pwr, optarg, PWR_LEN);
 		break;
-		case 'c':
+		case 'l':
 			strncpy(log_variables.my_call, optarg, CALL_LEN);
 		break;
 		case 'f':
