@@ -50,18 +50,6 @@ for (my $repeater=438.425E6; $repeater<=439.575E6; $repeater+=$f_r) {
 	$ch++;
 }
 
-
-#432.994 – 433.381MHz
-#print("\nRepeaters (1.6MHz shift)\n\n");
-#for (my $repeater=433.0E6; $repeater<=433.575E6; $repeater+=12.5E3) {
-#
-#	my $rx=$repeater;
-#	my $tx=$repeater-1.6E6;
-#	calculate_dividers($ch, $rx, $tx);
-#	print ("$ch, $rx, $tx\n");
-#	$ch++;
-#}
-
 print("\nSimplex channels\n\n");
 
 #433.394 – 433.600MHz
