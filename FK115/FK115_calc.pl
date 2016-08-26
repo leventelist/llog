@@ -65,6 +65,8 @@ print("\nSimplex channels\n\n");
 
 #433.394 – 433.600MHz
 
+$ch=100;
+
 for (my $simplex=433.4E6; $simplex<=434.600E6; $simplex+=$f_r) {
 
 	my $rx=$simplex;
