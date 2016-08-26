@@ -45,7 +45,8 @@ for (my $repeater=438.425E6; $repeater<=439.575E6; $repeater+=$f_r) {
 	my $rx=$repeater;
 	my $tx=$repeater-7.6E6;
 	calculate_dividers($ch, $rx, $tx);
-	print ("$ch, $rx, $tx\n");
+	my $ch_vis=$ch+1;
+	print ("$ch_vis, $rx, $tx\n");
 	$ch++;
 }
 
@@ -70,7 +71,8 @@ for (my $simplex=433.4E6; $simplex<=434.600E6; $simplex+=$f_r) {
 	my $rx=$simplex;
 	my $tx=$simplex;
 	calculate_dividers($ch, $rx, $tx);
-	print ("$ch, $rx, $tx\n");
+	my $ch_vis=$ch+1;
+	print ("$ch_vis, $rx, $tx\n");
 	$ch++;
 }
 
