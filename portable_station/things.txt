@@ -1,0 +1,41 @@
+This file contains a list what is necessary for the portable station
+
+Items marked with asterisk is a base station accessory.
+
+Status codes:
+	R Ready
+	O Optional
+
+Power subsystem
+	Battery 12V 24Ah
+	Charger *
+	Solar panel O
+	Power Distribution Box (PDB)
+
+
+Radio subsystem
+	The radio
+	Key
+	Mic
+
+
+Computer
+	Computer SBC R
+	Audio cable
+	Power supply 5V 2A R
+	10" display
+	Power cords
+
+
+Antenna
+	LW antenna (HF bands)
+	1:9 UNUN
+	Cable
+	Slim-Jim (2m)
+	Rope (20m)
+
+
+Tools
+	Screwdriver
+	DVM
+	knife
