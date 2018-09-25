@@ -25,6 +25,7 @@ Computer
 	Power supply 5V 2A R
 	10" display
 	Power cords
+	Keyboard
 
 
 Antenna
