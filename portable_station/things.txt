@@ -5,38 +5,52 @@ Items marked with asterisk is a base station accessory.
 Status codes:
 	R Ready
 	O Optional
+	* Base
+	N Not-Ready
 
 Power subsystem
-	Battery 12V 24Ah
-	Charger *
+	Battery 12V 24Ah R
+	Charger * R
 	Solar panel O
-	Power Distribution Box (PDB)
+	Power Distribution Box (PDB) R
+	Power supply for the SBC 5V 2A (integrated into the PDB) R
 
 
 Radio subsystem
-	The radio
-	Key
-	Mic
+	The radio R
+	Key N
+	Mic R
 
 
 Computer
 	Computer SBC R
-	Audio cable
+	Audio cable R
 	Power supply 5V 2A R
-	10" display
-	Power cords
-	Keyboard
+	Keyboard R
+	USB audio interface R
+	10" display R
+	HDMI cable R
+	Power cords R
+	GPS module integration N
 
 
 Antenna
-	LW antenna (HF bands)
-	1:9 UNUN
-	Cable
-	Slim-Jim (2m)
-	Rope (20m)
+	LW antenna (HF bands) N
+	1:9 UNUN R
+	1:4 BALUN R
+	1:1 BALUN R
+	L tuner N
+	Cable R
+	Slim-Jim (2m) N
+	Rope (20m) R
+	Carabiner R
+	Cable tie R
+	Ceramic insulator R
+	Fishing Rod (12m) O N
+	Through weight R
 
 
 Tools
-	Screwdriver
-	DVM
-	knife
+	Screwdriver R
+	DVM R
+	knife R
