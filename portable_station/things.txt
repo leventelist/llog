@@ -7,24 +7,30 @@ Status codes:
 	O Optional
 
 Power subsystem
-	Battery 12V 24Ah
-	Charger *
+	Battery 12V 20Ah R
+		This is too heavy.
+	Charger * R
 	Solar panel O
 	Power Distribution Box (PDB)
+		Needs to be redone. Just a small box with screw terminal.
 
 
 Radio subsystem
-	The radio
+	The radio R (FT891)
+	Tactical carrying stuff
 	Key
-	Mic
+	Mic R
+	L type tuner R
 
 
 Computer
 	Computer SBC R
-	Audio cable
+	Audio cable R
+	USB soundcard R
 	Power supply 5V 2A R
-	10" display
-	Power cords
+	10" display R
+	Power cords R
+	USB-A to USB-B cable (to control the RIG)
 
 
 Antenna
@@ -33,9 +39,15 @@ Antenna
 	Cable
 	Slim-Jim (2m)
 	Rope (20m)
+	17.3m and 3.5m OFC
+	4:1 BALUN
+	Short windom
+	Throw weight R
+		This is basically a small bottle with a ring. Filled up with water or small rocks at the site.
+	Fishing pole
 
 
 Tools
 	Screwdriver
 	DVM
-	knife
+	Knife
