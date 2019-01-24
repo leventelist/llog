@@ -7,12 +7,13 @@ Status codes:
 	O Optional
 	* Base
 	N Not-Ready
+	A Active
 
 Power subsystem
 	Battery 12V 24Ah R
 		This is too heavy.
 	Charger * R
-	Solar panel O
+	Solar panel O N
 	Power Distribution Box (PDB) R
 		Needs to be redone. Just a small box with screw terminal.
 	Power supply for the SBC 5V 2A (integrated into the PDB) R
@@ -22,7 +23,7 @@ Radio subsystem
 	The radio R (FT891)
 	Key N
 	Mic R
-	Tactical carrying stuff
+	Tactical carrying stuff A
 
 
 Computer
@@ -41,7 +42,7 @@ Antenna
 	17.3m and 3.5m OFC N
 	Short windom N
 	1:9 UNUN R
-	1:4 BALUN N
+	1:4 BALUN A
 	1:1 BALUN R
 	L tuner R
 	Cable R
