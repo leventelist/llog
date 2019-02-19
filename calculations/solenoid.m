@@ -24,4 +24,3 @@ p = l / n
 #Wire length
 wl = n * sqrt(((D + Dw) * pi)^2 + p^2)
 
-
