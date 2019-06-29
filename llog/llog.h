@@ -1,16 +1,16 @@
 /*	This is llog, a minimalist HAM logging software.
  *	Copyright (C) 2013-2015  Levente Kovacs
- *	
+ *
  *	This program is free software; you can redistribute it and/or modify
  *	it under the terms of the GNU General Public License as published by
  *	the Free Software Foundation; either version 2 of the License, or
  *	(at your option) any later version.
- *	
+ *
  *	This program is distributed in the hope that it will be useful,
  *	but WITHOUT ANY WARRANTY; without even the implied warranty of
  *	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *	GNU General Public License for more details.
- *	
+ *
  *	You should have received a copy of the GNU General Public License
  *	along with this program; if not, write to the Free Software
  *	Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
@@ -23,6 +23,10 @@
 #include <stdint.h>
 #include <sys/time.h>
 #include <time.h>
+#include <sqlite3.h>
+#include "debug.h"
+
+#define DATABASE_TIMEOUT 1000
 
 #define CONFIG_FILE_NAME "llog.conf"
 #define LOGFILE_LEN 100
@@ -106,6 +110,9 @@ typedef struct {
 	char my_call[CALL_LEN];
 	char my_alt[ALT_LEN];
 	char qsl_stat[QSL_LEN];
+	char sqlite_fn[256];
+	sqlite3 *db;
+	debug_t *dbg;
 } llog_t;
 
 void reset_values(llog_t *data);
