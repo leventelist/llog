@@ -1,5 +1,5 @@
 /*	This is llog, a minimalist HAM logging software.
- *	Copyright (C) 2013-2015  Levente Kovacs
+ *	Copyright (C) 2013-2019  Levente Kovacs
  *
  *	This program is free software; you can redistribute it and/or modify
  *	it under the terms of the GNU General Public License as published by
@@ -28,7 +28,6 @@
 
 #define DATABASE_TIMEOUT 1000
 
-#define CONFIG_FILE_NAME "llog.conf"
 #define LOGFILE_LEN 100
 #define QTH_LEN 100
 #define QRA_LEN 20
@@ -41,12 +40,13 @@
 #define NAME_LEN 100
 #define COMMENT_LEN 200
 #define QSL_LEN 10
-#define ALT_LEN 20
+#define ASL_LEN 20
 #define PWR_LEN 20
 #define LIST_LEN 50
 #define LINE_LEN 1024
 #define SUBSTR_LEN 512
 #define X_LEN 40
+#define STATION_LEN 256
 
 #define OK 0
 #define FILE_ERR 1
@@ -86,47 +86,48 @@
 #define CSV_LOCAL_ANT_POS 22
 
 typedef struct {
-	char call[CALL_LEN];
-	char rxrst[RST_LEN];
-	char txrst[RST_LEN];
-	char QTH[QTH_LEN];
-	char name[NAME_LEN];
-	char comment[COMMENT_LEN];
-	char default_rst[RST_LEN];
-	char QRA[QRA_LEN];
-	char QRG[QRG_LEN];
-	char mode[MODE_LEN];
-	char pwr[PWR_LEN];
-	uint32_t tx_nr;
-	uint32_t rx_nr;
-	char rx_x[X_LEN];
-	char tx_x[X_LEN];
-	char logfile[LOGFILE_LEN];
-	struct timeval tv;
-	char my_QRA[QRA_LEN];
-	char my_QTH[QTH_LEN];
-	char my_RIG[RIG_LEN];
-	char my_ANT[ANT_LEN];
-	char my_call[CALL_LEN];
-	char my_alt[ALT_LEN];
-	char qsl_stat[QSL_LEN];
-	char sqlite_fn[256];
+	char defaultRst[RST_LEN];
+	char logfileFn[LOGFILE_LEN]; /*SQLite database file name*/
+	char station[STATION_LEN];
 	sqlite3 *db;
 	debug_t *dbg;
 } llog_t;
 
-void reset_values(llog_t *data);
-void reset_values_static(llog_t *data);
-void set_default_rst(llog_t *data);
-int dup_check(llog_t *data);
-int get_data(const char *prompt, char *data);
-void print_log_data(llog_t *data);
-int fwrite_log_data(llog_t *data);
-void strupper(char *s);
-int llog_setup(llog_t *data);
-int print_local_values(llog_t *data, int n);
-int write_local_values(llog_t *data);
-void printver(void);
+
+typedef struct {
+	char call[CALL_LEN];
+	char rxrst[RST_LEN];
+	char txrst[RST_LEN];
+	uint64_t tx_nr;
+	uint64_t rx_nr;
+	char rx_x[X_LEN];
+	char tx_x[X_LEN];
+	char QTH[QTH_LEN];
+	char name[NAME_LEN];
+	char QRA[QRA_LEN];
+	char QRG[QRG_LEN];
+	char mode[MODE_LEN];
+	char pwr[PWR_LEN];
+	char comment[COMMENT_LEN];
+	uint64_t stationId;
+	struct timeval tv;
+} logEntryT;
+
+
+typedef struct {
+	uint64_t id;
+	char name[NAME_LEN];
+	char call[CALL_LEN];
+	char QTH[QTH_LEN];
+	char QRA[QRA_LEN];
+	char ASL[ASL_LEN];
+	char RIG[RIG_LEN];
+	char ANT[ANT_LEN];
+} stationEntryT;
+
+
+
+
 
 #endif
 
