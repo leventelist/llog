@@ -40,11 +40,11 @@ int db_sqlite_init(llog_t *llog) {
 
 	int ret;
 
-	ret = sqlite3_open(llog->sqlite_fn, &llog->db);
+	ret = sqlite3_open(llog->logfileFn, &llog->db);
 
 	do {
 		if (ret != SQLITE_OK) {
-			debug(llog->dbg, DEBUG_ERR, "%s: Error opening the log database '%s'.\n", __func__, llog->sqlite_fn);
+			debug(llog->dbg, DEBUG_ERR, "%s: Error opening the log database '%s'.\n", __func__, llog->logfileFn);
 			break;
 		}
 		sqlite3_busy_timeout(llog->db, DATABASE_TIMEOUT);
@@ -61,6 +61,53 @@ int db_sqlite_close(llog_t *llog) {
 }
 
 
+int lookupStation(llog_t *llog, stationEntryT *station) {
+	sqlite3_stmt *sq3_stmt;
+	char buff[BUF_SIZ];
+	int ret, retVal = OK;
+	int haveWork;
+
+	sprintf(buff, "SELECT rowid FROM station WHERE name=%s OR rowid=%s ORDER BY rowid DESC LIMIT 1;", llog->station, llog->station);
+	sqlite3_prepare_v2(llog->db, buff, -1, &sq3_stmt, NULL);
+
+
+	while (haveWork == 1) {
+		ret = sqlite3_step(sq3_stmt);
+		switch (ret) {
+		case SQLITE_ROW:
+		station->id = sqlite3_column_int64(sq3_stmt, 0);
+		break;
+		case SQLITE_DONE:
+		haveWork = 0;
+		break;
+		case SQLITE_BUSY:
+		retVal = LLOG_ERR;
+		break;
+		default:
+		retVal = LLOG_ERR;
+		break;
+		}
+	}
+
+	return retVal;
+}
+
+
+int setStation() {
+	sqlite3_stmt *sq3_stmt;
+	char buff[BUF_SIZ];
+
+}
+
+
+int getLogEntry() {
+	sqlite3_stmt *sq3_stmt;
+}
+
+
+int setLogEntry() {
+	sqlite3_stmt *sq3_stmt;
+}
 //uint8_t db_select_zones_to_run(hm_t *hm_data, uint32_t timing) {
 //
 //	sqlite3_stmt *sq3_stmt;

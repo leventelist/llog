@@ -31,9 +31,24 @@
 #include <readline/readline.h>
 #include <readline/history.h>
 #include "getch.h"
+#include "db_sqlite.h"
 
-void printver(void);
-void printhelp(void);
+static void printver(void);
+static void printhelp(void);
+
+static void reset_values(llog_t *log, logEntryT *entry);
+static void reset_values_static(llog_t *log, logEntryT *entry);
+static void set_default_rst(llog_t *data);
+static int dup_check(llog_t *data);
+static int get_data(const char *prompt, char *data);
+static void print_log_data(llog_t *data);
+static int fwrite_log_data(llog_t *data);
+static void strupper(char *s);
+static int llog_setup(llog_t *data);
+static int print_local_values(llog_t *data, int n);
+static void printver(void);
+
+
 
 int main(int argc, char *argv[]) {
 
@@ -45,95 +60,31 @@ int main(int argc, char *argv[]) {
 
 	FILE *fp;
 
-	char *csv_list[CSV_LIST_LEN];
-
 	llog_t llog;
-
+	logEntryT logEntry;
+	stationEntryT station;
 
 
 /*defaults*/
 
-	strcpy(log_variables.logfile, "log.csv");
-	strcpy(log_variables.qsl_stat, "TX0RX0");
-	*log_variables.my_call='\0';
-	*log_variables.my_QRA='\0';
-	*log_variables.my_QTH='\0';
-	*log_variables.my_RIG='\0';
-	*log_variables.my_ANT='\0';
-	*log_variables.my_alt='\0';
+	strcpy(llog.logfileFn, "log.sqlite");
 
-	reset_values_static(&log_variables);
-	reset_values(&log_variables);
 
-/*confuguration storage*/
-	ConfigAttribute config_attributes[] = {
-		{"my_call", CONFIG_String, log_variables.my_call},
-		{"my_QRA", CONFIG_String, log_variables.my_QRA},
-		{"my_QTH", CONFIG_String, log_variables.my_QTH},
-		{"my_RIG", CONFIG_String, log_variables.my_RIG},
-		{"my_ANT", CONFIG_String, log_variables.my_ANT},
-		{"my_ALT", CONFIG_String, log_variables.my_alt},
-		{"my_PWR", CONFIG_String, log_variables.pwr},
-		{"logfile", CONFIG_String, log_variables.logfile},
-		{"tx_x", CONFIG_String, log_variables.tx_x},
-		{NULL, CONFIG_Unused, NULL}
-	};
-
-	fprintf(stderr, "\n");
-
-/*read config file(s)*/
-	ret=config_file_read("~/"CONFIG_FILE_NAME, config_attributes);
-	if (ret==CONF_OK){
-		fprintf(stderr, "Config file read in '%s'\n", "~/"CONFIG_FILE_NAME);
-	}
-	ret=config_file_read("./"CONFIG_FILE_NAME, config_attributes);
-	if (ret==CONF_OK){
-		fprintf(stderr, "Config file read in '%s'\n", "./"CONFIG_FILE_NAME);
-	}
 
 	ret=0;
 
-	while ((opt = getopt(argc, argv, "q:r:R:f:a:n:c:l:p:x:vt:h")) !=-1) {
+	while ((opt = getopt(argc, argv, "f:s:hv")) !=-1) {
 		switch (opt) {
 		case 'h': /*print help*/
 			printhelp();
 			return(OK);
 		break;
-		case 'c': /*use config file*/
-			ret=config_file_read(optarg, config_attributes);
-			if (ret==CONF_OK){
-				fprintf(stderr, "Config file read in '%s'\n", optarg);
-			}
-		break;
-		case 't':
-			strncpy(log_variables.my_alt, optarg, ALT_LEN);
-		break;
-		case 'p':
-			strncpy(log_variables.pwr, optarg, PWR_LEN);
-		break;
-		case 'l':
-			strncpy(log_variables.my_call, optarg, CALL_LEN);
-		break;
+
 		case 'f':
-			strncpy(log_variables.logfile, optarg, LOGFILE_LEN);
+			strncpy(llog.logfileFn, optarg, LOGFILE_LEN);
 		break;
-		case 'q':
-			strncpy(log_variables.my_QTH, optarg, QTH_LEN);
-		break;
-		case 'r':
-			strncpy(log_variables.my_QRA, optarg, QRA_LEN);
-		break;
-		case 'a':
-			strncpy(log_variables.my_ANT, optarg, ANT_LEN);
-		break;
-		case 'R':
-			strncpy(log_variables.my_RIG, optarg, RIG_LEN);
-		break;
-		case 'x':
-			strncpy(log_variables.tx_x, optarg, X_LEN);
-		break;
-		case 'n':
-			log_variables.tx_nr=strtoul(optarg, NULL, 10);
+		case 's':
+			strncpy(llog.station, optarg, STATION_LEN);
 			ret=1;
 		break;
 		case 'v':
@@ -143,42 +94,29 @@ int main(int argc, char *argv[]) {
 		case ':':
 		default:
 			printf("Error parsing the command line arguemts\n");
+			printhelp();
 			return(CMD_LINE_ERR);
 			break;
 		}
 	}
 	/*Try to open the logfile. Just for test.*/
-	db_sqlite_init(&llog);
-	fp=fopen(log_variables.logfile, "a+");
-	if (fp==NULL) {
-		fprintf(stderr, "Could not open log file '%s'\n", log_variables.logfile);
+	ret = db_sqlite_init(&llog);
+
+	if (ret != SQLITE_OK) {
+		fprintf(stderr, "Could not open log file '%s'\n", llog.logfileFn);
 		return FILE_ERR;
 	}
-	fclose (fp);
 
-	fprintf(stderr, "Using logfile '%s'\n", log_variables.logfile);
-	print_local_values(&log_variables, 0);
 
-	if (ret==0) {
-		fp=fopen(log_variables.logfile, "r");
-		if (fp==NULL) {
-			fprintf(stderr, "\nCould not open log file '%s'\n", log_variables.logfile);
-			return FILE_ERR;
-		}
-		while (1) {
-			line=fgets(f_line, LINE_LEN, fp);
-			if (line==NULL) {
-				break;
-			}
-			if (csv_parse(f_line, csv_list, CSV_LIST_LEN)<CSV_LIST_LEN) {
-				continue;
-			}
-			log_variables.tx_nr=1 + strtoul(csv_list[CSV_TXNR_POS], NULL, 10);
-		}
-		fclose(fp);
-	}
+	fprintf(stderr, "Using logfile '%s'\n", llog.logfileFn);
+//	print_local_values(&log_variables, 0);
 
-	fprintf(stderr, "\tTX serial number: %04d\n", log_variables.tx_nr);
+
+/*get the maximum TX number*/
+
+
+
+//	fprintf(stderr, "\tTX serial number: %04d\n", log_variables.tx_nr);
 
 	opt='0';
 
@@ -186,79 +124,79 @@ int main(int argc, char *argv[]) {
 		if (opt=='q') {
 			break;
 		}
-		print_log_data(&log_variables);
-		dup_check(&log_variables);
+//		print_log_data(&log_variables);
+//		dup_check(&log_variables);
 		printf(prompt);
 		fflush(stdout);
 		opt=getch();
 		switch (opt) {
 			case 'c':
-				ret=get_data("Call: ", log_variables.call);
-				gettimeofday(&log_variables.tv, NULL);
-				strupper(log_variables.call);
+				ret=get_data("Call: ", logEntry.call);
+				gettimeofday(&logEntry.tv, NULL);
+				strupper(logEntry.call);
 			break;
 			case 'o':
-				ret=get_data("Operator name: ", log_variables.name);
+				ret=get_data("Operator name: ", logEntry.name);
 			break;
 			case 'r':
-				ret=get_data("RXRST: ", log_variables.rxrst);
+				ret=get_data("RXRST: ", logEntry.rxrst);
 			break;
 			case 'R':
-				ret=get_data("TXRST: ", log_variables.txrst);
+				ret=get_data("TXRST: ", logEntry.txrst);
 			break;
 			case 'n':
 				ret=get_data("RXNR: ", f_line);
-				log_variables.rx_nr=strtoul(f_line, NULL, 10);;
+				logEntry.rx_nr=strtoul(f_line, NULL, 10);;
 			break;
 			case 'N':
 				ret=get_data("TXNR: ", f_line);
-				log_variables.tx_nr=strtoul(f_line, NULL, 10);;
+				logEntry.tx_nr=strtoul(f_line, NULL, 10);;
 			break;
 			case 't':
-				ret=get_data("QTH: ", log_variables.QTH);
+				ret=get_data("QTH: ", logEntry.QTH);
 			break;
 			case 'a':
-				ret=get_data("QRA: ", log_variables.QRA);
-				strupper(log_variables.QRA);
+				ret=get_data("QRA: ", logEntry.QRA);
+				strupper(logEntry.QRA);
 			break;
 			case 'g':
-				ret=get_data("QRG: ", log_variables.QRG);
+				ret=get_data("QRG: ", logEntry.QRG);
 			break;
 			case 'm':
-				ret=get_data("Mode: ", log_variables.mode);
-				strupper(log_variables.mode);
-				set_default_rst(&log_variables);
+				ret=get_data("Mode: ", logEntry.mode);
+				strupper(logEntry.mode);
+				set_default_rst(&logEntry);
 			break;
 			case 'p':
-				ret=get_data("Power: ", log_variables.pwr);
+				ret=get_data("Power: ", logEntry.pwr);
 			break;
 			case 'e':
-				ret=get_data("Comment: ", log_variables.comment);
+				ret=get_data("Comment: ", logEntry.comment);
 			break;
 			case 'w':
-				if (*log_variables.call=='\0') {
+				if (*logEntry.call=='\0') {
 					break;
 				}
-				ret=fwrite_log_data(&log_variables);
+				ret=fwrite_log_data(&logEntry);
 				if (ret==OK) {
-					log_variables.tx_nr++;
-					reset_values(&log_variables);
+					logEntry.tx_nr++;
+					reset_values(&llog, &logEntry);
 					printf("\nWritten OK.\n");
 				} else {
 					printf("\nError writing record.\n");
 				}
 			break;
 			case 'x':
-				ret=get_data("RX extra: ", log_variables.rx_x);
+				ret=get_data("RX extra: ", logEntry.rx_x);
 			break;
 			case 'X':
-				ret=get_data("TX extra: ", log_variables.tx_x);
+				ret=get_data("TX extra: ", logEntry.tx_x);
 			break;
 			case 'q':
 				printf("\n");
 			break;
 			case 's':
-				llog_setup(&log_variables);
+				llog_setup(&logEntry);
 			break;
 		}
 	}
@@ -266,34 +204,36 @@ int main(int argc, char *argv[]) {
 	return ret;
 }
 
-void reset_values(llog_t *data) {
+static void reset_values(llog_t *log, logEntryT *entry) {
 
-	*data->QTH='\0';
-	*data->QRA='\0';
-	*data->call='\0';
-	*data->name='\0';
-	strcpy(data->rxrst, data->default_rst);
-	strcpy(data->txrst, data->default_rst);
-	strcpy(data->comment, "73 DX!");
-	data->rx_nr=0;
-	*data->rx_x='\0';
-
-	return;
-}
-
-void reset_values_static(llog_t *data) {
-
-	*data->QRG='\0';
-	*data->mode='\0';
-	*data->pwr='\0';
-	data->tx_nr=1;
-	strcpy(data->default_rst, "599");
-	*data->tx_x='\0';
+	*entry->QTH='\0';
+	*entry->QRA='\0';
+	*entry->call='\0';
+	*entry->name='\0';
+	strcpy(entry->rxrst, log->defaultRst);
+	strcpy(entry->txrst, log->defaultRst);
+	strcpy(entry->comment, "73 DX!");
+	entry->rx_nr=0;
+	*entry->rx_x='\0';
 
 	return;
 }
 
-void set_default_rst(llog_t *data) {
+
+static void reset_values_static(llog_t *log, logEntryT *entry) {
+
+	*entry->QRG='\0';
+	*entry->mode='\0';
+	*entry->pwr='\0';
+	entry->tx_nr=1;
+//	strcpy(entry->default_rst, "599");
+	*entry->tx_x='\0';
+
+	return;
+}
+
+
+static void set_default_rst(llog_t *data) {
 
 	if (strstr(data->mode, "FM") || strstr(data->mode, "USB") || strstr(data->mode, "LSB") || strstr(data->mode, "SSB")) {
 		strcpy(data->default_rst, "59");
@@ -303,7 +243,8 @@ void set_default_rst(llog_t *data) {
 	return;
 }
 
-int dup_check(llog_t *data) {
+
+static int dup_check(llog_t *data) {
 
 	FILE *fp;
 	char *line;
@@ -333,7 +274,8 @@ int dup_check(llog_t *data) {
 	return OK;
 }
 
-int get_data(const char *prompt, char *data) {
+
+static int get_data(const char *prompt, char *data) {
 
 	char *line;
 	int ret;
@@ -356,7 +298,8 @@ int get_data(const char *prompt, char *data) {
 	return ret;
 }
 
-void print_log_data(llog_t *data) {
+
+static void print_log_data(llog_t *data) {
 
 	printf("\nc: Call [%s]\no: Operator's name: [%s]\n", data->call, data->name);
 	printf("r: RXRST [%s]\nR: TXRST [%s]\n", data->rxrst, data->txrst);
@@ -369,7 +312,8 @@ void print_log_data(llog_t *data) {
 	return;
 }
 
-int fwrite_log_data(llog_t *data) {
+
+static int fwrite_log_data(llog_t *data) {
 
 	char substr[SUBSTR_LEN];
 	char f_line[LINE_LEN];
@@ -406,7 +350,8 @@ int fwrite_log_data(llog_t *data) {
 	return OK;
 }
 
-void strupper(char *s) {
+
+static void strupper(char *s) {
 	while (*s) {
 		if ((*s >= 'a' ) && (*s <= 'z')) {
 			*s -= ('a'-'A');
@@ -472,49 +417,8 @@ int llog_setup(llog_t *data) {
 	return OK;
 }
 
-int write_local_values(llog_t *data) {
 
-	FILE *fp;
-
-	fp=fopen(CONFIG_FILE_NAME, "w");
-
-	if (fp==NULL) {
-		fprintf(stderr, "\nCould not open config file '%s'\n", CONFIG_FILE_NAME);
-		return FILE_ERR;
-	}
-
-	if (*data->my_call!='\0') {
-		fprintf(fp, "my_call = %s\n", data->my_call);
-	}
-	if (*data->my_QTH!='\0') {
-		fprintf(fp, "my_QTH = %s\n", data->my_QTH);
-	}
-	if (*data->my_QRA!='\0') {
-		fprintf(fp, "my_QRA = %s\n", data->my_QRA);
-	}
-	if (*data->my_RIG!='\0') {
-		fprintf(fp, "my_RIG = %s\n", data->my_RIG);
-	}
-	if (*data->my_ANT!='\0') {
-		fprintf(fp, "my_ANT = %s\n", data->my_ANT);
-	}
-	if (*data->my_alt!='\0') {
-		fprintf(fp, "my_ALT = %s\n", data->my_alt);
-	}
-	if (*data->pwr!='\0') {
-		fprintf(fp, "my_PWR = %s\n", data->pwr);
-	}
-	if (*data->logfile!='\0') {
-		fprintf(fp, "logfile = %s\n\n", data->logfile);
-	}
-	fflush(fp);
-	fclose(fp);
-	fprintf(stderr, "\nConfiguration written to file '%s'\n", CONFIG_FILE_NAME);
-
-	return OK;
-}
-
-void printver(void) {
+static void printver(void) {
 
 	printf("\nThis is llog, a minimalist HAM log software.\n");
 	printf("\nLicense: GNU 2.0.\n");
@@ -522,7 +426,8 @@ void printver(void) {
 	printf("Author: ha5ogl@logonex.eu.\n\n");
 }
 
-void printhelp(void) {
+
+static void printhelp(void) {
 
 	printver();
 	printf("\nCommand line options\n\n");
