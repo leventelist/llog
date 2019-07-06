@@ -1,6 +1,5 @@
-/*	This is home_manager, which is a home controller daemon.
- *
- *	Copyright (C) 2014-2015 Levente Kovacs
+/*	This is llog, a minimalist HAM logging software.
+ *	Copyright (C) 2013-2019  Levente Kovacs
  *
  *	This program is free software; you can redistribute it and/or modify
  *	it under the terms of the GNU General Public License as published by
@@ -29,17 +28,8 @@
 
 #define BUF_SIZ 2048
 
-#define DEV_LOG_FIELDS "id INTEGER PRIMARY KEY AUTOINCREMENT, value REAL, param INTEGER, access_time INTEGER, sample_time INTEGER"
-#define ZONE_LOG_FIELDS "id INTEGER PRIMARY KEY AUTOINCREMENT, value REAL, param INTEGER, access_time INTEGER, sample_time INTEGER"
-
-
-/*zone select mode*/
-#define DB_NO_TIMING 0
-#define DB_USE_TIMING 1
-
 
 /*return values*/
-
 #define DB_OK 0
 #define DB_ERROR 1
 
