@@ -39,9 +39,8 @@ static void printver(void);
 static void printhelp(void);
 
 static void reset_values(llog_t *log, logEntry_t *entry);
-static void reset_values_static(llog_t *log, logEntry_t *entry);
+static void reset_values_static(logEntry_t *entry);
 static void set_default_rst(llog_t *log, logEntry_t *entry);
-static int dup_check(llog_t log, logEntry_t *data);
 static int get_data(const char *prompt, char *data);
 static void print_log_data(logEntry_t *entry);
 static void strupper(char *s);
@@ -82,7 +81,6 @@ int main(int argc, char *argv[]) {
 		break;
 		case 's':
 			strncpy(llog.station, optarg, STATION_LEN);
-			ret=1;
 		break;
 		case 'v':
 			printver();
@@ -108,10 +106,18 @@ int main(int argc, char *argv[]) {
 	fprintf(stderr, "Using logfile '%s'\n", llog.logfileFn);
 //	print_local_values(&log_variables, 0);
 
+	ret = lookupStation(&llog, &station);
+
+	logEntry.stationId = station.id;
+
+	set_default_rst(&llog, &logEntry);
+	reset_values(&llog, &logEntry);
+	reset_values_static(&logEntry);
+
 
 /*get the maximum TX number*/
 
-
+	getMaxNr(&llog, &logEntry);
 
 //	fprintf(stderr, "\tTX serial number: %04d\n", log_variables.tx_nr);
 
@@ -121,8 +127,8 @@ int main(int argc, char *argv[]) {
 		if (opt=='q') {
 			break;
 		}
-//		print_log_data(&log_variables);
-//		dup_check(&log_variables);
+		print_log_data(&logEntry);
+		checkDupQSO(&llog, &logEntry);
 		printf(prompt);
 		fflush(stdout);
 		opt=getch();
@@ -175,7 +181,7 @@ int main(int argc, char *argv[]) {
 				if (*logEntry.call=='\0') {
 					break;
 				}
-//				ret= /*Write log entry*/
+				ret = setLogEntry(&llog, &logEntry);
 				if (ret==OK) {
 					logEntry.tx_nr++;
 					reset_values(&llog, &logEntry);
@@ -192,15 +198,19 @@ int main(int argc, char *argv[]) {
 			break;
 			case 'q':
 				printf("\n");
+				db_sqlite_close(&llog);
 			break;
-//			case 's':
-//
-//			break;
+			case 's':
+				ret = get_data("Station ID or name: ", llog.station);
+				lookupStation(&llog, &station);
+				logEntry.stationId = station.id;
+			break;
 		}
 	}
 
 	return ret;
 }
+
 
 static void reset_values(llog_t *log, logEntry_t *entry) {
 
@@ -218,13 +228,12 @@ static void reset_values(llog_t *log, logEntry_t *entry) {
 }
 
 
-static void reset_values_static(llog_t *log, logEntry_t *entry) {
+static void reset_values_static(logEntry_t *entry) {
 
 	entry->QRG=0;
 	*entry->mode='\0';
 	*entry->pwr='\0';
 	entry->tx_nr=1;
-//	strcpy(entry->default_rst, "599");
 	*entry->tx_x='\0';
 
 	return;
@@ -239,20 +248,6 @@ static void set_default_rst(llog_t *log, logEntry_t *entry) {
 		strcpy(log->defaultRst, "599");
 	}
 	return;
-}
-
-
-static int dup_check(llog_t log, logEntry_t *data) {
-
-	char *line;
-	char f_line[LINE_LEN];
-	char *csv_list[CSV_LIST_LEN];
-
-	if (*data->call=='\0') {
-		return OK;
-	}
-
-
 }
 
 
@@ -289,7 +284,7 @@ static void print_log_data(logEntry_t *entry) {
 	printf("n: RXNR [%04"PRIu64"]\nN: TXNR [%04"PRIu64"]\n", entry->rx_nr, entry->tx_nr);
 	printf("x: RX_EXTRA [%s]\nX: TX_EXTRA [%s]\n", entry->rx_x, entry->tx_x);
 	printf("e: Comment [%s]\n\n", entry->comment);
-	printf("w: Write!\tq: QRT\t\ts: Setup\n");
+	printf("w: Write!\tq: QRT\t\ts: Select station\n");
 	return;
 }
 
@@ -317,18 +312,10 @@ static void printhelp(void) {
 
 	printver();
 	printf("\nCommand line options\n\n");
-	printf("\t-c FILE\t\tUse config file FILE.\n");
+	printf("\t-s STATIOM\t\tSelect station. Id or name.\n");
 	printf("\t-f FILE\t\tWrite output to logfile FILE.\n");
-	printf("\t-l CALL\t\tUse callsigne CALL.\n");
-	printf("\t-r QRA\t\tUse QRA.\n");
-	printf("\t-q QTH\t\tUse QTH.\n");
-	printf("\t-t ALT\t\tUse altitude ALT.\n");
-	printf("\t-p PWR\t\tSet output power to PWR.\n");
-	printf("\t-a ANT\t\tUse ANT as antenna.\n");
-	printf("\t-R RIG\t\tUse RIG.\n");
 	printf("\t-n NR\t\tSet number to be transmitted to NR.\n");
 	printf("\t-x INFO\t\tSet information to be transmitted to INFO.\n");
 	printf("\t-h\t\tGet help.\n");
 	printf("\t-v\t\tPrint version information.\n\n");
 }
-
