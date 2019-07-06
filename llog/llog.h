@@ -24,7 +24,6 @@
 #include <sys/time.h>
 #include <time.h>
 #include <sqlite3.h>
-#include "debug.h"
 
 #define DATABASE_TIMEOUT 1000
 
@@ -90,7 +89,6 @@ typedef struct {
 	char logfileFn[LOGFILE_LEN]; /*SQLite database file name*/
 	char station[STATION_LEN];
 	sqlite3 *db;
-	debug_t *dbg;
 } llog_t;
 
 
@@ -105,13 +103,13 @@ typedef struct {
 	char QTH[QTH_LEN];
 	char name[NAME_LEN];
 	char QRA[QRA_LEN];
-	char QRG[QRG_LEN];
+	double QRG;
 	char mode[MODE_LEN];
 	char pwr[PWR_LEN];
 	char comment[COMMENT_LEN];
 	uint64_t stationId;
 	struct timeval tv;
-} logEntryT;
+} logEntry_t;
 
 
 typedef struct {
@@ -123,7 +121,7 @@ typedef struct {
 	char ASL[ASL_LEN];
 	char RIG[RIG_LEN];
 	char ANT[ANT_LEN];
-} stationEntryT;
+} stationEntry_t;
 
 
 

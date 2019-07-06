@@ -30,22 +30,21 @@
 #include <time.h>
 #include <readline/readline.h>
 #include <readline/history.h>
+#include <stdint.h>
+#include <inttypes.h>
 #include "getch.h"
 #include "db_sqlite.h"
 
 static void printver(void);
 static void printhelp(void);
 
-static void reset_values(llog_t *log, logEntryT *entry);
-static void reset_values_static(llog_t *log, logEntryT *entry);
-static void set_default_rst(llog_t *data);
-static int dup_check(llog_t *data);
+static void reset_values(llog_t *log, logEntry_t *entry);
+static void reset_values_static(llog_t *log, logEntry_t *entry);
+static void set_default_rst(llog_t *log, logEntry_t *entry);
+static int dup_check(llog_t log, logEntry_t *data);
 static int get_data(const char *prompt, char *data);
-static void print_log_data(llog_t *data);
-static int fwrite_log_data(llog_t *data);
+static void print_log_data(logEntry_t *entry);
 static void strupper(char *s);
-static int llog_setup(llog_t *data);
-static int print_local_values(llog_t *data, int n);
 static void printver(void);
 
 
@@ -54,15 +53,13 @@ int main(int argc, char *argv[]) {
 
 	int opt;
 	int ret;
-	char *line;
 	char f_line[LINE_LEN];
 	const char *prompt=PROMPT;
-
-	FILE *fp;
+	char buff[256];
 
 	llog_t llog;
-	logEntryT logEntry;
-	stationEntryT station;
+	logEntry_t logEntry;
+	stationEntry_t station;
 
 
 /*defaults*/
@@ -160,12 +157,13 @@ int main(int argc, char *argv[]) {
 				strupper(logEntry.QRA);
 			break;
 			case 'g':
-				ret=get_data("QRG: ", logEntry.QRG);
+				ret = get_data("QRG: ", buff);
+				logEntry.QRG = strtod(buff, NULL);
 			break;
 			case 'm':
 				ret=get_data("Mode: ", logEntry.mode);
 				strupper(logEntry.mode);
-				set_default_rst(&logEntry);
+				set_default_rst(&llog, &logEntry);
 			break;
 			case 'p':
 				ret=get_data("Power: ", logEntry.pwr);
@@ -177,7 +175,7 @@ int main(int argc, char *argv[]) {
 				if (*logEntry.call=='\0') {
 					break;
 				}
-				ret=fwrite_log_data(&logEntry);
+//				ret= /*Write log entry*/
 				if (ret==OK) {
 					logEntry.tx_nr++;
 					reset_values(&llog, &logEntry);
@@ -195,16 +193,16 @@ int main(int argc, char *argv[]) {
 			case 'q':
 				printf("\n");
 			break;
-			case 's':
-				llog_setup(&logEntry);
-			break;
+//			case 's':
+//
+//			break;
 		}
 	}
 
 	return ret;
 }
 
-static void reset_values(llog_t *log, logEntryT *entry) {
+static void reset_values(llog_t *log, logEntry_t *entry) {
 
 	*entry->QTH='\0';
 	*entry->QRA='\0';
@@ -220,9 +218,9 @@ static void reset_values(llog_t *log, logEntryT *entry) {
 }
 
 
-static void reset_values_static(llog_t *log, logEntryT *entry) {
+static void reset_values_static(llog_t *log, logEntry_t *entry) {
 
-	*entry->QRG='\0';
+	entry->QRG=0;
 	*entry->mode='\0';
 	*entry->pwr='\0';
 	entry->tx_nr=1;
@@ -233,20 +231,19 @@ static void reset_values_static(llog_t *log, logEntryT *entry) {
 }
 
 
-static void set_default_rst(llog_t *data) {
+static void set_default_rst(llog_t *log, logEntry_t *entry) {
 
-	if (strstr(data->mode, "FM") || strstr(data->mode, "USB") || strstr(data->mode, "LSB") || strstr(data->mode, "SSB")) {
-		strcpy(data->default_rst, "59");
+	if (strstr(entry->mode, "FM") || strstr(entry->mode, "USB") || strstr(entry->mode, "LSB") || strstr(entry->mode, "SSB")) {
+		strcpy(log->defaultRst, "59");
 	} else {
-		strcpy(data->default_rst, "599");
+		strcpy(log->defaultRst, "599");
 	}
 	return;
 }
 
 
-static int dup_check(llog_t *data) {
+static int dup_check(llog_t log, logEntry_t *data) {
 
-	FILE *fp;
 	char *line;
 	char f_line[LINE_LEN];
 	char *csv_list[CSV_LIST_LEN];
@@ -255,23 +252,7 @@ static int dup_check(llog_t *data) {
 		return OK;
 	}
 
-	fp=fopen(data->logfile, "r");
-	if (fp==NULL) {
-		fprintf(stderr, "Could not open log file '%s'\n", data->logfile);
-		return FILE_ERR;
-	}
-	while (1) {
-		line=fgets(f_line, LINE_LEN, fp);
-		if (line==NULL) {
-			break;
-		}
-		csv_parse(f_line, csv_list, CSV_LIST_LEN);
-		if (strcasestr(csv_list[CSV_CALL_POS], data->call)!=NULL) {
-			fprintf(stderr, "DUP QSO on %s at %s; RXNR: %s TXNR: %s \n", csv_list[CSV_DATE_POS], csv_list[CSV_TIME_POS], csv_list[CSV_RXNR_POS], csv_list[CSV_TXNR_POS]);
-		}
-	}
-	fclose(fp);
-	return OK;
+
 }
 
 
@@ -299,55 +280,17 @@ static int get_data(const char *prompt, char *data) {
 }
 
 
-static void print_log_data(llog_t *data) {
+static void print_log_data(logEntry_t *entry) {
 
-	printf("\nc: Call [%s]\no: Operator's name: [%s]\n", data->call, data->name);
-	printf("r: RXRST [%s]\nR: TXRST [%s]\n", data->rxrst, data->txrst);
-	printf("t: QTH [%s]\na: QRA [%s]\n", data->QTH, data->QRA);
-	printf("g: QRG [%s]\nm: mode [%s]\np: Power: [%s]\n", data->QRG, data->mode, data->pwr);
-	printf("n: RXNR [%04u]\nN: TXNR [%04u]\n", data->rx_nr, data->tx_nr);
-	printf("x: RX_EXTRA [%s]\nX: TX_EXTRA [%s]\n", data->rx_x, data->tx_x);
-	printf("e: Comment [%s]\n\n", data->comment);
+	printf("\nc: Call [%s]\no: Operator's name: [%s]\n", entry->call, entry->name);
+	printf("r: RXRST [%s]\nR: TXRST [%s]\n", entry->rxrst, entry->txrst);
+	printf("t: QTH [%s]\na: QRA [%s]\n", entry->QTH, entry->QRA);
+	printf("g: QRG [%f]\nm: mode [%s]\np: Power: [%s]\n", entry->QRG, entry->mode, entry->pwr);
+	printf("n: RXNR [%04"PRIu64"]\nN: TXNR [%04"PRIu64"]\n", entry->rx_nr, entry->tx_nr);
+	printf("x: RX_EXTRA [%s]\nX: TX_EXTRA [%s]\n", entry->rx_x, entry->tx_x);
+	printf("e: Comment [%s]\n\n", entry->comment);
 	printf("w: Write!\tq: QRT\t\ts: Setup\n");
 	return;
-}
-
-
-static int fwrite_log_data(llog_t *data) {
-
-	char substr[SUBSTR_LEN];
-	char f_line[LINE_LEN];
-	struct tm bdt;
-	FILE *fp;
-
-	*f_line='\0';
-	gmtime_r(&(data->tv.tv_sec), &bdt);
-	sprintf(substr, "%d-%02d-%02d,%02d%02d,", 1900+bdt.tm_year, 1+bdt.tm_mon, bdt.tm_mday, bdt.tm_hour, bdt.tm_min);
-	strcat(f_line, substr);
-	sprintf(substr, "%s,%s,%s,", data->call, data->rxrst, data->txrst);
-	strcat(f_line, substr);
-	sprintf(substr, "%s,%s,%s,", data->QTH, data->QRA, data->name);
-	strcat(f_line, substr);
-	sprintf(substr, "%s,%s,", data->QRG, data->mode);
-	strcat(f_line, substr);
-	sprintf(substr, "%04u,%04u,", data->rx_nr, data->tx_nr);
-	strcat(f_line, substr);
-	sprintf(substr, "%s,%s,", data->rx_x, data->tx_x);
-	strcat(f_line, substr);
-	sprintf(substr, "\"%s\",%s,", data->comment, data->qsl_stat);
-	strcat(f_line, substr);
-	sprintf(substr, "%s,%s,%s,%s,%s,%s,%s\n", data->my_call, data->my_QTH, data->my_QRA, data->my_alt, data->my_RIG, data->pwr, data->my_ANT);
-	strcat(f_line, substr);
-	fp=fopen(data->logfile, "a+");
-	if (fp==NULL) {
-		fprintf(stderr, "Could not open log file '%s'\n", data->logfile);
-		return FILE_ERR;
-	}
-	fprintf(fp, "%s", f_line);
-	fflush(fp);
-	fclose(fp);
-
-	return OK;
 }
 
 
@@ -358,63 +301,6 @@ static void strupper(char *s) {
 		}
 		s++;
 	}
-}
-
-int print_local_values(llog_t *data, int n) {
-
-	if (n==0) {
-	fprintf(stderr, "Using local settings: \n\n");
-	fprintf(stderr, "\tCall: %s\n\tQTH: %s\n\tQRA: %s\n\tRIG: %s\n\tANT: %s\n", data->my_call, data->my_QTH, data->my_QRA, data->my_RIG, data->my_ANT);
-	fprintf(stderr, "\tAltitude: %s\n\tPower: %s\n", data->my_alt, data->pwr);
-	} else {
-	fprintf(stderr, "\nc: Call [%s]\nt: QTH: [%s]\na: QRA [%s]\nr: RIG [%s]\nn: ANT [%s]\nl: Altitude [%s]\n", data->my_call, data->my_QTH, data->my_QRA, data->my_RIG, data->my_ANT, data->my_alt);
-	fprintf(stderr, "\nq: Quit\t\tw: Write!\n");
-	}
-	return OK;
-}
-
-int llog_setup(llog_t *data) {
-
-	char c;
-	const char *prompt=PROMPT;
-	c=0;
-
-	while (1) {
-		if (c=='q'){
-			break;
-		}
-		print_local_values(data, 1);
-		printf(prompt);
-		fflush(stdout);
-		c=getch();
-		switch (c) {
-			case 'c':
-				get_data("CALL: ", data->my_call);
-				strupper(data->my_call);
-			break;
-			case 't':
-				get_data("QTH: ", data->my_QTH);
-			break;
-			case 'a':
-				get_data("QRA: ", data->my_QRA);
-				strupper(data->my_QRA);
-			break;
-			case 'r':
-				get_data("RIG: ", data->my_RIG);
-			break;
-			case 'n':
-				get_data("ANT: ", data->my_ANT);
-			break;
-			case 'l':
-				get_data("ALT: ", data->my_alt);
-			break;
-			case 'w':
-				write_local_values(data);
-			break;
-		}
-	}
-
-	return OK;
 }
 
 

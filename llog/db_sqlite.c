@@ -28,12 +28,12 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <sqlite3.h>
-#include "debug.h"
 #include "db_sqlite.h"
 #include "llog.h"
 
 #include <inttypes.h>
 #include <string.h>
+#include <stdio.h>
 
 
 int db_sqlite_init(llog_t *llog) {
@@ -44,7 +44,7 @@ int db_sqlite_init(llog_t *llog) {
 
 	do {
 		if (ret != SQLITE_OK) {
-			debug(llog->dbg, DEBUG_ERR, "%s: Error opening the log database '%s'.\n", __func__, llog->logfileFn);
+			printf("Error opening the log database '%s'.\n", llog->logfileFn);
 			break;
 		}
 		sqlite3_busy_timeout(llog->db, DATABASE_TIMEOUT);
@@ -52,6 +52,7 @@ int db_sqlite_init(llog_t *llog) {
 
 	return ret;
 }
+
 
 int db_sqlite_close(llog_t *llog) {
 
@@ -61,7 +62,7 @@ int db_sqlite_close(llog_t *llog) {
 }
 
 
-int lookupStation(llog_t *llog, stationEntryT *station) {
+int lookupStation(llog_t *llog, stationEntry_t *station) {
 	sqlite3_stmt *sq3_stmt;
 	char buff[BUF_SIZ];
 	int ret, retVal = OK;
@@ -93,20 +94,39 @@ int lookupStation(llog_t *llog, stationEntryT *station) {
 }
 
 
-int setStation() {
+int setStation(logEntry_t *entry) {
+	int ret, retVal = OK;
 	sqlite3_stmt *sq3_stmt;
 	char buff[BUF_SIZ];
+	int haveWork;
 
+	return retVal;
 }
 
 
-int getLogEntry() {
+int getLogEntryByCall() {
 	sqlite3_stmt *sq3_stmt;
 }
 
 
-int setLogEntry() {
+int setLogEntry(llog_t *log, logEntry_t *entry) {
+	int ret, retVal = OK;
 	sqlite3_stmt *sq3_stmt;
+	char buff[BUF_SIZ];
+	int haveWork;
+	struct tm bdt;
+	char date[64];
+	char time[64];
+
+	gmtime_r(&(entry->tv.tv_sec), &bdt);
+	sprintf(date, "%d-%02d-%02d", 1900+bdt.tm_year, 1+bdt.tm_mon, bdt.tm_mday);
+	sprintf(time, "%02d%02d,", bdt.tm_hour, bdt.tm_min);
+
+	sprintf(buff, "INSERT INTO log (date, UTC, call, rxrst, txrst, rxnr, txnr, rxextra, txextra, QTH, name, QRA, QRG, mode, pwr, rxQSL, txQSL, comment, station) VALUES ('%s' '%s' '%s' '%s' '%s' %"PRIu64" %"PRIu64" '%s' '%s' '%s '%s' '%s' %f '%s '%s' %"PRIu64" %"PRIu64" '%s' %"PRIu64");", date, time, entry->call, entry->rxrst, entry->txrst, entry->rx_nr, entry->tx_nr, entry->rx_x, entry->tx_x, entry->QTH, entry->name, entry->QRA, entry->QRG, entry->mode, entry->pwr, 0L, 0L, entry->comment, entry->stationId);
+	sqlite3_prepare_v2(log->db, buff, -1, &sq3_stmt, NULL);
+
+
+	return retVal;
 }
 //uint8_t db_select_zones_to_run(hm_t *hm_data, uint32_t timing) {
 //
