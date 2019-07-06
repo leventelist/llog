@@ -3,16 +3,6 @@ cmake_minimum_required (VERSION 3.0)
 
 project(llog)
 
-set (home_manager_VERSION_MAJOR 2)
-set (home_manager_VERSION_MINOR 0)
-set (home_manager_VERSION_PATCH 0)
-
-# configure a header file to pass some of the CMake settings
-# to the source code
-configure_file (
-  "${PROJECT_SOURCE_DIR}/llog_Config.h.in"
-  "${PROJECT_BINARY_DIR}/llog_Config.h"
-  )
 
 #set up include directories
 include_directories("${PROJECT_BINARY_DIR}")
@@ -29,21 +19,21 @@ message("Configuring for build type: ${CMAKE_BUILD_TYPE}")
 
 message("Prefix is: ${CMAKE_INSTALL_PREFIX}")
 
-pkg_check_modules(PC_SQLITE sqlite3)
+pkg_check_modules(EXTLIBS sqlite3)
 
 #this must be prior to 'add_executable'
 
-if (PC_SQLITE_FOUND)
-  link_directories("${PC_SQLITE_LIBRARY_DIRS}")
+if (EXTLIBS_FOUND)
+  link_directories("${EXTLIBS_LIBRARY_DIRS}")
 endif ()
 
 add_executable(${PROJECT_NAME} main.c conf.c db_sqlite.c getch.c)
 
-target_link_libraries(${PROJECT_NAME} ${LIBLBUS_NAME})
+target_link_libraries(${PROJECT_NAME} "readline")
 
-if (PC_SQLITE_FOUND)
-  include_directories("${PC_SQLITE_INCLUDEDIR}")
-  target_link_libraries(${PROJECT_NAME} ${PC_SQLITE_LIBRARIES})
+if (EXTLIBS_FOUND)
+  include_directories("${EXTLIBS_INCLUDEDIR}")
+  target_link_libraries(${PROJECT_NAME} ${EXTLIBS_LIBRARIES} "readline")
 endif ()
 
 install (TARGETS ${PROJECT_NAME}
