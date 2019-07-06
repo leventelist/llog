@@ -36,13 +36,9 @@
 /*functions*/
 int db_sqlite_init(llog_t *llog);
 int db_sqlite_close(llog_t *llog);
-//uint8_t db_select_zones_to_run(hm_t *data, uint32_t timing);
-//uint8_t db_query_zone(hm_t *data, zone_t *z_data);
-//uint8_t db_update_zone(hm_t *hm_data, zone_t *z_data);
-//uint8_t db_select_device_to_update(hm_t *hm_data, device_t *d_data);
-//uint8_t db_query_device(hm_t *data, device_t *d_data);
-//uint8_t db_select_device(hm_t *data, device_t *d_data);
-//uint8_t db_device_log(hm_t *data, device_t *d_data);
-//uint8_t db_zone_log(hm_t *data, zone_t *z_data);
+int lookupStation(llog_t *llog, stationEntry_t *station);
+int setLogEntry(llog_t *log, logEntry_t *entry);
+int checkDupQSO(llog_t *log, logEntry_t *entry);
+int getMaxNr(llog_t *log, logEntry_t *entry);
 
 #endif
