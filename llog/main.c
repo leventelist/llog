@@ -65,8 +65,6 @@ int main(int argc, char *argv[]) {
 
 	strcpy(llog.logfileFn, "log.sqlite");
 
-
-
 	ret=0;
 
 	while ((opt = getopt(argc, argv, "f:s:hv")) !=-1) {
@@ -315,7 +313,6 @@ static void printhelp(void) {
 	printf("\t-s STATIOM\t\tSelect station. Id or name.\n");
 	printf("\t-f FILE\t\tWrite output to logfile FILE.\n");
 	printf("\t-n NR\t\tSet number to be transmitted to NR.\n");
-	printf("\t-x INFO\t\tSet information to be transmitted to INFO.\n");
 	printf("\t-h\t\tGet help.\n");
 	printf("\t-v\t\tPrint version information.\n\n");
 }
