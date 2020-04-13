@@ -18,7 +18,6 @@
 
 #define _GNU_SOURCE
 #include "conf.h"
-#include "csv.h"
 #include "llog.h"
 
 #include <unistd.h>
