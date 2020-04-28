@@ -7,5 +7,5 @@ create_database() {
 
 }
 
-create_database llog.sql llog.sqlite
+create_database llog.sql log.sqlite
 
