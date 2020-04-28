@@ -65,6 +65,7 @@ int main(int argc, char *argv[]) {
 	strcpy(llog.logfileFn, "log.sqlite");
 
 	ret=0;
+/*Parse command line arguments*/
 
 	while ((opt = getopt(argc, argv, "f:s:hv")) !=-1) {
 		switch (opt) {
@@ -91,17 +92,16 @@ int main(int argc, char *argv[]) {
 			break;
 		}
 	}
-	/*Try to open the logfile. Just for test.*/
+	/*Try to open the log database.*/
 	ret = db_sqlite_init(&llog);
 
 	if (ret != SQLITE_OK) {
-		fprintf(stderr, "Could not open log file '%s'\n", llog.logfileFn);
+		fprintf(stderr, "Could not open log database '%s'\n", llog.logfileFn);
 		return FILE_ERR;
 	}
 
 
-	fprintf(stderr, "Using logfile '%s'\n", llog.logfileFn);
-//	print_local_values(&log_variables, 0);
+	fprintf(stderr, "Using log database '%s'\n", llog.logfileFn);
 
 	ret = lookupStation(&llog, &station);
 
@@ -281,7 +281,7 @@ static void print_log_data(logEntry_t *entry) {
 	printf("n: RXNR [%04"PRIu64"]\nN: TXNR [%04"PRIu64"]\n", entry->rx_nr, entry->tx_nr);
 	printf("x: RX_EXTRA [%s]\nX: TX_EXTRA [%s]\n", entry->rx_x, entry->tx_x);
 	printf("e: Comment [%s]\n\n", entry->comment);
-	printf("w: Write!\tq: QRT\t\ts: Select station\n");
+	printf("w: Write!\ts: Select station\tq: QRT\n");
 	return;
 }
 
