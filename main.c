@@ -51,6 +51,7 @@ int main(int argc, char *argv[]) {
 
 	int opt;
 	int ret;
+	int mode;
 	char f_line[LINE_LEN];
 	const char *prompt=PROMPT;
 	char buff[256];
@@ -64,10 +65,11 @@ int main(int argc, char *argv[]) {
 
 	strcpy(llog.logfileFn, "log.sqlite");
 
-	ret=0;
+	ret = 0;
+	mode = LLOG_MODE_N;
 /*Parse command line arguments*/
 
-	while ((opt = getopt(argc, argv, "f:s:hv")) !=-1) {
+	while ((opt = getopt(argc, argv, "f:s:lhv")) !=-1) {
 		switch (opt) {
 		case 'h': /*print help*/
 			printhelp();
@@ -83,6 +85,10 @@ int main(int argc, char *argv[]) {
 		case 'v':
 			printver();
 			return(OK);
+		break;
+		case 'l':
+			mode = LLOG_MODE_L;
+		break;
 		case '?':
 		case ':':
 		default:
@@ -102,6 +108,11 @@ int main(int argc, char *argv[]) {
 
 
 	fprintf(stderr, "Using log database '%s'\n", llog.logfileFn);
+
+	if (mode == LLOG_MODE_L) {
+		list_stations(&llog);
+		return(0);
+	}
 
 	ret = lookupStation(&llog, &station);
 
@@ -198,6 +209,7 @@ int main(int argc, char *argv[]) {
 				db_sqlite_close(&llog);
 			break;
 			case 's':
+				list_stations(&llog);
 				ret = get_data("Station ID or name: ", llog.station);
 				lookupStation(&llog, &station);
 				logEntry.stationId = station.id;
@@ -312,6 +324,7 @@ static void printhelp(void) {
 	printf("\t-s STATIOM\t\tSelect station. Id or name.\n");
 	printf("\t-f FILE\t\tWrite output to logfile FILE.\n");
 	printf("\t-n NR\t\tSet number to be transmitted to NR.\n");
+	printf("\t-l List available stations.\n");
 	printf("\t-h\t\tGet help.\n");
 	printf("\t-v\t\tPrint version information.\n\n");
 }
