@@ -80,7 +80,7 @@ int lookupStation(llog_t *llog, stationEntry_t *station) {
 		case SQLITE_ROW:
 		station->id = sqlite3_column_int64(sq3_stmt, 0);
 		strncpy(station->name, (char *) sqlite3_column_text(sq3_stmt, 1), NAME_LEN);
-		printf("Using staion '%s'.", station->name);
+		printf("\nUsing staion '%s'.\n", station->name);
 		retVal = OK;
 		break;
 		case SQLITE_DONE:
@@ -96,7 +96,7 @@ int lookupStation(llog_t *llog, stationEntry_t *station) {
 		default:
 		retVal = LLOG_ERR;
 		haveWork = 0;
-		printf("Error looking up statin. %s\n", sqlite3_errmsg(llog->db));
+		printf("Error looking up station: %s\n", sqlite3_errmsg(llog->db));
 		break;
 		}
 	}
@@ -145,7 +145,7 @@ int checkDupQSO(llog_t *log, logEntry_t *entry) {
 		default:
 		retVal = LLOG_ERR;
 		haveWork = 0;
-		printf("Error looking up statin. %s\n", sqlite3_errmsg(log->db));
+		printf("Error looking up DUP QSOs: %s\n", sqlite3_errmsg(log->db));
 		break;
 		}
 	}
@@ -183,13 +183,14 @@ int getMaxNr(llog_t *log, logEntry_t *entry) {
 		default:
 		retVal = LLOG_ERR;
 		haveWork = 0;
-		printf("Error looking up statin. %s\n", sqlite3_errmsg(log->db));
+		printf("Error looking up serial number: %s\n", sqlite3_errmsg(log->db));
 		break;
 		}
 	}
 
 	return retVal;
 }
+
 
 int setLogEntry(llog_t *log, logEntry_t *entry) {
 	int ret, retVal = OK;
@@ -223,7 +224,7 @@ int setLogEntry(llog_t *log, logEntry_t *entry) {
 		default:
 		retVal = LLOG_ERR;
 		haveWork = 0;
-		printf("Error inserting log entry. %s\n", sqlite3_errmsg(log->db));
+		printf("Error inserting log entry: %s\n", sqlite3_errmsg(log->db));
 		break;
 		}
 	}
