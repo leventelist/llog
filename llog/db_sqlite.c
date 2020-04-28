@@ -233,3 +233,54 @@ int setLogEntry(llog_t *log, logEntry_t *entry) {
 
 	return retVal;
 }
+
+
+int list_stations(llog_t *llog) {
+
+	sqlite3_stmt *sq3_stmt;
+	char buff[BUF_SIZ];
+	int ret, retVal = LLOG_ERR;
+	int haveWork;
+
+	haveWork = 1;
+
+	sprintf(buff, "SELECT rowid, name, CALL, QTH, QRA, ASL, rig, ant FROM station ORDER BY rowid ASC;");
+	sqlite3_prepare_v2(llog->db, buff, -1, &sq3_stmt, NULL);
+
+	printf("\n\n\nAvailable stations: \n");
+
+	while (haveWork == 1) {
+		ret = sqlite3_step(sq3_stmt);
+		switch (ret) {
+		case SQLITE_ROW:
+		printf("\n");
+		printf("ID: %llu", sqlite3_column_int64(sq3_stmt, 0));
+		printf("\tname: %s", sqlite3_column_text(sq3_stmt, 1));
+		printf("\tCall: %s", sqlite3_column_text(sq3_stmt, 2));
+		printf("\tQTH: %s", sqlite3_column_text(sq3_stmt, 3));
+		printf("\tQRA: %s", sqlite3_column_text(sq3_stmt, 4));
+		printf("\tASL: %s", sqlite3_column_text(sq3_stmt, 5));
+		printf("\tRIG: %s", sqlite3_column_text(sq3_stmt, 6));
+		printf("\tANT: %s", sqlite3_column_text(sq3_stmt, 7));
+		retVal = OK;
+		break;
+		case SQLITE_DONE:
+		haveWork = 0;
+		printf("\n\n");
+		break;
+		case SQLITE_BUSY:
+		retVal = LLOG_ERR;
+		haveWork = 0;
+		break;
+		default:
+		retVal = LLOG_ERR;
+		haveWork = 0;
+		printf("Error looking up stations: %s\n", sqlite3_errmsg(llog->db));
+		break;
+		}
+	}
+
+	sqlite3_finalize(sq3_stmt);
+
+	return retVal;
+}

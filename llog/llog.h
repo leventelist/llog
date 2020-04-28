@@ -55,6 +55,9 @@
 #define LLOG_CANCEL 2
 #define LLOG_ERR 3
 
+#define LLOG_MODE_L 1
+#define LLOG_MODE_N 2
+
 #define PROMPT "\n: "
 
 /*CSV stuff*/
@@ -122,9 +125,6 @@ typedef struct {
 	char RIG[RIG_LEN];
 	char ANT[ANT_LEN];
 } stationEntry_t;
-
-
-
 
 
 #endif
