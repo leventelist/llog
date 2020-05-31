@@ -17,7 +17,7 @@
  *	Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
  * http://levente.logonex.eu
- * leva@logonex.eu
+ * lev@logonex.eu
  *
  */
 
@@ -205,7 +205,7 @@ int setLogEntry(llog_t *log, logEntry_t *entry) {
 	sprintf(date, "%d-%02d-%02d", 1900+bdt.tm_year, 1+bdt.tm_mon, bdt.tm_mday);
 	sprintf(time, "%02d%02d", bdt.tm_hour, bdt.tm_min);
 
-	sprintf(buff, "INSERT INTO log (date, UTC, call, rxrst, txrst, rxnr, txnr, rxextra, txextra, QTH, name, QRA, QRG, mode, pwr, rxQSL, txQSL, comment, station) VALUES ('%s', '%s', '%s', '%s', '%s', %"PRIu64", %"PRIu64", '%s', '%s', '%s', '%s', '%s', %f, '%s', '%s', %"PRIu64", %"PRIu64", '%s', %"PRIu64");", date, time, entry->call, entry->rxrst, entry->txrst, entry->rx_nr, entry->tx_nr, entry->rx_x, entry->tx_x, entry->QTH, entry->name, entry->QRA, entry->QRG, entry->mode, entry->pwr, 0L, 0L, entry->comment, entry->stationId);
+	sprintf(buff, "INSERT INTO log (date, UTC, call, rxrst, txrst, rxnr, txnr, rxextra, txextra, QTH, name, QRA, QRG, mode, pwr, rxQSL, txQSL, comment, station) VALUES ('%s', '%s', '%s', '%s', '%s', %"PRIu64", %"PRIu64", '%s', '%s', '%s', '%s', '%s', %f, '%s', '%s', %"PRIu64", %"PRIu64", '%s', %"PRIu64");", date, time, entry->call, entry->rxrst, entry->txrst, entry->rx_nr, entry->tx_nr, entry->rx_x, entry->tx_x, entry->QTH, entry->name, entry->QRA, entry->QRG, entry->mode, entry->pwr, (uint64_t)0U, (uint64_t)0U, entry->comment, entry->stationId);
 	sqlite3_prepare_v2(log->db, buff, -1, &sq3_stmt, NULL);
 
 	while (haveWork == 1) {
