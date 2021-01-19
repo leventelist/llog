@@ -1,5 +1,5 @@
 /*	This is llog, a minimalist HAM logging software.
- *	Copyright (C) 2013-2020  Levente Kovacs
+ *	Copyright (C) 2013-2021  Levente Kovacs
  *
  *	This program is free software; you can redistribute it and/or modify
  *	it under the terms of the GNU General Public License as published by
@@ -37,15 +37,18 @@
 static void printver(void);
 static void printhelp(void);
 
-static void reset_values(llog_t *log, logEntry_t *entry);
+static void reset_values(logEntry_t *entry);
 static void reset_values_static(logEntry_t *entry);
-static void set_default_rst(llog_t *log, logEntry_t *entry);
 static int get_data(const char *prompt, char *data);
 static void print_log_data(logEntry_t *entry);
 static void strupper(char *s);
 static void printver(void);
+static int get_mode(const char *prompt, op_mode_t *data);
 
 
+op_mode_t modes[MONDE_N]={ {"CW", "599"}, {"RTTY", "599"}, {"PSK31", "599"}, {"PSK63", "599"}, {"OLIVIA", "599"},
+							{"FT8", "599"}, {"FT4", "599"}, {"USB", "59"}, {"LSB", "59"}, {"AM", "59"}, {"FM", "59"},
+							{NULL, NULL}};
 
 int main(int argc, char *argv[]) {
 
@@ -118,9 +121,8 @@ int main(int argc, char *argv[]) {
 
 	logEntry.stationId = station.id;
 
-	set_default_rst(&llog, &logEntry);
-	reset_values(&llog, &logEntry);
 	reset_values_static(&logEntry);
+	reset_values(&logEntry);
 
 
 /*get the maximum TX number*/
@@ -175,15 +177,15 @@ int main(int argc, char *argv[]) {
 				logEntry.QRG = strtod(buff, NULL);
 			break;
 			case 'm':
-				ret=get_data("Mode: ", logEntry.mode);
-				strupper(logEntry.mode);
-				set_default_rst(&llog, &logEntry);
+				ret = get_mode("Mode: ", &logEntry.mode);
+				strcpy(logEntry.rxrst, logEntry.mode.default_rst);
+				strcpy(logEntry.txrst, logEntry.mode.default_rst);
 			break;
 			case 'p':
-				ret=get_data("Power: ", logEntry.pwr);
+				ret = get_data("Power: ", logEntry.pwr);
 			break;
 			case 'e':
-				ret=get_data("Comment: ", logEntry.comment);
+				ret = get_data("Comment: ", logEntry.comment);
 			break;
 			case 'w':
 				if (*logEntry.call=='\0') {
@@ -192,7 +194,7 @@ int main(int argc, char *argv[]) {
 				ret = setLogEntry(&llog, &logEntry);
 				if (ret==OK) {
 					logEntry.tx_nr++;
-					reset_values(&llog, &logEntry);
+					reset_values(&logEntry);
 					printf("\nWritten OK.\n");
 				} else {
 					printf("\nError writing record.\n");
@@ -221,17 +223,17 @@ int main(int argc, char *argv[]) {
 }
 
 
-static void reset_values(llog_t *log, logEntry_t *entry) {
+static void reset_values(logEntry_t *entry) {
 
-	*entry->QTH='\0';
-	*entry->QRA='\0';
-	*entry->call='\0';
-	*entry->name='\0';
-	strcpy(entry->rxrst, log->defaultRst);
-	strcpy(entry->txrst, log->defaultRst);
+	*entry->QTH = '\0';
+	*entry->QRA = '\0';
+	*entry->call = '\0';
+	*entry->name = '\0';
+	strcpy(entry->rxrst, entry->mode.default_rst);
+	strcpy(entry->txrst, entry->mode.default_rst);
 	strcpy(entry->comment, "73 DX!");
-	entry->rx_nr=0;
-	*entry->rx_x='\0';
+	entry->rx_nr = 0;
+	*entry->rx_x = '\0';
 
 	return;
 }
@@ -239,23 +241,12 @@ static void reset_values(llog_t *log, logEntry_t *entry) {
 
 static void reset_values_static(logEntry_t *entry) {
 
-	entry->QRG=0;
-	*entry->mode='\0';
-	*entry->pwr='\0';
-	entry->tx_nr=1;
-	*entry->tx_x='\0';
+	entry->QRG = 0;
+	entry->mode = modes[0];
+	*entry->pwr = '\0';
+	entry->tx_nr = 1;
+	*entry->tx_x = '\0';
 
-	return;
-}
-
-
-static void set_default_rst(llog_t *log, logEntry_t *entry) {
-
-	if (strstr(entry->mode, "FM") || strstr(entry->mode, "USB") || strstr(entry->mode, "LSB") || strstr(entry->mode, "SSB")) {
-		strcpy(log->defaultRst, "59");
-	} else {
-		strcpy(log->defaultRst, "599");
-	}
 	return;
 }
 
@@ -265,20 +256,52 @@ static int get_data(const char *prompt, char *data) {
 	char *line;
 	int ret;
 
-	ret=LLOG_ERR;
-	line=readline(prompt);
-	if (line==NULL) {
-		*data='\0';
-		ret=LLOG_EOF;
-	} else if (*line=='\0') {
-		ret=LLOG_CANCEL;
+	ret = LLOG_ERR;
+	line = readline(prompt);
+	if (line == NULL) {
+		*data = '\0';
+		ret = LLOG_EOF;
+	} else if (*line == '\0') {
+		ret = LLOG_CANCEL;
 	} else {
 		strcpy(data, line);
-		ret=OK;
+		ret = OK;
 	}
-	if (line!=NULL) {
+	if (line != NULL) {
 		free(line);
 	}
+
+	return ret;
+}
+
+
+static int get_mode(const char *prompt, op_mode_t *data) {
+
+	uint32_t i, j;
+	int ret = OK;
+	char *line;
+
+	printf("\n\nSelect mode. If none is selected, 0 will be used.\n\n");
+
+	for (i = 0; i < MONDE_N; i++) {
+		if (modes[i].name == NULL) {
+			break;
+		}
+		printf("\t%5d: %-10s", i, modes[i].name);
+		if ( i%2 == 1) {
+			printf("\n");
+		}
+	}
+	printf("\n");
+	line = readline(prompt);
+
+	j = strtoul(line, NULL, 0);
+	if (j > i) {
+		j = 0;
+		ret = LLOG_ERR;
+	}
+	free(line);
+	*data = modes[j];
 
 	return ret;
 }
@@ -289,7 +312,7 @@ static void print_log_data(logEntry_t *entry) {
 	printf("\nc: Call [%s]\no: Operator's name: [%s]\n", entry->call, entry->name);
 	printf("r: RXRST [%s]\nR: TXRST [%s]\n", entry->rxrst, entry->txrst);
 	printf("t: QTH [%s]\na: QRA [%s]\n", entry->QTH, entry->QRA);
-	printf("g: QRG [%f]\nm: mode [%s]\np: Power: [%s]\n", entry->QRG, entry->mode, entry->pwr);
+	printf("g: QRG [%f]\nm: mode [%s]\np: Power: [%s]\n", entry->QRG, entry->mode.name, entry->pwr);
 	printf("n: RXNR [%04"PRIu64"]\nN: TXNR [%04"PRIu64"]\n", entry->rx_nr, entry->tx_nr);
 	printf("x: RX_EXTRA [%s]\nX: TX_EXTRA [%s]\n", entry->rx_x, entry->tx_x);
 	printf("e: Comment [%s]\n\n", entry->comment);

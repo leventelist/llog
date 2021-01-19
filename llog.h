@@ -1,5 +1,5 @@
 /*	This is llog, a minimalist HAM logging software.
- *	Copyright (C) 2013-2020  Levente Kovacs
+ *	Copyright (C) 2013-2021  Levente Kovacs
  *
  *	This program is free software; you can redistribute it and/or modify
  *	it under the terms of the GNU General Public License as published by
@@ -34,7 +34,7 @@
 #define MODE_LEN 20
 #define RIG_LEN 50
 #define ANT_LEN 20
-#define RST_LEN 10
+#define RST_LEN 20
 #define CALL_LEN 40
 #define NAME_LEN 100
 #define COMMENT_LEN 200
@@ -46,6 +46,8 @@
 #define SUBSTR_LEN 512
 #define X_LEN 40
 #define STATION_LEN 256
+
+#define MONDE_N 256
 
 #define OK 0
 #define FILE_ERR 1
@@ -88,11 +90,16 @@
 #define CSV_LOCAL_ANT_POS 22
 
 typedef struct {
-	char defaultRst[RST_LEN];
 	char logfileFn[LOGFILE_LEN]; /*SQLite database file name*/
 	char station[STATION_LEN];
 	sqlite3 *db;
 } llog_t;
+
+
+typedef struct {
+	char *name;
+	char *default_rst;
+} op_mode_t;
 
 
 typedef struct {
@@ -107,7 +114,7 @@ typedef struct {
 	char name[NAME_LEN];
 	char QRA[QRA_LEN];
 	double QRG;
-	char mode[MODE_LEN];
+	op_mode_t mode;
 	char pwr[PWR_LEN];
 	char comment[COMMENT_LEN];
 	uint64_t stationId;
