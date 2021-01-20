@@ -70,6 +70,7 @@ int main(int argc, char *argv[]) {
 
 	ret = 0;
 	mode = LLOG_MODE_N;
+	strncpy(llog.station, "1", STATION_LEN);
 /*Parse command line arguments*/
 
 	while ((opt = getopt(argc, argv, "f:s:lhv")) !=-1) {
