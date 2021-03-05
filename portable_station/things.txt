@@ -15,26 +15,20 @@ Power subsystem
 	Charger * R
 	Solar panel O N
 	Power Distribution Box (PDB) R
-		Needs to be redone. Just a small box with screw terminal.
-	Power supply for the SBC 5V 2A (integrated into the PDB) R
+		Integrated to carrying box
 
 
 Radio subsystem
 	The radio R (FT891)
-	Key N
+	Key R
 	Mic R
-	Tactical carrying stuff A
+	Tactical carrying stuff R
 
 
 Computer
-	Computer SBC R
-	Audio cable R
-	Power supply 5V 2A R
-	Keyboard R
+	Laptop	R
+		Using my normal laptop computer. But I plan to use a lightweight laptop instead.
 	USB audio interface R
-	10" display R
-	HDMI cable R
-	Power cords R
 	GPS module integration R
 	USB A-B cable N
 
@@ -44,9 +38,10 @@ Antenna
 	17.3m and 3.5m OFC N
 	Short windom N
 	1:9 UNUN R
-	1:4 BALUN A
+	1:4 BALUN R
 	1:1 BALUN R
 	L tuner R
+		Replaced by LDG-Z100Plus autotuner
 	Cable R
 	Slim-Jim (2m) N
 	Rope (20m) R
@@ -55,11 +50,12 @@ Antenna
 	Ceramic insulators R
 	Through weight R
 		This is basically a small bottle with a ring. Filled up with water or small rocks at the site.
-	Fishing Rod (12m) O N
+	Fishing Rod (8m) R
+	Antenna winder N
 
 
 Tools
 	Screwdriver R
 	DVM R
-	knife R
+	Knife R
 
