@@ -46,8 +46,9 @@ static void printver(void);
 static int get_mode(const char *prompt, op_mode_t *data);
 
 
-op_mode_t modes[MONDE_N]={ {"CW", "599"}, {"RTTY", "599"}, {"PSK31", "599"}, {"PSK63", "599"}, {"OLIVIA", "599"},
-							{"FT8", "599"}, {"FT4", "599"}, {"USB", "59"}, {"LSB", "59"}, {"AM", "59"}, {"FM", "59"},
+op_mode_t modes[MONDE_N] = {{"CW", "599"}, {"RTTY", "599"}, {"PSK31", "599"}, {"PSK63", "599"},
+							{"OLIVIA", "599"}, {"MFSK16", "599"}, {"FT8", "599"}, {"FT4", "599"},
+							{"USB", "59"}, {"LSB", "59"}, {"AM", "59"}, {"FM", "59"},
 							{NULL, NULL}};
 
 int main(int argc, char *argv[]) {
@@ -145,7 +146,7 @@ int main(int argc, char *argv[]) {
 		opt=getch();
 		switch (opt) {
 			case 'c':
-				ret=get_data("Call: ", logEntry.call);
+				ret = get_data("Call: ", logEntry.call);
 				gettimeofday(&logEntry.tv, NULL);
 				strupper(logEntry.call);
 			break;
