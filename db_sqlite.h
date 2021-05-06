@@ -1,5 +1,5 @@
 /*	This is llog, a minimalist HAM logging software.
- *	Copyright (C) 2013-2020  Levente Kovacs
+ *	Copyright (C) 2013-2021  Levente Kovacs
  *
  *	This program is free software; you can redistribute it and/or modify
  *	it under the terms of the GNU General Public License as published by
@@ -26,8 +26,12 @@
 #include "llog.h"
 #include <stdint.h>
 
-#define BUF_SIZ 2048
+#define BUF_SIZ 20480
 
+/*data status*/
+#define DATA_STATUS_INIT	0
+#define DATA_STATUS_VALID	1
+#define DATA_STATUS_LAST	2
 
 /*return values*/
 #define DB_OK 0
@@ -36,10 +40,10 @@
 /*functions*/
 int db_sqlite_init(llog_t *llog);
 int db_sqlite_close(llog_t *llog);
-int lookupStation(llog_t *llog, stationEntry_t *station);
-int setLogEntry(llog_t *log, logEntry_t *entry);
-int checkDupQSO(llog_t *log, logEntry_t *entry);
-int getMaxNr(llog_t *log, logEntry_t *entry);
+int lookupStation(llog_t *llog, station_entry_t *station);
+int setLogEntry(llog_t *log, log_entry_t *entry);
+int checkDupQSO(llog_t *log, log_entry_t *entry);
+int getMaxNr(llog_t *log, log_entry_t *entry);
 int list_stations(llog_t *llog);
 
 #endif
