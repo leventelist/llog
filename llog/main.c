@@ -34,13 +34,15 @@
 #include "getch.h"
 #include "db_sqlite.h"
 
+#include "main_window.h"
+
 static void printver(void);
 static void printhelp(void);
 
-static void reset_values(logEntry_t *entry);
-static void reset_values_static(logEntry_t *entry);
+static void reset_values(log_entry_t *entry);
+static void reset_values_static(log_entry_t *entry);
 static int get_data(const char *prompt, char *data);
-static void print_log_data(logEntry_t *entry);
+static void print_log_data(log_entry_t *entry);
 static void strupper(char *s);
 static void printver(void);
 static int get_mode(const char *prompt, op_mode_t *data);
@@ -61,9 +63,13 @@ int main(int argc, char *argv[]) {
 	char buff[256];
 
 	llog_t llog;
-	logEntry_t logEntry;
-	stationEntry_t station;
+	log_entry_t log_entry;
+	station_entry_t station;
+	struct timeval qso_time;
+	struct tm sqo_bdt;
 
+	/*Initialize main data structures*/
+	llog_init();
 
 /*defaults*/
 
@@ -103,16 +109,11 @@ int main(int argc, char *argv[]) {
 			break;
 		}
 	}
-	/*Try to open the log database.*/
-	ret = db_sqlite_init(&llog);
 
-	if (ret != SQLITE_OK) {
-		fprintf(stderr, "Could not open log database '%s'\n", llog.logfileFn);
-		return FILE_ERR;
-	}
+	/*Draw main window*/
+	main_window_draw();
 
-
-	fprintf(stderr, "Using log database '%s'\n", llog.logfileFn);
+	exit(EXIT_SUCCESS);
 
 	if (mode == LLOG_MODE_L) {
 		list_stations(&llog);
@@ -121,15 +122,15 @@ int main(int argc, char *argv[]) {
 
 	ret = lookupStation(&llog, &station);
 
-	logEntry.stationId = station.id;
+	log_entry.stationId = station.id;
 
-	reset_values_static(&logEntry);
-	reset_values(&logEntry);
+	reset_values_static(&log_entry);
+	reset_values(&log_entry);
 
 
 /*get the maximum TX number*/
 
-	getMaxNr(&llog, &logEntry);
+	getMaxNr(&llog, &log_entry);
 
 //	fprintf(stderr, "\tTX serial number: %04d\n", log_variables.tx_nr);
 
@@ -139,74 +140,77 @@ int main(int argc, char *argv[]) {
 		if (opt=='q') {
 			break;
 		}
-		print_log_data(&logEntry);
-		checkDupQSO(&llog, &logEntry);
+		print_log_data(&log_entry);
+		checkDupQSO(&llog, &log_entry);
 		printf(prompt);
 		fflush(stdout);
 		opt=getch();
 		switch (opt) {
 			case 'c':
-				ret = get_data("Call: ", logEntry.call);
-				gettimeofday(&logEntry.tv, NULL);
-				strupper(logEntry.call);
+				ret = get_data("Call: ", log_entry.call);
+				gettimeofday(&qso_time, NULL);
+				gmtime_r(&qso_time.tv_sec, &sqo_bdt);
+				sprintf(log_entry.date, "%d-%02d-%02d", 1900+sqo_bdt.tm_year, 1+sqo_bdt.tm_mon, sqo_bdt.tm_mday);
+				sprintf(log_entry.utc, "%02d%02d", sqo_bdt.tm_hour, sqo_bdt.tm_min);
+				strupper(log_entry.call);
 			break;
 			case 'o':
-				ret=get_data("Operator name: ", logEntry.name);
+				ret=get_data("Operator name: ", log_entry.name);
 			break;
 			case 'r':
-				ret=get_data("RXRST: ", logEntry.rxrst);
+				ret=get_data("RXRST: ", log_entry.rxrst);
 			break;
 			case 'R':
-				ret=get_data("TXRST: ", logEntry.txrst);
+				ret=get_data("TXRST: ", log_entry.txrst);
 			break;
 			case 'n':
 				ret=get_data("RXNR: ", f_line);
-				logEntry.rx_nr=strtoul(f_line, NULL, 10);;
+				log_entry.rx_nr=strtoul(f_line, NULL, 10);;
 			break;
 			case 'N':
 				ret=get_data("TXNR: ", f_line);
-				logEntry.tx_nr=strtoul(f_line, NULL, 10);;
+				log_entry.tx_nr=strtoul(f_line, NULL, 10);;
 			break;
 			case 't':
-				ret=get_data("QTH: ", logEntry.QTH);
+				ret=get_data("QTH: ", log_entry.QTH);
 			break;
 			case 'a':
-				ret=get_data("QRA: ", logEntry.QRA);
-				strupper(logEntry.QRA);
+				ret=get_data("QRA: ", log_entry.QRA);
+				strupper(log_entry.QRA);
 			break;
 			case 'g':
 				ret = get_data("QRG: ", buff);
-				logEntry.QRG = strtod(buff, NULL);
+				log_entry.QRG = strtod(buff, NULL);
 			break;
 			case 'm':
-				ret = get_mode("Mode: ", &logEntry.mode);
-				strcpy(logEntry.rxrst, logEntry.mode.default_rst);
-				strcpy(logEntry.txrst, logEntry.mode.default_rst);
+				ret = get_mode("Mode: ", &log_entry.mode);
+				strcpy(log_entry.rxrst, log_entry.mode.default_rst);
+				strcpy(log_entry.txrst, log_entry.mode.default_rst);
 			break;
 			case 'p':
-				ret = get_data("Power: ", logEntry.pwr);
+				ret = get_data("Power: ", log_entry.pwr);
 			break;
 			case 'e':
-				ret = get_data("Comment: ", logEntry.comment);
+				ret = get_data("Comment: ", log_entry.comment);
 			break;
 			case 'w':
-				if (*logEntry.call=='\0') {
+				if (*log_entry.call=='\0') {
 					break;
 				}
-				ret = setLogEntry(&llog, &logEntry);
+				ret = setLogEntry(&llog, &log_entry);
 				if (ret==OK) {
-					logEntry.tx_nr++;
-					reset_values(&logEntry);
+					log_entry.tx_nr++;
+					reset_values(&log_entry);
 					printf("\nWritten OK.\n");
 				} else {
 					printf("\nError writing record.\n");
 				}
 			break;
 			case 'x':
-				ret=get_data("RX extra: ", logEntry.rx_x);
+				ret=get_data("RX extra: ", log_entry.rx_x);
 			break;
 			case 'X':
-				ret=get_data("TX extra: ", logEntry.tx_x);
+				ret=get_data("TX extra: ", log_entry.tx_x);
 			break;
 			case 'q':
 				printf("\n");
@@ -216,7 +220,7 @@ int main(int argc, char *argv[]) {
 				list_stations(&llog);
 				ret = get_data("Station ID or name: ", llog.station);
 				lookupStation(&llog, &station);
-				logEntry.stationId = station.id;
+				log_entry.stationId = station.id;
 			break;
 		}
 	}
@@ -225,7 +229,7 @@ int main(int argc, char *argv[]) {
 }
 
 
-static void reset_values(logEntry_t *entry) {
+static void reset_values(log_entry_t *entry) {
 
 	*entry->QTH = '\0';
 	*entry->QRA = '\0';
@@ -241,7 +245,7 @@ static void reset_values(logEntry_t *entry) {
 }
 
 
-static void reset_values_static(logEntry_t *entry) {
+static void reset_values_static(log_entry_t *entry) {
 
 	entry->QRG = 0;
 	entry->mode = modes[0];
@@ -309,7 +313,7 @@ static int get_mode(const char *prompt, op_mode_t *data) {
 }
 
 
-static void print_log_data(logEntry_t *entry) {
+static void print_log_data(log_entry_t *entry) {
 
 	printf("\nc: Call [%s]\no: Operator's name: [%s]\n", entry->call, entry->name);
 	printf("r: RXRST [%s]\nR: TXRST [%s]\n", entry->rxrst, entry->txrst);
