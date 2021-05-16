@@ -154,20 +154,20 @@ int checkDupQSO(llog_t *log, log_entry_t *entry) {
 	return ret_val;
 }
 
-int get_log_entries(llog_t *log, log_entry_t *entry) {
+
+int db_get_log_entries(llog_t *log, log_entry_t *entry) {
 	int ret, ret_val = OK;
-	sqlite3_stmt *sq3_stmt;
+	static sqlite3_stmt *sq3_stmt;
 	char buff[BUF_SIZ];
-	int have_work = 1;
 
 	if (entry->data_stat == DATA_STATUS_INIT) {
 		snprintf(buff, BUF_SIZ, "SELECT date, UTC, call, rxrst, txrst FROM log;");
 		sqlite3_prepare_v2(log->db, buff, -1, &sq3_stmt, NULL);
 	}
 
-	while (have_work == 1) {
-		ret = sqlite3_step(sq3_stmt);
-		switch (ret) {
+
+	ret = sqlite3_step(sq3_stmt);
+	switch (ret) {
 		case SQLITE_ROW:
 		strncpy(entry->date, (char *)sqlite3_column_text(sq3_stmt, 0), NAME_LEN);
 		strncpy(entry->utc, (char *)sqlite3_column_text(sq3_stmt, 1), NAME_LEN);
@@ -179,21 +179,18 @@ int get_log_entries(llog_t *log, log_entry_t *entry) {
 		entry->data_stat = DATA_STATUS_VALID;
 		break;
 		case SQLITE_DONE:
-		have_work = 0;
 		ret_val = OK;
 		entry->data_stat = DATA_STATUS_LAST;
 		break;
 		case SQLITE_BUSY:
 		ret_val = LLOG_ERR;
-		have_work = 0;
 		break;
 		default:
 		ret_val = LLOG_ERR;
-		have_work = 0;
-		printf("Error looking up DUP QSOs: %s\n", sqlite3_errmsg(log->db));
+		printf("Error looking up log entry: %s\n", sqlite3_errmsg(log->db));
 		break;
-		}
 	}
+
 
 	return ret_val;
 }
