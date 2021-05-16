@@ -115,6 +115,7 @@ typedef struct {
 int llog_init(void);
 int llog_open_db(char *fn);
 void llog_shutdown(void);
+int llog_add_log_entry(void);
 
 #endif
 

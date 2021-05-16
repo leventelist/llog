@@ -28,7 +28,7 @@ int main_window_draw(void) {
 
 	gtk_init(NULL, NULL);
 
-	builder = gtk_builder_new_from_file("glade/main_window.glade");
+	builder = gtk_builder_new_from_file("./glade/main_window.glade");
 
 	/*Get widget pointers*/
 	window = GTK_WIDGET(gtk_builder_get_object(builder, "window_main"));
@@ -48,8 +48,7 @@ int main_window_draw(void) {
 
 /*Main window callbacks*/
 
-void on_menuitm_open_activate(GtkMenuItem *menuitem, app_widgets *app_wdgts)
-{
+void on_menuitm_open_activate(GtkMenuItem *menuitem, app_widgets *app_wdgts) {
     gchar *file_name = NULL;        // Name of file to open from dialog box
     int file_success;  // File read status
 
@@ -65,10 +64,13 @@ void on_menuitm_open_activate(GtkMenuItem *menuitem, app_widgets *app_wdgts)
         if (file_name != NULL) {
 			printf("Yaayyy!!! We know which file to load!\n");
 			file_success = llog_open_db(file_name);
+			llog_add_log_entry();
 			if (file_success != 0) {
 				printf("Error opening database.\n");
+				return;
 			}
         }
+
         g_free(file_name);
     }
 
@@ -94,23 +96,33 @@ int on_qrt_activate(void) {
 
 /*Actions*/
 
-int add_log_entry_to_list(log_entry_t *entry) {
+int main_window_add_log_entry_to_list(log_entry_t *entry) {
 	int ret_val = OK;
 
 	char buff[LOG_ENTRY_LEN];
-	GtkWidget *combobox;
+//	GtkWidget *combobox;
+	GtkWidget *label, *row;
 
 	/*Create the text*/
 	snprintf(buff, LOG_ENTRY_LEN, "%s %s %s", entry->call, entry->rxrst, entry->txrst);
 
-	/*Create the textbox*/
-	combobox = gtk_combo_box_text_new();
+	printf("Adding log item... %s\n", buff);
 
-	gtk_combo_box_text_append(GTK_COMBO_BOX_TEXT(combobox), "wrwer", buff);
+	/*Create the textbox*/
+//	combobox = gtk_combo_box_text_new();
+
+	label = gtk_label_new(buff);
+
+	row = gtk_list_box_row_new();
+
+	//gtk_combo_box_text_insert(GTK_COMBO_BOX_TEXT(combobox), 0, "wrwer", buff);
+
+	gtk_container_add(GTK_CONTAINER(row), label);
 
 	/*Add to the listbox*/
-	gtk_list_box_prepend(GTK_LIST_BOX(widgets->logged_list), NULL);
+	//gtk_list_box_insert(GTK_LIST_BOX(widgets->logged_list), combobox, 0);
+	gtk_list_box_prepend(GTK_LIST_BOX(widgets->logged_list), row);
+
 
 	return ret_val;
 }
-

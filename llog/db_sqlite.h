@@ -45,5 +45,6 @@ int setLogEntry(llog_t *log, log_entry_t *entry);
 int checkDupQSO(llog_t *log, log_entry_t *entry);
 int getMaxNr(llog_t *log, log_entry_t *entry);
 int list_stations(llog_t *llog);
+int db_get_log_entries(llog_t *log, log_entry_t *entry);
 
 #endif
