@@ -44,14 +44,17 @@ int main_window_draw(void) {
 	widgets->logged_list_selection = GTK_TREE_SELECTION(gtk_builder_get_object(builder, "logged_list_selection"));
 	widgets->logged_list_store = GTK_TREE_STORE(gtk_builder_get_object(builder, "logged_list_store"));
 
-	widgets->logged_list_column[0] = GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(builder, "call"));
-	widgets->logged_list_column[1] = GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(builder, "date"));
+	widgets->logged_list_column[0] = GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(builder, "id"));
+	widgets->logged_list_column[1] = GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(builder, "call"));
+	widgets->logged_list_column[2] = GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(builder, "date"));
 
-	widgets->logged_list_renderer[0] = GTK_CELL_RENDERER(gtk_builder_get_object(builder, "call_text"));
-	widgets->logged_list_renderer[1] = GTK_CELL_RENDERER(gtk_builder_get_object(builder, "date_text"));
+	widgets->logged_list_renderer[0] = GTK_CELL_RENDERER(gtk_builder_get_object(builder, "id_text"));
+	widgets->logged_list_renderer[1] = GTK_CELL_RENDERER(gtk_builder_get_object(builder, "call_text"));
+	widgets->logged_list_renderer[2] = GTK_CELL_RENDERER(gtk_builder_get_object(builder, "date_text"));
 
 	gtk_tree_view_column_add_attribute(widgets->logged_list_column[0], widgets->logged_list_renderer[0], "text", 0);
 	gtk_tree_view_column_add_attribute(widgets->logged_list_column[1], widgets->logged_list_renderer[1], "text", 1);
+	gtk_tree_view_column_add_attribute(widgets->logged_list_column[2], widgets->logged_list_renderer[2], "text", 2);
 
 	gtk_builder_connect_signals(builder, widgets);
 
@@ -120,20 +123,25 @@ int on_qrt_activate(void) {
 int main_window_add_log_entry_to_list(log_entry_t *entry) {
 	int ret_val = OK;
 	static GtkTreeIter iter;
-	char buff[1233];
+	char buff[LOG_ENTRY_LEN];
 
-	//char buff[LOG_ENTRY_LEN];
-
-	gtk_tree_store_append(widgets->logged_list_store, &iter, NULL);
-
+	gtk_tree_store_prepend(widgets->logged_list_store, &iter, NULL);
 	/*Create the text*/
 	snprintf(buff, LOG_ENTRY_LEN, "%s %s %s", entry->call, entry->rxrst, entry->txrst);
 
 	printf("Adding log item... %s\n", buff);
 
-	gtk_tree_store_set(widgets->logged_list_store, &iter, 0, entry->call, -1);
-	gtk_tree_store_set(widgets->logged_list_store, &iter, 1, entry->date, -1);
+	sprintf(buff, "%lu", entry->id);
+
+	gtk_tree_store_set(widgets->logged_list_store, &iter, 0, buff, -1);
+	gtk_tree_store_set(widgets->logged_list_store, &iter, 1, entry->call, -1);
+	gtk_tree_store_set(widgets->logged_list_store, &iter, 2, entry->date, -1);
 
 
 	return ret_val;
+}
+
+
+void main_window_clear_log_list(void) {
+	gtk_tree_store_clear(widgets->logged_list_store);
 }

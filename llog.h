@@ -62,6 +62,8 @@
 #define LLOG_MODE_L 1
 #define LLOG_MODE_N 2
 
+
+
 #define PROMPT "\n: "
 
 
@@ -69,6 +71,7 @@ typedef struct {
 	char logfileFn[LOGFILE_LEN]; /*SQLite database file name*/
 	char station[STATION_LEN];
 	sqlite3 *db;
+	uint32_t stat;
 } llog_t;
 
 
@@ -79,6 +82,7 @@ typedef struct {
 
 
 typedef struct {
+	uint64_t id;
 	char call[CALL_LEN];
 	char rxrst[RST_LEN];
 	char txrst[RST_LEN];

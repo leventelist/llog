@@ -28,14 +28,26 @@
 
 #define BUF_SIZ 20480
 
+
 /*data status*/
-#define DATA_STATUS_INIT	0
-#define DATA_STATUS_VALID	1
-#define DATA_STATUS_LAST	2
+
+enum db_data_state {
+    db_data_init,
+    db_data_valid,
+    db_data_last,
+    db_data_err
+};
+
 
 /*return values*/
 #define DB_OK 0
 #define DB_ERROR 1
+
+enum db_state {
+	db_opened,
+	db_closed
+};
+
 
 /*functions*/
 int db_sqlite_init(llog_t *llog);
