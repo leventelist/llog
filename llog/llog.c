@@ -13,6 +13,7 @@ int llog_init(char *logfile_name) {
 
 	llog.db = NULL;
 	strncpy(llog.logfileFn, logfile_name, LOGFILE_LEN);
+	llog.stat = db_closed;
 
 	return 0;
 }
@@ -36,12 +37,16 @@ int llog_add_log_entry(void) {
 	int ret_val = OK;
 	log_entry_t entry;
 
-	entry.data_stat = DATA_STATUS_INIT;
+	entry.data_stat = db_data_init;
 
-	while(entry.data_stat != DATA_STATUS_LAST) {
+	main_window_clear_log_list();
+
+	while(entry.data_stat != db_data_last) {
 		db_get_log_entries(&llog, &entry);
-		if (entry.data_stat == DATA_STATUS_VALID) {
+		if (entry.data_stat == db_data_valid) {
 			main_window_add_log_entry_to_list(&entry);
+		} else {
+			break;
 		}
 	}
 

@@ -41,6 +41,11 @@ int db_sqlite_init(llog_t *llog) {
 	int ret;
 	int ret_val = OK;
 
+	if (llog->stat == db_opened) {
+		db_sqlite_close(llog);
+		llog->stat = db_closed;
+	}
+
 	ret = sqlite3_open(llog->logfileFn, &llog->db);
 
 	do {
@@ -50,6 +55,7 @@ int db_sqlite_init(llog_t *llog) {
 			break;
 		}
 		sqlite3_busy_timeout(llog->db, DATABASE_TIMEOUT);
+		llog->stat = db_opened;
 	} while (0);
 
 	return ret_val;
@@ -160,8 +166,8 @@ int db_get_log_entries(llog_t *log, log_entry_t *entry) {
 	static sqlite3_stmt *sq3_stmt;
 	char buff[BUF_SIZ];
 
-	if (entry->data_stat == DATA_STATUS_INIT) {
-		snprintf(buff, BUF_SIZ, "SELECT date, UTC, call, rxrst, txrst FROM log;");
+	if (entry->data_stat == db_data_init) {
+		snprintf(buff, BUF_SIZ, "SELECT rowid, date, UTC, call, rxrst, txrst FROM log;");
 		sqlite3_prepare_v2(log->db, buff, -1, &sq3_stmt, NULL);
 	}
 
@@ -169,24 +175,27 @@ int db_get_log_entries(llog_t *log, log_entry_t *entry) {
 	ret = sqlite3_step(sq3_stmt);
 	switch (ret) {
 		case SQLITE_ROW:
-		strncpy(entry->date, (char *)sqlite3_column_text(sq3_stmt, 0), NAME_LEN);
-		strncpy(entry->utc, (char *)sqlite3_column_text(sq3_stmt, 1), NAME_LEN);
-		strncpy(entry->call, (char *)sqlite3_column_text(sq3_stmt, 2), CALL_LEN);
-		strncpy(entry->rxrst, (char *)sqlite3_column_text(sq3_stmt, 3), X_LEN);
-		strncpy(entry->txrst, (char *)sqlite3_column_text(sq3_stmt, 4), X_LEN);
+		entry->id = sqlite3_column_int64(sq3_stmt, 0);
+		strncpy(entry->date, (char *)sqlite3_column_text(sq3_stmt, 1), NAME_LEN);
+		strncpy(entry->utc, (char *)sqlite3_column_text(sq3_stmt, 2), NAME_LEN);
+		strncpy(entry->call, (char *)sqlite3_column_text(sq3_stmt, 3), CALL_LEN);
+		strncpy(entry->rxrst, (char *)sqlite3_column_text(sq3_stmt, 4), X_LEN);
+		strncpy(entry->txrst, (char *)sqlite3_column_text(sq3_stmt, 5), X_LEN);
 
 		ret_val = OK;
-		entry->data_stat = DATA_STATUS_VALID;
+		entry->data_stat = db_data_valid;
 		break;
 		case SQLITE_DONE:
 		ret_val = OK;
-		entry->data_stat = DATA_STATUS_LAST;
+		entry->data_stat = db_data_last;
 		break;
 		case SQLITE_BUSY:
 		ret_val = LLOG_ERR;
+		entry->data_stat = db_data_err;
 		break;
 		default:
 		ret_val = LLOG_ERR;
+		entry->data_stat = db_data_err;
 		printf("Error looking up log entry: %s\n", sqlite3_errmsg(log->db));
 		break;
 	}
