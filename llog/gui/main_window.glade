@@ -2,15 +2,20 @@
 <!-- Generated with glade 3.22.1 -->
 <interface>
   <requires lib="gtk+" version="3.20"/>
+  <object class="GtkTreeStore" id="logged_list_store">
+    <columns>
+      <!-- column-name call -->
+      <column type="gchararray"/>
+      <!-- column-name date -->
+      <column type="gchararray"/>
+    </columns>
+  </object>
   <object class="GtkWindow" id="window_main">
     <property name="can_focus">False</property>
     <property name="title" translatable="yes">llog</property>
     <property name="default_width">440</property>
     <property name="default_height">250</property>
     <signal name="destroy" handler="on_window_main_destroy" swapped="no"/>
-    <child>
-      <placeholder/>
-    </child>
     <child>
       <object class="GtkBox">
         <property name="visible">True</property>
@@ -32,6 +37,15 @@
                     <property name="can_focus">False</property>
                     <child>
                       <object class="GtkImageMenuItem">
+                        <property name="label">gtk-new</property>
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="use_underline">True</property>
+                        <property name="use_stock">True</property>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkImageMenuItem" id="open_log_file">
                         <property name="label">gtk-open</property>
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
@@ -65,11 +79,10 @@
                       </object>
                     </child>
                     <child>
-                      <object class="GtkImageMenuItem" id="qrt">
+                      <object class="GtkImageMenuItem">
                         <property name="label">gtk-quit</property>
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
-                        <property name="tooltip_text" translatable="yes">Exit the program</property>
                         <property name="use_underline">True</property>
                         <property name="use_stock">True</property>
                         <signal name="activate" handler="on_qrt_activate" swapped="no"/>
@@ -135,21 +148,6 @@
                 <property name="can_focus">False</property>
                 <property name="label" translatable="yes">_View</property>
                 <property name="use_underline">True</property>
-                <child type="submenu">
-                  <object class="GtkMenu">
-                    <property name="visible">True</property>
-                    <property name="can_focus">False</property>
-                    <child>
-                      <object class="GtkImageMenuItem">
-                        <property name="label">gtk-refresh</property>
-                        <property name="visible">True</property>
-                        <property name="can_focus">False</property>
-                        <property name="use_underline">True</property>
-                        <property name="use_stock">True</property>
-                      </object>
-                    </child>
-                  </object>
-                </child>
               </object>
             </child>
             <child>
@@ -187,48 +185,73 @@
             <property name="visible">True</property>
             <property name="can_focus">False</property>
             <child>
-              <object class="GtkBox">
+              <placeholder/>
+            </child>
+            <child>
+              <placeholder/>
+            </child>
+            <child>
+              <object class="GtkScrolledWindow">
+                <property name="width_request">100</property>
+                <property name="height_request">80</property>
                 <property name="visible">True</property>
-                <property name="can_focus">False</property>
+                <property name="can_focus">True</property>
+                <property name="shadow_type">in</property>
                 <child>
-                  <placeholder/>
-                </child>
-                <child>
-                  <object class="GtkScrolledWindow">
+                  <object class="GtkViewport" id="view">
+                    <property name="width_request">100</property>
+                    <property name="height_request">80</property>
                     <property name="visible">True</property>
-                    <property name="can_focus">True</property>
-                    <property name="shadow_type">in</property>
+                    <property name="can_focus">False</property>
+                    <property name="hscroll_policy">natural</property>
+                    <property name="vscroll_policy">natural</property>
                     <child>
-                      <object class="GtkViewport">
+                      <object class="GtkTreeView" id="logged_list">
                         <property name="visible">True</property>
-                        <property name="can_focus">False</property>
+                        <property name="can_focus">True</property>
+                        <property name="hexpand">False</property>
+                        <property name="vexpand">False</property>
+                        <property name="model">logged_list_store</property>
+                        <property name="search_column">0</property>
+                        <property name="enable_grid_lines">both</property>
+                        <property name="enable_tree_lines">True</property>
+                        <child internal-child="selection">
+                          <object class="GtkTreeSelection"/>
+                        </child>
                         <child>
-                          <object class="GtkListBox" id="logged_list">
-                            <property name="visible">True</property>
-                            <property name="can_focus">False</property>
+                          <object class="GtkTreeViewColumn" id="call">
+                            <property name="resizable">True</property>
+                            <property name="title" translatable="yes">Call</property>
+                            <child>
+                              <object class="GtkCellRendererText" id="call_text"/>
+                            </child>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkTreeViewColumn" id="date">
+                            <property name="resizable">True</property>
+                            <property name="title" translatable="yes">Date</property>
+                            <child>
+                              <object class="GtkCellRendererText" id="date_text"/>
+                            </child>
                           </object>
                         </child>
                       </object>
                     </child>
                   </object>
-                  <packing>
-                    <property name="expand">True</property>
-                    <property name="fill">True</property>
-                    <property name="position">1</property>
-                  </packing>
                 </child>
               </object>
               <packing>
-                <property name="expand">True</property>
+                <property name="expand">False</property>
                 <property name="fill">True</property>
-                <property name="position">0</property>
+                <property name="position">2</property>
               </packing>
             </child>
           </object>
           <packing>
-            <property name="expand">True</property>
+            <property name="expand">False</property>
             <property name="fill">True</property>
-            <property name="position">1</property>
+            <property name="position">2</property>
           </packing>
         </child>
       </object>

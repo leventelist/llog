@@ -8,13 +8,19 @@ typedef struct {
 	GtkWidget *w_txtvw_main;	// Pointer to text view object
 	GtkWidget *logfile_choose;	// Pointer to file chooser dialog box
 	GtkWidget *log_entry_list;	// Pointer to the log entry list
-	GtkWidget *logged_list;		// Pointer to the logged elemnt list
+	GtkTreeView *logged_list;		// Pointer to the logged elemnt list
+	GtkTreeStore *logged_list_store;
+	GtkTreeSelection *logged_list_selection;
+	GtkTreeViewColumn *logged_list_column[LLOG_COLUMNS];
+	GtkCellRenderer *logged_list_renderer[LLOG_COLUMNS];
 } app_widgets;
 
 
 /*Module variables*/
 static app_widgets *widgets;
 
+
+int on_window_main_destroy(void);
 
 int main_window_draw(void) {
 
@@ -32,14 +38,29 @@ int main_window_draw(void) {
 
 	/*Get widget pointers*/
 	window = GTK_WIDGET(gtk_builder_get_object(builder, "window_main"));
+	g_signal_connect(window, "destroy", G_CALLBACK(on_window_main_destroy), NULL);
 	widgets->logfile_choose = GTK_WIDGET(gtk_builder_get_object(builder, "logfile_choose"));
-	widgets->logged_list = GTK_WIDGET(gtk_builder_get_object(builder, "logged_list"));
+	widgets->logged_list = GTK_TREE_VIEW(gtk_builder_get_object(builder, "logged_list"));
+	widgets->logged_list_selection = GTK_TREE_SELECTION(gtk_builder_get_object(builder, "logged_list_selection"));
+	widgets->logged_list_store = GTK_TREE_STORE(gtk_builder_get_object(builder, "logged_list_store"));
+
+	widgets->logged_list_column[0] = GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(builder, "call"));
+	widgets->logged_list_column[1] = GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(builder, "date"));
+
+	widgets->logged_list_renderer[0] = GTK_CELL_RENDERER(gtk_builder_get_object(builder, "call_text"));
+	widgets->logged_list_renderer[1] = GTK_CELL_RENDERER(gtk_builder_get_object(builder, "date_text"));
+
+	gtk_tree_view_column_add_attribute(widgets->logged_list_column[0], widgets->logged_list_renderer[0], "text", 0);
+	gtk_tree_view_column_add_attribute(widgets->logged_list_column[1], widgets->logged_list_renderer[1], "text", 1);
 
 	gtk_builder_connect_signals(builder, widgets);
 
 	g_object_unref(builder);
 
 	gtk_widget_show(window);
+
+	llog_add_log_entry();
+
 	gtk_main();
 	g_slice_free(app_widgets, widgets);
 
@@ -63,7 +84,7 @@ void on_menuitm_open_activate(GtkMenuItem *menuitem, app_widgets *app_wdgts) {
         file_name = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(app_wdgts->logfile_choose));
         if (file_name != NULL) {
 			printf("Yaayyy!!! We know which file to load!\n");
-			file_success = llog_open_db(file_name);
+			file_success = llog_open_db();
 			llog_add_log_entry();
 			if (file_success != 0) {
 				printf("Error opening database.\n");
@@ -98,30 +119,20 @@ int on_qrt_activate(void) {
 
 int main_window_add_log_entry_to_list(log_entry_t *entry) {
 	int ret_val = OK;
+	static GtkTreeIter iter;
+	char buff[1233];
 
-	char buff[LOG_ENTRY_LEN];
-//	GtkWidget *combobox;
-	GtkWidget *label, *row;
+	//char buff[LOG_ENTRY_LEN];
+
+	gtk_tree_store_append(widgets->logged_list_store, &iter, NULL);
 
 	/*Create the text*/
 	snprintf(buff, LOG_ENTRY_LEN, "%s %s %s", entry->call, entry->rxrst, entry->txrst);
 
 	printf("Adding log item... %s\n", buff);
 
-	/*Create the textbox*/
-//	combobox = gtk_combo_box_text_new();
-
-	label = gtk_label_new(buff);
-
-	row = gtk_list_box_row_new();
-
-	//gtk_combo_box_text_insert(GTK_COMBO_BOX_TEXT(combobox), 0, "wrwer", buff);
-
-	gtk_container_add(GTK_CONTAINER(row), label);
-
-	/*Add to the listbox*/
-	//gtk_list_box_insert(GTK_LIST_BOX(widgets->logged_list), combobox, 0);
-	gtk_list_box_prepend(GTK_LIST_BOX(widgets->logged_list), row);
+	gtk_tree_store_set(widgets->logged_list_store, &iter, 0, entry->call, -1);
+	gtk_tree_store_set(widgets->logged_list_store, &iter, 1, entry->date, -1);
 
 
 	return ret_val;

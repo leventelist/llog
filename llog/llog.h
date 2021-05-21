@@ -112,8 +112,8 @@ typedef struct {
 } station_entry_t;
 
 /*Function definitions*/
-int llog_init(void);
-int llog_open_db(char *fn);
+int llog_init(char *logfile_name);
+int llog_open_db(void);
 void llog_shutdown(void);
 int llog_add_log_entry(void);
 

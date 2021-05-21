@@ -9,20 +9,18 @@
 
 static llog_t llog;
 
-int llog_init(void) {
+int llog_init(char *logfile_name) {
 
 	llog.db = NULL;
-	llog.logfileFn[0] = '\0';
+	strncpy(llog.logfileFn, logfile_name, LOGFILE_LEN);
 
 	return 0;
 }
 
 
-int llog_open_db(char *fn) {
+int llog_open_db(void) {
 
 	int ret;
-
-	strncpy(llog.logfileFn, fn, LOGFILE_LEN);
 
 	printf("Opening log file %s\n", llog.logfileFn);
 
