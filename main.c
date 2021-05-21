@@ -48,10 +48,10 @@ static void printver(void);
 static int get_mode(const char *prompt, op_mode_t *data);
 
 
-op_mode_t modes[MONDE_N] = {{"CW", "599"}, {"RTTY", "599"}, {"PSK31", "599"}, {"PSK63", "599"},
-							{"OLIVIA", "599"}, {"MFSK16", "599"}, {"FT8", "599"}, {"FT4", "599"},
-							{"USB", "59"}, {"LSB", "59"}, {"AM", "59"}, {"FM", "59"},
-							{NULL, NULL}};
+//op_mode_t modes[MONDE_N] = {{"CW", "599"}, {"RTTY", "599"}, {"PSK31", "599"}, {"PSK63", "599"},
+//							{"OLIVIA", "599"}, {"MFSK16", "599"}, {"FT8", "599"}, {"FT4", "599"},
+//							{"USB", "59"}, {"LSB", "59"}, {"AM", "59"}, {"FM", "59"},
+//							{NULL, NULL}};
 
 int main(int argc, char *argv[]) {
 
@@ -245,7 +245,7 @@ static void reset_values(log_entry_t *entry) {
 static void reset_values_static(log_entry_t *entry) {
 
 	entry->QRG = 0;
-	entry->mode = modes[0];
+//	entry->mode = modes[0];
 	*entry->pwr = '\0';
 	entry->tx_nr = 1;
 	*entry->tx_x = '\0';
@@ -287,10 +287,10 @@ static int get_mode(const char *prompt, op_mode_t *data) {
 	printf("\n\nSelect mode. If none is selected, 0 will be used.\n\n");
 
 	for (i = 0; i < MONDE_N; i++) {
-		if (modes[i].name == NULL) {
-			break;
-		}
-		printf("\t%5d: %-10s", i, modes[i].name);
+//		if (modes[i].name == NULL) {
+//			break;
+//		}
+//		printf("\t%5d: %-10s", i, modes[i].name);
 		if ( i%2 == 1) {
 			printf("\n");
 		}
@@ -304,7 +304,7 @@ static int get_mode(const char *prompt, op_mode_t *data) {
 		ret = LLOG_ERR;
 	}
 	free(line);
-	*data = modes[j];
+//	*data = modes[j];
 
 	return ret;
 }

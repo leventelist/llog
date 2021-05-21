@@ -76,8 +76,8 @@ typedef struct {
 
 
 typedef struct {
-	char *name;
-	char *default_rst;
+	char name[MODE_LEN];
+	char default_rst[MODE_LEN];
 } op_mode_t;
 
 

@@ -167,7 +167,7 @@ int db_get_log_entries(llog_t *log, log_entry_t *entry) {
 	char buff[BUF_SIZ];
 
 	if (entry->data_stat == db_data_init) {
-		snprintf(buff, BUF_SIZ, "SELECT rowid, date, UTC, call, rxrst, txrst FROM log;");
+		snprintf(buff, BUF_SIZ, "SELECT rowid, date, UTC, call, rxrst, txrst, QRG, mode FROM log;");
 		sqlite3_prepare_v2(log->db, buff, -1, &sq3_stmt, NULL);
 	}
 
@@ -181,6 +181,8 @@ int db_get_log_entries(llog_t *log, log_entry_t *entry) {
 		strncpy(entry->call, (char *)sqlite3_column_text(sq3_stmt, 3), CALL_LEN);
 		strncpy(entry->rxrst, (char *)sqlite3_column_text(sq3_stmt, 4), X_LEN);
 		strncpy(entry->txrst, (char *)sqlite3_column_text(sq3_stmt, 5), X_LEN);
+		entry->QRG = sqlite3_column_double(sq3_stmt, 6);
+		strncpy(entry->mode.name, (char *)sqlite3_column_text(sq3_stmt, 7), X_LEN);
 
 		ret_val = OK;
 		entry->data_stat = db_data_valid;
