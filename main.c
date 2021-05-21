@@ -62,22 +62,18 @@ int main(int argc, char *argv[]) {
 	const char *prompt=PROMPT;
 	char buff[256];
 
-	llog_t llog;
+//	llog_t llog;
 	log_entry_t log_entry;
 	station_entry_t station;
 	struct timeval qso_time;
 	struct tm sqo_bdt;
 
 	/*Initialize main data structures*/
-	llog_init();
-
-/*defaults*/
-
-	strcpy(llog.logfileFn, "log.sqlite");
+	llog_init("log.sqlite");
 
 	ret = 0;
 	mode = LLOG_MODE_N;
-	strncpy(llog.station, "1", STATION_LEN);
+//	strncpy(llog.station, "1", STATION_LEN);
 /*Parse command line arguments*/
 
 	while ((opt = getopt(argc, argv, "f:s:lhv")) !=-1) {
@@ -88,10 +84,11 @@ int main(int argc, char *argv[]) {
 		break;
 
 		case 'f':
-			strncpy(llog.logfileFn, optarg, LOGFILE_LEN);
+			llog_init(optarg);
+			llog_open_db();
 		break;
 		case 's':
-			strncpy(llog.station, optarg, STATION_LEN);
+//			strncpy(llog.station, optarg, STATION_LEN);
 		break;
 		case 'v':
 			printver();
@@ -116,11 +113,11 @@ int main(int argc, char *argv[]) {
 	exit(EXIT_SUCCESS);
 
 	if (mode == LLOG_MODE_L) {
-		list_stations(&llog);
+//		list_stations(&llog);
 		return(0);
 	}
 
-	ret = lookupStation(&llog, &station);
+//	ret = lookupStation(&llog, &station);
 
 	log_entry.stationId = station.id;
 
@@ -130,7 +127,7 @@ int main(int argc, char *argv[]) {
 
 /*get the maximum TX number*/
 
-	getMaxNr(&llog, &log_entry);
+//	getMaxNr(&llog, &log_entry);
 
 //	fprintf(stderr, "\tTX serial number: %04d\n", log_variables.tx_nr);
 
@@ -141,7 +138,7 @@ int main(int argc, char *argv[]) {
 			break;
 		}
 		print_log_data(&log_entry);
-		checkDupQSO(&llog, &log_entry);
+//		checkDupQSO(&llog, &log_entry);
 		printf(prompt);
 		fflush(stdout);
 		opt=getch();
@@ -197,7 +194,7 @@ int main(int argc, char *argv[]) {
 				if (*log_entry.call=='\0') {
 					break;
 				}
-				ret = setLogEntry(&llog, &log_entry);
+//				ret = setLogEntry(&llog, &log_entry);
 				if (ret==OK) {
 					log_entry.tx_nr++;
 					reset_values(&log_entry);
@@ -214,12 +211,12 @@ int main(int argc, char *argv[]) {
 			break;
 			case 'q':
 				printf("\n");
-				db_sqlite_close(&llog);
+//				db_sqlite_close(&llog);
 			break;
 			case 's':
-				list_stations(&llog);
-				ret = get_data("Station ID or name: ", llog.station);
-				lookupStation(&llog, &station);
+//				list_stations(&llog);
+//				ret = get_data("Station ID or name: ", llog.station);
+//				lookupStation(&llog, &station);
 				log_entry.stationId = station.id;
 			break;
 		}
