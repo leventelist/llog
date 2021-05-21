@@ -10,6 +10,10 @@
       <column type="gchararray"/>
       <!-- column-name id -->
       <column type="gchararray"/>
+      <!-- column-name QRG -->
+      <column type="gfloat"/>
+      <!-- column-name mode -->
+      <column type="gchararray"/>
     </columns>
   </object>
   <object class="GtkWindow" id="window_main">
@@ -538,66 +542,6 @@
                 <child>
                   <placeholder/>
                 </child>
-                <child>
-                  <placeholder/>
-                </child>
-                <child>
-                  <placeholder/>
-                </child>
-                <child>
-                  <placeholder/>
-                </child>
-                <child>
-                  <placeholder/>
-                </child>
-                <child>
-                  <placeholder/>
-                </child>
-                <child>
-                  <placeholder/>
-                </child>
-                <child>
-                  <placeholder/>
-                </child>
-                <child>
-                  <placeholder/>
-                </child>
-                <child>
-                  <placeholder/>
-                </child>
-                <child>
-                  <placeholder/>
-                </child>
-                <child>
-                  <placeholder/>
-                </child>
-                <child>
-                  <placeholder/>
-                </child>
-                <child>
-                  <placeholder/>
-                </child>
-                <child>
-                  <placeholder/>
-                </child>
-                <child>
-                  <placeholder/>
-                </child>
-                <child>
-                  <placeholder/>
-                </child>
-                <child>
-                  <placeholder/>
-                </child>
-                <child>
-                  <placeholder/>
-                </child>
-                <child>
-                  <placeholder/>
-                </child>
-                <child>
-                  <placeholder/>
-                </child>
               </object>
               <packing>
                 <property name="expand">False</property>
@@ -621,7 +565,7 @@
                     <property name="margin_right">10</property>
                     <property name="hexpand">True</property>
                     <property name="model">logged_list_store</property>
-                    <property name="search_column">0</property>
+                    <property name="search_column">1</property>
                     <property name="enable_grid_lines">both</property>
                     <child internal-child="selection">
                       <object class="GtkTreeSelection"/>
@@ -650,6 +594,22 @@
                         <property name="title" translatable="yes">Date</property>
                         <child>
                           <object class="GtkCellRendererText" id="date_text"/>
+                        </child>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkTreeViewColumn" id="QRG">
+                        <property name="title" translatable="yes">QRG</property>
+                        <child>
+                          <object class="GtkCellRendererText" id="QRG_text"/>
+                        </child>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkTreeViewColumn" id="mode">
+                        <property name="title" translatable="yes">mode</property>
+                        <child>
+                          <object class="GtkCellRendererText" id="mode_text"/>
                         </child>
                       </object>
                     </child>

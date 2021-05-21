@@ -47,14 +47,20 @@ int main_window_draw(void) {
 	widgets->logged_list_column[0] = GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(builder, "id"));
 	widgets->logged_list_column[1] = GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(builder, "call"));
 	widgets->logged_list_column[2] = GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(builder, "date"));
+	widgets->logged_list_column[3] = GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(builder, "QRG"));
+	widgets->logged_list_column[4] = GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(builder, "mode"));
 
 	widgets->logged_list_renderer[0] = GTK_CELL_RENDERER(gtk_builder_get_object(builder, "id_text"));
 	widgets->logged_list_renderer[1] = GTK_CELL_RENDERER(gtk_builder_get_object(builder, "call_text"));
 	widgets->logged_list_renderer[2] = GTK_CELL_RENDERER(gtk_builder_get_object(builder, "date_text"));
+	widgets->logged_list_renderer[3] = GTK_CELL_RENDERER(gtk_builder_get_object(builder, "QRG_text"));
+	widgets->logged_list_renderer[4] = GTK_CELL_RENDERER(gtk_builder_get_object(builder, "mode_text"));
 
 	gtk_tree_view_column_add_attribute(widgets->logged_list_column[0], widgets->logged_list_renderer[0], "text", 0);
 	gtk_tree_view_column_add_attribute(widgets->logged_list_column[1], widgets->logged_list_renderer[1], "text", 1);
 	gtk_tree_view_column_add_attribute(widgets->logged_list_column[2], widgets->logged_list_renderer[2], "text", 2);
+	gtk_tree_view_column_add_attribute(widgets->logged_list_column[3], widgets->logged_list_renderer[3], "text", 3);
+	gtk_tree_view_column_add_attribute(widgets->logged_list_column[4], widgets->logged_list_renderer[4], "text", 4);
 
 	gtk_builder_connect_signals(builder, widgets);
 
@@ -87,6 +93,7 @@ void on_menuitm_open_activate(GtkMenuItem *menuitem, app_widgets *app_wdgts) {
         file_name = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(app_wdgts->logfile_choose));
         if (file_name != NULL) {
 			printf("Yaayyy!!! We know which file to load!\n");
+			llog_init(file_name);
 			file_success = llog_open_db();
 			llog_add_log_entry();
 			if (file_success != 0) {
@@ -136,6 +143,8 @@ int main_window_add_log_entry_to_list(log_entry_t *entry) {
 	gtk_tree_store_set(widgets->logged_list_store, &iter, 0, buff, -1);
 	gtk_tree_store_set(widgets->logged_list_store, &iter, 1, entry->call, -1);
 	gtk_tree_store_set(widgets->logged_list_store, &iter, 2, entry->date, -1);
+	gtk_tree_store_set(widgets->logged_list_store, &iter, 3, entry->QRG, -1);
+	gtk_tree_store_set(widgets->logged_list_store, &iter, 4, entry->mode.name, -1);
 
 
 	return ret_val;
