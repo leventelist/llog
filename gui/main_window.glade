@@ -188,9 +188,6 @@
               <placeholder/>
             </child>
             <child>
-              <placeholder/>
-            </child>
-            <child>
               <object class="GtkScrolledWindow">
                 <property name="width_request">100</property>
                 <property name="height_request">80</property>
@@ -198,43 +195,33 @@
                 <property name="can_focus">True</property>
                 <property name="shadow_type">in</property>
                 <child>
-                  <object class="GtkViewport" id="view">
-                    <property name="width_request">100</property>
-                    <property name="height_request">80</property>
+                  <object class="GtkTreeView" id="logged_list">
                     <property name="visible">True</property>
-                    <property name="can_focus">False</property>
-                    <property name="hscroll_policy">natural</property>
-                    <property name="vscroll_policy">natural</property>
+                    <property name="can_focus">True</property>
+                    <property name="hexpand">True</property>
+                    <property name="vexpand">True</property>
+                    <property name="model">logged_list_store</property>
+                    <property name="search_column">0</property>
+                    <property name="enable_grid_lines">both</property>
+                    <property name="enable_tree_lines">True</property>
+                    <child internal-child="selection">
+                      <object class="GtkTreeSelection"/>
+                    </child>
                     <child>
-                      <object class="GtkTreeView" id="logged_list">
-                        <property name="visible">True</property>
-                        <property name="can_focus">True</property>
-                        <property name="hexpand">False</property>
-                        <property name="vexpand">False</property>
-                        <property name="model">logged_list_store</property>
-                        <property name="search_column">0</property>
-                        <property name="enable_grid_lines">both</property>
-                        <property name="enable_tree_lines">True</property>
-                        <child internal-child="selection">
-                          <object class="GtkTreeSelection"/>
-                        </child>
+                      <object class="GtkTreeViewColumn" id="call">
+                        <property name="resizable">True</property>
+                        <property name="title" translatable="yes">Call</property>
                         <child>
-                          <object class="GtkTreeViewColumn" id="call">
-                            <property name="resizable">True</property>
-                            <property name="title" translatable="yes">Call</property>
-                            <child>
-                              <object class="GtkCellRendererText" id="call_text"/>
-                            </child>
-                          </object>
+                          <object class="GtkCellRendererText" id="call_text"/>
                         </child>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkTreeViewColumn" id="date">
+                        <property name="resizable">True</property>
+                        <property name="title" translatable="yes">Date</property>
                         <child>
-                          <object class="GtkTreeViewColumn" id="date">
-                            <property name="resizable">True</property>
-                            <property name="title" translatable="yes">Date</property>
-                            <child>
-                              <object class="GtkCellRendererText" id="date_text"/>
-                            </child>
-                          </object>
+                          <object class="GtkCellRendererText" id="date_text"/>
                         </child>
                       </object>
                     </child>
