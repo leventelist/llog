@@ -16,6 +16,12 @@
       <column type="gchararray"/>
     </columns>
   </object>
+  <object class="GtkListStore" id="station_list_store">
+    <columns>
+      <!-- column-name stations -->
+      <column type="gchararray"/>
+    </columns>
+  </object>
   <object class="GtkWindow" id="window_main">
     <property name="can_focus">False</property>
     <property name="title" translatable="yes">llog</property>
@@ -212,10 +218,11 @@
                   </packing>
                 </child>
                 <child>
-                  <object class="GtkEntry">
+                  <object class="GtkEntry" id="call_entry">
                     <property name="name">call_entry</property>
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
+                    <signal name="changed" handler="on_window_main_entry_changed" swapped="no"/>
                   </object>
                   <packing>
                     <property name="left_attach">1</property>
@@ -223,19 +230,7 @@
                   </packing>
                 </child>
                 <child>
-                  <object class="GtkButton" id="date_button">
-                    <property name="label" translatable="yes">Date</property>
-                    <property name="visible">True</property>
-                    <property name="can_focus">True</property>
-                    <property name="receives_default">True</property>
-                  </object>
-                  <packing>
-                    <property name="left_attach">0</property>
-                    <property name="top_attach">1</property>
-                  </packing>
-                </child>
-                <child>
-                  <object class="GtkEntry">
+                  <object class="GtkEntry" id="date_entry">
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
                   </object>
@@ -245,7 +240,7 @@
                   </packing>
                 </child>
                 <child>
-                  <object class="GtkEntry">
+                  <object class="GtkEntry" id="rx_rst_entry">
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
                     <property name="text" translatable="yes">599</property>
@@ -278,7 +273,7 @@
                   </packing>
                 </child>
                 <child>
-                  <object class="GtkEntry">
+                  <object class="GtkEntry" id="tx_rst_entry">
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
                     <property name="text" translatable="yes">599</property>
@@ -289,7 +284,7 @@
                   </packing>
                 </child>
                 <child>
-                  <object class="GtkEntry">
+                  <object class="GtkEntry" id="utc_entry">
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
                   </object>
@@ -299,7 +294,7 @@
                   </packing>
                 </child>
                 <child>
-                  <object class="GtkButton">
+                  <object class="GtkButton" id="utc_btn">
                     <property name="label" translatable="yes">UTC</property>
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
@@ -311,7 +306,7 @@
                   </packing>
                 </child>
                 <child>
-                  <object class="GtkEntry">
+                  <object class="GtkEntry" id="power_entry">
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
                   </object>
@@ -321,7 +316,7 @@
                   </packing>
                 </child>
                 <child>
-                  <object class="GtkEntry">
+                  <object class="GtkEntry" id="mode_entry">
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
                   </object>
@@ -331,7 +326,7 @@
                   </packing>
                 </child>
                 <child>
-                  <object class="GtkEntry">
+                  <object class="GtkEntry" id="qth_entry">
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
                   </object>
@@ -363,7 +358,7 @@
                   </packing>
                 </child>
                 <child>
-                  <object class="GtkEntry">
+                  <object class="GtkEntry" id="name_entry">
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
                   </object>
@@ -373,7 +368,7 @@
                   </packing>
                 </child>
                 <child>
-                  <object class="GtkEntry">
+                  <object class="GtkEntry" id="qra_entry">
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
                   </object>
@@ -394,7 +389,7 @@
                   </packing>
                 </child>
                 <child>
-                  <object class="GtkEntry">
+                  <object class="GtkEntry" id="qrg_entry">
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
                   </object>
@@ -448,7 +443,7 @@
                   </packing>
                 </child>
                 <child>
-                  <object class="GtkEntry">
+                  <object class="GtkEntry" id="rxnr_entry">
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
                   </object>
@@ -458,7 +453,7 @@
                   </packing>
                 </child>
                 <child>
-                  <object class="GtkEntry">
+                  <object class="GtkEntry" id="txnr_entry">
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
                   </object>
@@ -501,13 +496,46 @@
                   </packing>
                 </child>
                 <child>
-                  <object class="GtkEntry">
+                  <object class="GtkEntry" id="rxextra_entry">
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
                   </object>
                   <packing>
                     <property name="left_attach">1</property>
                     <property name="top_attach">13</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkEntry" id="tx_extra">
+                    <property name="visible">True</property>
+                    <property name="can_focus">True</property>
+                  </object>
+                  <packing>
+                    <property name="left_attach">1</property>
+                    <property name="top_attach">14</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkButton" id="log_btn">
+                    <property name="label" translatable="yes">Log</property>
+                    <property name="visible">True</property>
+                    <property name="can_focus">True</property>
+                    <property name="receives_default">True</property>
+                  </object>
+                  <packing>
+                    <property name="left_attach">1</property>
+                    <property name="top_attach">17</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkLabel">
+                    <property name="visible">True</property>
+                    <property name="can_focus">False</property>
+                    <property name="label" translatable="yes">Comment</property>
+                  </object>
+                  <packing>
+                    <property name="left_attach">0</property>
+                    <property name="top_attach">15</property>
                   </packing>
                 </child>
                 <child>
@@ -518,20 +546,56 @@
                   </object>
                   <packing>
                     <property name="left_attach">1</property>
-                    <property name="top_attach">14</property>
+                    <property name="top_attach">15</property>
                   </packing>
                 </child>
                 <child>
-                  <object class="GtkButton">
-                    <property name="label" translatable="yes">Log</property>
+                  <object class="GtkLabel">
                     <property name="visible">True</property>
-                    <property name="can_focus">True</property>
-                    <property name="receives_default">True</property>
+                    <property name="can_focus">False</property>
+                    <property name="label" translatable="yes">Date</property>
+                  </object>
+                  <packing>
+                    <property name="left_attach">0</property>
+                    <property name="top_attach">1</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkLabel">
+                    <property name="visible">True</property>
+                    <property name="can_focus">False</property>
+                    <property name="label" translatable="yes">Station</property>
+                  </object>
+                  <packing>
+                    <property name="left_attach">0</property>
+                    <property name="top_attach">19</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkComboBox" id="station_select">
+                    <property name="visible">True</property>
+                    <property name="can_focus">False</property>
+                    <property name="model">station_list_store</property>
+                    <property name="has_entry">True</property>
+                    <property name="entry_text_column">0</property>
+                    <child internal-child="entry">
+                      <object class="GtkEntry">
+                        <property name="can_focus">False</property>
+                        <property name="primary_icon_stock">gtk-home</property>
+                        <property name="placeholder_text" translatable="yes">Select station</property>
+                      </object>
+                    </child>
                   </object>
                   <packing>
                     <property name="left_attach">1</property>
-                    <property name="top_attach">16</property>
+                    <property name="top_attach">19</property>
                   </packing>
+                </child>
+                <child>
+                  <placeholder/>
+                </child>
+                <child>
+                  <placeholder/>
                 </child>
                 <child>
                   <placeholder/>
@@ -628,6 +692,46 @@
             <property name="fill">True</property>
             <property name="position">2</property>
           </packing>
+        </child>
+      </object>
+    </child>
+  </object>
+  <object class="GtkAboutDialog" id="about_dialog">
+    <property name="can_focus">False</property>
+    <property name="title" translatable="yes">llog program</property>
+    <property name="type_hint">dialog</property>
+    <property name="deletable">False</property>
+    <property name="transient_for">window_main</property>
+    <property name="program_name">llog</property>
+    <property name="version">2.3.4</property>
+    <property name="copyright" translatable="yes">HA5OGL</property>
+    <property name="comments" translatable="yes">A simple, yet powerfull log program for amateur radio operators.</property>
+    <property name="website">www.logonex.eu</property>
+    <property name="website_label" translatable="yes">logonex.eu</property>
+    <property name="authors">Levente Kovacs, HA5OGL</property>
+    <property name="logo_icon_name">image-missing</property>
+    <property name="license_type">mit-x11</property>
+    <child>
+      <placeholder/>
+    </child>
+    <child internal-child="vbox">
+      <object class="GtkBox" id="about_window">
+        <property name="can_focus">False</property>
+        <property name="orientation">vertical</property>
+        <property name="spacing">2</property>
+        <child internal-child="action_area">
+          <object class="GtkButtonBox">
+            <property name="can_focus">False</property>
+            <property name="layout_style">end</property>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">False</property>
+            <property name="position">0</property>
+          </packing>
+        </child>
+        <child>
+          <placeholder/>
         </child>
       </object>
     </child>

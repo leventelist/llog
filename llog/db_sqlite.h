@@ -27,6 +27,7 @@
 #include <stdint.h>
 
 #define BUF_SIZ 20480
+#define EMPTY_STRING ""
 
 
 /*data status*/
@@ -56,7 +57,7 @@ int lookupStation(llog_t *llog, station_entry_t *station);
 int setLogEntry(llog_t *log, log_entry_t *entry);
 int checkDupQSO(llog_t *log, log_entry_t *entry);
 int getMaxNr(llog_t *log, log_entry_t *entry);
-int list_stations(llog_t *llog);
+int db_get_station_entry(llog_t *log, station_entry_t *station);
 int db_get_log_entries(llog_t *log, log_entry_t *entry);
 
 #endif

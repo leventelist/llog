@@ -28,6 +28,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <sqlite3.h>
+#include <stdbool.h>
 #include "db_sqlite.h"
 #include "llog.h"
 
@@ -161,9 +162,15 @@ int checkDupQSO(llog_t *log, log_entry_t *entry) {
 }
 
 
+/* Get a single log entry.
+ *
+ * Call this function repetativly untill you get an error,
+ * or a db_data_last in the status of the entry pointer, even if you don't want more.
+ * */
 int db_get_log_entries(llog_t *log, log_entry_t *entry) {
 	int ret, ret_val = OK;
 	static sqlite3_stmt *sq3_stmt;
+	bool finalize = true;
 	char buff[BUF_SIZ];
 
 	if (entry->data_stat == db_data_init) {
@@ -171,6 +178,7 @@ int db_get_log_entries(llog_t *log, log_entry_t *entry) {
 		sqlite3_prepare_v2(log->db, buff, -1, &sq3_stmt, NULL);
 	}
 
+	entry->data_stat = db_data_err;
 
 	ret = sqlite3_step(sq3_stmt);
 	switch (ret) {
@@ -183,7 +191,7 @@ int db_get_log_entries(llog_t *log, log_entry_t *entry) {
 		strncpy(entry->txrst, (char *)sqlite3_column_text(sq3_stmt, 5), X_LEN);
 		entry->QRG = sqlite3_column_double(sq3_stmt, 6);
 		strncpy(entry->mode.name, (char *)sqlite3_column_text(sq3_stmt, 7), X_LEN);
-
+		finalize = false;
 		ret_val = OK;
 		entry->data_stat = db_data_valid;
 		break;
@@ -193,13 +201,15 @@ int db_get_log_entries(llog_t *log, log_entry_t *entry) {
 		break;
 		case SQLITE_BUSY:
 		ret_val = LLOG_ERR;
-		entry->data_stat = db_data_err;
 		break;
 		default:
 		ret_val = LLOG_ERR;
-		entry->data_stat = db_data_err;
 		printf("Error looking up log entry: %s\n", sqlite3_errmsg(log->db));
 		break;
+	}
+
+	if (finalize) {
+		sqlite3_finalize(sq3_stmt);
 	}
 
 
@@ -281,52 +291,81 @@ int setLogEntry(llog_t *log, log_entry_t *entry) {
 }
 
 
-int list_stations(llog_t *llog) {
+int db_get_station_entry(llog_t *log, station_entry_t *station) {
 
 	sqlite3_stmt *sq3_stmt;
 	char buff[BUF_SIZ];
 	int ret, ret_val = LLOG_ERR;
-	int have_work;
+	bool finalize = true;
+	char *cell;
 
-	have_work = 1;
 
-	sprintf(buff, "SELECT rowid, name, CALL, QTH, QRA, ASL, rig, ant FROM station ORDER BY rowid ASC;");
-	sqlite3_prepare_v2(llog->db, buff, -1, &sq3_stmt, NULL);
+	if (station->data_stat == db_data_init) {
+		sprintf(buff, "SELECT rowid, name, CALL, QTH, QRA, ASL, rig, ant FROM station ORDER BY rowid DESC;");
+		sqlite3_prepare_v2(log->db, buff, -1, &sq3_stmt, NULL);
+	}
 
-	printf("\n\n\nAvailable stations: \n");
+	station->data_stat = db_data_err;
 
-	while (have_work == 1) {
-		ret = sqlite3_step(sq3_stmt);
-		switch (ret) {
+	ret = sqlite3_step(sq3_stmt);
+	switch (ret) {
 		case SQLITE_ROW:
-		printf("\n");
-		printf("ID: %llu", sqlite3_column_int64(sq3_stmt, 0));
-		printf("\tname: %s", sqlite3_column_text(sq3_stmt, 1));
-		printf("\tCall: %s", sqlite3_column_text(sq3_stmt, 2));
-		printf("\tQTH: %s", sqlite3_column_text(sq3_stmt, 3));
-		printf("\tQRA: %s", sqlite3_column_text(sq3_stmt, 4));
-		printf("\tASL: %s", sqlite3_column_text(sq3_stmt, 5));
-		printf("\tRIG: %s", sqlite3_column_text(sq3_stmt, 6));
-		printf("\tANT: %s", sqlite3_column_text(sq3_stmt, 7));
+		station->id = sqlite3_column_int64(sq3_stmt, 0);
+		cell = (char *)sqlite3_column_text(sq3_stmt, 1);
+		if (cell == NULL) {
+			cell = EMPTY_STRING;
+		}
+		strncpy(station->name, cell, NAME_LEN);
+		cell = (char *)sqlite3_column_text(sq3_stmt, 2);
+		if (cell == NULL) {
+			cell = EMPTY_STRING;
+		}
+		strncpy(station->call, cell, CALL_LEN);
+		cell = (char *)sqlite3_column_text(sq3_stmt, 3);
+		if (cell == NULL) {
+			cell = EMPTY_STRING;
+		}
+		strncpy(station->QTH, cell, QTH_LEN);
+		cell = (char *)sqlite3_column_text(sq3_stmt, 4);
+		if (cell == NULL) {
+			cell = EMPTY_STRING;
+		}
+		strncpy(station->QRA, cell, QRA_LEN);
+		cell = (char *)sqlite3_column_text(sq3_stmt, 5);
+		if (cell == NULL) {
+			cell = EMPTY_STRING;
+		}
+		strncpy(station->ASL, cell, ASL_LEN);
+		cell = (char *)sqlite3_column_text(sq3_stmt, 6);
+		if (cell == NULL) {
+			cell = EMPTY_STRING;
+		}
+		strncpy(station->rig, cell, RIG_LEN);
+		cell = (char *)sqlite3_column_text(sq3_stmt, 7);
+		if (cell == NULL) {
+			cell = EMPTY_STRING;
+		}
+		strncpy(station->ant, cell, ANT_LEN);
 		ret_val = OK;
+		finalize = false;
+		station->data_stat = db_data_valid;
 		break;
 		case SQLITE_DONE:
-		have_work = 0;
-		printf("\n\n");
+		station->data_stat = db_data_last;
 		break;
 		case SQLITE_BUSY:
 		ret_val = LLOG_ERR;
-		have_work = 0;
 		break;
 		default:
 		ret_val = LLOG_ERR;
-		have_work = 0;
-		printf("Error looking up stations: %s\n", sqlite3_errmsg(llog->db));
+		printf("Error looking up stations: %s\n", sqlite3_errmsg(log->db));
 		break;
-		}
 	}
 
-	sqlite3_finalize(sq3_stmt);
+
+	if (finalize) {
+		sqlite3_finalize(sq3_stmt);
+	}
 
 	return ret_val;
 }

@@ -32,7 +32,7 @@ int llog_open_db(void) {
 }
 
 
-int llog_add_log_entry(void) {
+int llog_add_log_entries(void) {
 
 	int ret_val = OK;
 	log_entry_t entry;
@@ -41,7 +41,7 @@ int llog_add_log_entry(void) {
 
 	main_window_clear_log_list();
 
-	while(entry.data_stat != db_data_last) {
+	while (entry.data_stat != db_data_last) {
 		db_get_log_entries(&llog, &entry);
 		if (entry.data_stat == db_data_valid) {
 			main_window_add_log_entry_to_list(&entry);
@@ -49,6 +49,30 @@ int llog_add_log_entry(void) {
 			break;
 		}
 	}
+
+	return ret_val;
+}
+
+
+int llog_add_station_entries(void) {
+
+	int ret_val = OK;
+	station_entry_t station;
+
+	station.data_stat = db_data_init;
+
+	main_window_clear_station_list();
+
+	while (station.data_stat != db_data_last) {
+		db_get_station_entry(&llog, &station);
+		if (station.data_stat == db_data_valid) {
+			main_window_add_station_entry_to_list(&station);
+		} else {
+			break;
+		}
+	}
+
+
 
 	return ret_val;
 }
