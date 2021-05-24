@@ -67,6 +67,26 @@
 #define PROMPT "\n: "
 
 
+enum llog_entry_pos {
+	llog_entry_call = 0,
+	llog_entry_data,
+	llog_entry_utc,
+	llog_entry_rxrst,
+	llog_entry_txrst,
+	llog_entry_qth,
+	llog_entry_name,
+	llog_entry_qra,
+	llog_entry_qrg,
+	llog_entry_mode,
+	llog_entry_power,
+	llog_entry_rxnr,
+	llog_entry_txnr,
+	llog_entry_rxextra,
+	llog_entry_txextra,
+	llog_entry_comment
+};
+
+/*Main data storage*/
 typedef struct {
 	char logfileFn[LOGFILE_LEN]; /*SQLite database file name*/
 	char station[STATION_LEN];
@@ -75,6 +95,7 @@ typedef struct {
 } llog_t;
 
 
+/*Mode data storage.*/
 typedef struct {
 	char name[MODE_LEN];
 	char default_rst[MODE_LEN];
@@ -104,22 +125,26 @@ typedef struct {
 } log_entry_t;
 
 
+/*station data*/
 typedef struct {
 	uint64_t id;
-	char name[NAME_LEN];
+	char name[STATION_LEN];
 	char call[CALL_LEN];
 	char QTH[QTH_LEN];
 	char QRA[QRA_LEN];
 	char ASL[ASL_LEN];
-	char RIG[RIG_LEN];
-	char ANT[ANT_LEN];
+	char rig[RIG_LEN];
+	char ant[ANT_LEN];
+	uint32_t data_stat;
 } station_entry_t;
+
 
 /*Function definitions*/
 int llog_init(char *logfile_name);
 int llog_open_db(void);
 void llog_shutdown(void);
-int llog_add_log_entry(void);
+int llog_add_log_entries(void);
+int llog_add_station_entries(void);
 
 #endif
 
