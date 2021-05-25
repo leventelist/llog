@@ -14,7 +14,8 @@ typedef struct {
 	GtkTreeViewColumn *logged_list_column[LLOG_COLUMNS];
 	GtkCellRenderer *logged_list_renderer[LLOG_COLUMNS];
 	GtkListStore *station_list_store;
-	GtkEntry log_entries[LLOG_COLUMNS];
+	GtkEntry *log_entries[LLOG_ENTRIES];
+	GtkButton *log_button;
 } app_widgets;
 
 
@@ -67,10 +68,23 @@ int main_window_draw(void) {
 	gtk_tree_view_column_add_attribute(widgets->logged_list_column[3], widgets->logged_list_renderer[3], "text", 3);
 	gtk_tree_view_column_add_attribute(widgets->logged_list_column[4], widgets->logged_list_renderer[4], "text", 4);
 
+	/*Get the pointers of the entries*/
+
+	widgets->log_entries[llog_entry_call] = GTK_ENTRY(gtk_builder_get_object(builder, "call_entry"));
+	widgets->log_entries[llog_entry_data] = GTK_ENTRY(gtk_builder_get_object(builder, "date_entry"));
+	widgets->log_entries[llog_entry_utc] = GTK_ENTRY(gtk_builder_get_object(builder, "utc_entry"));
+	widgets->log_entries[llog_entry_rxrst] = GTK_ENTRY(gtk_builder_get_object(builder, "rx_rst_entry"));
+	widgets->log_entries[llog_entry_txrst] = GTK_ENTRY(gtk_builder_get_object(builder, "tx_rst_entry"));
+
+	/*The Log button*/
+	widgets->log_button = GTK_BUTTON(gtk_builder_get_object(builder, "log_btn"));
+
+	/*Set default user data*/
 	gtk_builder_connect_signals(builder, widgets);
 
 	g_object_unref(builder);
 
+	/*Let's rock!*/
 	gtk_widget_show(window);
 
 	llog_add_log_entries();

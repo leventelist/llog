@@ -5,6 +5,7 @@
 
 #include "llog.h"
 #define LLOG_COLUMNS 16
+#define LLOG_ENTRIES 32
 
 
 int main_window_draw(void);
