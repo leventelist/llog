@@ -189,7 +189,7 @@ int main(int argc, char *argv[]) {
 				if (*log_entry.call=='\0') {
 					break;
 				}
-//				ret = setLogEntry(&llog, &log_entry);
+//				ret = db_set_log_entry(&llog, &log_entry);
 				if (ret==OK) {
 					log_entry.txnr++;
 					reset_values(&log_entry);
