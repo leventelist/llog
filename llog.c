@@ -1,6 +1,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+#include <stdint.h>
+#include <inttypes.h>
 
 #include "llog.h"
 #include "db_sqlite.h"
@@ -72,9 +74,41 @@ int llog_add_station_entries(void) {
 		}
 	}
 
-
-
 	return ret_val;
+}
+
+
+void llog_get_time(log_entry_t *log_entry) {
+	struct timeval qso_time;
+	struct tm qso_bdt;
+
+	gettimeofday(&qso_time, NULL);
+	gmtime_r(&qso_time.tv_sec, &qso_bdt);
+	sprintf(log_entry->date, "%d-%02d-%02d", 1900+qso_bdt.tm_year, 1+qso_bdt.tm_mon, qso_bdt.tm_mday);
+	sprintf(log_entry->utc, "%02d%02d", qso_bdt.tm_hour, qso_bdt.tm_min);
+}
+
+
+void llog_print_log_data(log_entry_t *entry) {
+
+	printf("\nCall [%s]\nOperator's name: [%s]\n", entry->call, entry->name);
+	printf("RXRST [%s]\nTXRST [%s]\n", entry->rxrst, entry->txrst);
+	printf("QTH [%s]\nQRA [%s]\n", entry->qth, entry->qra);
+	printf("QRG [%f]\nMode [%s]\nPower: [%s]\n", entry->qrg, entry->mode.name, entry->power);
+	printf("RXNR [%04"PRIu64"]\nTXNR [%04"PRIu64"]\n", entry->rxnr, entry->txnr);
+	printf("RX_EXTRA [%s]\nTX_EXTRA [%s]\n", entry->rxextra, entry->txextra);
+	printf("Comment [%s]\n\n", entry->comment);
+	return;
+}
+
+
+void llog_strupper(char *s) {
+	while (*s) {
+		if ((*s >= 'a' ) && (*s <= 'z')) {
+			*s -= ('a'-'A');
+		}
+		s++;
+	}
 }
 
 
