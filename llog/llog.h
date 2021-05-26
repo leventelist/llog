@@ -69,7 +69,7 @@
 
 enum llog_entry_pos {
 	llog_entry_call = 0,
-	llog_entry_data,
+	llog_entry_date,
 	llog_entry_utc,
 	llog_entry_rxrst,
 	llog_entry_txrst,
@@ -107,16 +107,16 @@ typedef struct {
 	char call[CALL_LEN];
 	char rxrst[RST_LEN];
 	char txrst[RST_LEN];
-	uint64_t tx_nr;
-	uint64_t rx_nr;
-	char rx_x[X_LEN];
-	char tx_x[X_LEN];
-	char QTH[QTH_LEN];
+	uint64_t txnr;
+	uint64_t rxnr;
+	char rxextra[X_LEN];
+	char txextra[X_LEN];
+	char qth[QTH_LEN];
 	char name[NAME_LEN];
-	char QRA[QRA_LEN];
-	double QRG;
+	char qra[QRA_LEN];
+	double qrg;
 	op_mode_t mode;
-	char pwr[PWR_LEN];
+	char power[PWR_LEN];
 	char comment[COMMENT_LEN];
 	uint64_t stationId;
 	char date[NAME_LEN];
@@ -145,6 +145,9 @@ int llog_open_db(void);
 void llog_shutdown(void);
 int llog_add_log_entries(void);
 int llog_add_station_entries(void);
+void llog_get_time(log_entry_t *log_entry);
+void llog_print_log_data(log_entry_t *entry);
+void llog_strupper(char *s);
 
 #endif
 

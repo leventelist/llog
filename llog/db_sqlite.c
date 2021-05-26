@@ -189,7 +189,7 @@ int db_get_log_entries(llog_t *log, log_entry_t *entry) {
 		strncpy(entry->call, (char *)sqlite3_column_text(sq3_stmt, 3), CALL_LEN);
 		strncpy(entry->rxrst, (char *)sqlite3_column_text(sq3_stmt, 4), X_LEN);
 		strncpy(entry->txrst, (char *)sqlite3_column_text(sq3_stmt, 5), X_LEN);
-		entry->QRG = sqlite3_column_double(sq3_stmt, 6);
+		entry->qrg = sqlite3_column_double(sq3_stmt, 6);
 		strncpy(entry->mode.name, (char *)sqlite3_column_text(sq3_stmt, 7), X_LEN);
 		finalize = false;
 		ret_val = OK;
@@ -223,7 +223,7 @@ int getMaxNr(llog_t *log, log_entry_t *entry) {
 	char buff[BUF_SIZ];
 	int have_work = 1;
 
-	entry->tx_nr = 0;
+	entry->txnr = 0;
 
 	sprintf(buff, "SELECT txnr FROM log ORDER BY rowid DESC LIMIT 1;");
 	sqlite3_prepare_v2(log->db, buff, -1, &sq3_stmt, NULL);
@@ -232,7 +232,7 @@ int getMaxNr(llog_t *log, log_entry_t *entry) {
 		ret = sqlite3_step(sq3_stmt);
 		switch (ret) {
 		case SQLITE_ROW:
-		entry->tx_nr = sqlite3_column_int64(sq3_stmt, 0) + 1;
+		entry->txnr = sqlite3_column_int64(sq3_stmt, 0) + 1;
 		ret_val = OK;
 		break;
 		case SQLITE_DONE:
@@ -261,7 +261,7 @@ int setLogEntry(llog_t *log, log_entry_t *entry) {
 	char buff[BUF_SIZ];
 	int have_work = 1;
 
-	snprintf(buff, BUF_SIZ, "INSERT INTO log (date, UTC, call, rxrst, txrst, rxnr, txnr, rxextra, txextra, QTH, name, QRA, QRG, mode, pwr, rxQSL, txQSL, comment, station) VALUES ('%s', '%s', '%s', '%s', '%s', %"PRIu64", %"PRIu64", '%s', '%s', '%s', '%s', '%s', %f, '%s', '%s', %"PRIu64", %"PRIu64", '%s', %"PRIu64");", entry->date, entry->utc, entry->call, entry->rxrst, entry->txrst, entry->rx_nr, entry->tx_nr, entry->rx_x, entry->tx_x, entry->QTH, entry->name, entry->QRA, entry->QRG, entry->mode.name, entry->pwr, (uint64_t)0U, (uint64_t)0U, entry->comment, entry->stationId);
+	snprintf(buff, BUF_SIZ, "INSERT INTO log (date, UTC, call, rxrst, txrst, rxnr, txnr, rxextra, txextra, QTH, name, QRA, QRG, mode, pwr, rxQSL, txQSL, comment, station) VALUES ('%s', '%s', '%s', '%s', '%s', %"PRIu64", %"PRIu64", '%s', '%s', '%s', '%s', '%s', %f, '%s', '%s', %"PRIu64", %"PRIu64", '%s', %"PRIu64");", entry->date, entry->utc, entry->call, entry->rxrst, entry->txrst, entry->rxnr, entry->txnr, entry->rxextra, entry->txextra, entry->qth, entry->name, entry->qra, entry->qrg, entry->mode.name, entry->power, (uint64_t)0U, (uint64_t)0U, entry->comment, entry->stationId);
 	sqlite3_prepare_v2(log->db, buff, -1, &sq3_stmt, NULL);
 
 	while (have_work == 1) {

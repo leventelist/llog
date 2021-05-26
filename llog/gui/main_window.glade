@@ -233,6 +233,7 @@
                   <object class="GtkEntry" id="date_entry">
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
+                    <signal name="changed" handler="on_window_main_entry_changed" swapped="no"/>
                   </object>
                   <packing>
                     <property name="left_attach">1</property>
@@ -244,6 +245,7 @@
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
                     <property name="text" translatable="yes">599</property>
+                    <signal name="changed" handler="on_window_main_entry_changed" swapped="no"/>
                   </object>
                   <packing>
                     <property name="left_attach">1</property>
@@ -277,6 +279,7 @@
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
                     <property name="text" translatable="yes">599</property>
+                    <signal name="changed" handler="on_window_main_entry_changed" swapped="no"/>
                   </object>
                   <packing>
                     <property name="left_attach">1</property>
@@ -287,6 +290,7 @@
                   <object class="GtkEntry" id="utc_entry">
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
+                    <signal name="changed" handler="on_window_main_entry_changed" swapped="no"/>
                   </object>
                   <packing>
                     <property name="left_attach">1</property>
@@ -299,6 +303,7 @@
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
                     <property name="receives_default">True</property>
+                    <signal name="clicked" handler="on_utc_btn_clicked" swapped="no"/>
                   </object>
                   <packing>
                     <property name="left_attach">0</property>
@@ -309,6 +314,7 @@
                   <object class="GtkEntry" id="power_entry">
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
+                    <signal name="changed" handler="on_window_main_entry_changed" swapped="no"/>
                   </object>
                   <packing>
                     <property name="left_attach">1</property>
@@ -319,6 +325,7 @@
                   <object class="GtkEntry" id="mode_entry">
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
+                    <signal name="changed" handler="on_window_main_entry_changed" swapped="no"/>
                   </object>
                   <packing>
                     <property name="left_attach">1</property>
@@ -329,6 +336,7 @@
                   <object class="GtkEntry" id="qth_entry">
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
+                    <signal name="changed" handler="on_window_main_entry_changed" swapped="no"/>
                   </object>
                   <packing>
                     <property name="left_attach">1</property>
@@ -361,6 +369,7 @@
                   <object class="GtkEntry" id="name_entry">
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
+                    <signal name="changed" handler="on_window_main_entry_changed" swapped="no"/>
                   </object>
                   <packing>
                     <property name="left_attach">1</property>
@@ -371,6 +380,7 @@
                   <object class="GtkEntry" id="qra_entry">
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
+                    <signal name="changed" handler="on_window_main_entry_changed" swapped="no"/>
                   </object>
                   <packing>
                     <property name="left_attach">1</property>
@@ -392,6 +402,7 @@
                   <object class="GtkEntry" id="qrg_entry">
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
+                    <signal name="changed" handler="on_window_main_entry_changed" swapped="no"/>
                   </object>
                   <packing>
                     <property name="left_attach">1</property>
@@ -446,6 +457,7 @@
                   <object class="GtkEntry" id="rxnr_entry">
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
+                    <signal name="changed" handler="on_window_main_entry_changed" swapped="no"/>
                   </object>
                   <packing>
                     <property name="left_attach">1</property>
@@ -456,6 +468,7 @@
                   <object class="GtkEntry" id="txnr_entry">
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
+                    <signal name="changed" handler="on_window_main_entry_changed" swapped="no"/>
                   </object>
                   <packing>
                     <property name="left_attach">1</property>
@@ -499,6 +512,7 @@
                   <object class="GtkEntry" id="rxextra_entry">
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
+                    <signal name="changed" handler="on_window_main_entry_changed" swapped="no"/>
                   </object>
                   <packing>
                     <property name="left_attach">1</property>
@@ -506,9 +520,10 @@
                   </packing>
                 </child>
                 <child>
-                  <object class="GtkEntry" id="tx_extra">
+                  <object class="GtkEntry" id="txextra_entry">
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
+                    <signal name="changed" handler="on_window_main_entry_changed" swapped="no"/>
                   </object>
                   <packing>
                     <property name="left_attach">1</property>
@@ -521,6 +536,7 @@
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
                     <property name="receives_default">True</property>
+                    <signal name="clicked" handler="on_log_btn_clicked" swapped="no"/>
                   </object>
                   <packing>
                     <property name="left_attach">1</property>
@@ -539,10 +555,11 @@
                   </packing>
                 </child>
                 <child>
-                  <object class="GtkEntry">
+                  <object class="GtkEntry" id="comment_entry">
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
                     <property name="placeholder_text" translatable="yes">73s and DX</property>
+                    <signal name="changed" handler="on_window_main_entry_changed" swapped="no"/>
                   </object>
                   <packing>
                     <property name="left_attach">1</property>

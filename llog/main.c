@@ -42,7 +42,6 @@ static void printhelp(void);
 static void reset_values(log_entry_t *entry);
 static void reset_values_static(log_entry_t *entry);
 static int get_data(const char *prompt, char *data);
-static void print_log_data(log_entry_t *entry);
 static void strupper(char *s);
 static void printver(void);
 static int get_mode(const char *prompt, op_mode_t *data);
@@ -65,8 +64,7 @@ int main(int argc, char *argv[]) {
 //	llog_t llog;
 	log_entry_t log_entry;
 	station_entry_t station;
-	struct timeval qso_time;
-	struct tm sqo_bdt;
+
 
 	/*Initialize main data structures*/
 	llog_init("log.sqlite");
@@ -129,7 +127,7 @@ int main(int argc, char *argv[]) {
 
 //	getMaxNr(&llog, &log_entry);
 
-//	fprintf(stderr, "\tTX serial number: %04d\n", log_variables.tx_nr);
+//	fprintf(stderr, "\tTX serial number: %04d\n", log_variables.txnr);
 
 	opt='0';
 
@@ -137,7 +135,7 @@ int main(int argc, char *argv[]) {
 		if (opt=='q') {
 			break;
 		}
-		print_log_data(&log_entry);
+//		print_log_data(&log_entry);
 //		checkDupQSO(&llog, &log_entry);
 		printf(prompt);
 		fflush(stdout);
@@ -145,10 +143,7 @@ int main(int argc, char *argv[]) {
 		switch (opt) {
 			case 'c':
 				ret = get_data("Call: ", log_entry.call);
-				gettimeofday(&qso_time, NULL);
-				gmtime_r(&qso_time.tv_sec, &sqo_bdt);
-				sprintf(log_entry.date, "%d-%02d-%02d", 1900+sqo_bdt.tm_year, 1+sqo_bdt.tm_mon, sqo_bdt.tm_mday);
-				sprintf(log_entry.utc, "%02d%02d", sqo_bdt.tm_hour, sqo_bdt.tm_min);
+
 				strupper(log_entry.call);
 			break;
 			case 'o':
@@ -162,22 +157,22 @@ int main(int argc, char *argv[]) {
 			break;
 			case 'n':
 				ret=get_data("RXNR: ", f_line);
-				log_entry.rx_nr=strtoul(f_line, NULL, 10);;
+				log_entry.rxnr=strtoul(f_line, NULL, 10);;
 			break;
 			case 'N':
 				ret=get_data("TXNR: ", f_line);
-				log_entry.tx_nr=strtoul(f_line, NULL, 10);;
+				log_entry.txnr=strtoul(f_line, NULL, 10);;
 			break;
 			case 't':
-				ret=get_data("QTH: ", log_entry.QTH);
+				ret=get_data("QTH: ", log_entry.qth);
 			break;
 			case 'a':
-				ret=get_data("QRA: ", log_entry.QRA);
-				strupper(log_entry.QRA);
+				ret=get_data("QRA: ", log_entry.qra);
+				strupper(log_entry.qra);
 			break;
 			case 'g':
 				ret = get_data("QRG: ", buff);
-				log_entry.QRG = strtod(buff, NULL);
+				log_entry.qrg = strtod(buff, NULL);
 			break;
 			case 'm':
 				ret = get_mode("Mode: ", &log_entry.mode);
@@ -185,7 +180,7 @@ int main(int argc, char *argv[]) {
 				strcpy(log_entry.txrst, log_entry.mode.default_rst);
 			break;
 			case 'p':
-				ret = get_data("Power: ", log_entry.pwr);
+				ret = get_data("Power: ", log_entry.power);
 			break;
 			case 'e':
 				ret = get_data("Comment: ", log_entry.comment);
@@ -196,7 +191,7 @@ int main(int argc, char *argv[]) {
 				}
 //				ret = setLogEntry(&llog, &log_entry);
 				if (ret==OK) {
-					log_entry.tx_nr++;
+					log_entry.txnr++;
 					reset_values(&log_entry);
 					printf("\nWritten OK.\n");
 				} else {
@@ -204,10 +199,10 @@ int main(int argc, char *argv[]) {
 				}
 			break;
 			case 'x':
-				ret=get_data("RX extra: ", log_entry.rx_x);
+				ret=get_data("RX extra: ", log_entry.rxextra);
 			break;
 			case 'X':
-				ret=get_data("TX extra: ", log_entry.tx_x);
+				ret=get_data("TX extra: ", log_entry.txextra);
 			break;
 			case 'q':
 				printf("\n");
@@ -228,15 +223,15 @@ int main(int argc, char *argv[]) {
 
 static void reset_values(log_entry_t *entry) {
 
-	*entry->QTH = '\0';
-	*entry->QRA = '\0';
+	*entry->qth = '\0';
+	*entry->qra = '\0';
 	*entry->call = '\0';
 	*entry->name = '\0';
 	strcpy(entry->rxrst, entry->mode.default_rst);
 	strcpy(entry->txrst, entry->mode.default_rst);
 	strcpy(entry->comment, "73 DX!");
-	entry->rx_nr = 0;
-	*entry->rx_x = '\0';
+	entry->rxnr = 0;
+	*entry->rxextra = '\0';
 
 	return;
 }
@@ -244,11 +239,11 @@ static void reset_values(log_entry_t *entry) {
 
 static void reset_values_static(log_entry_t *entry) {
 
-	entry->QRG = 0;
+	entry->qrg = 0;
 //	entry->mode = modes[0];
-	*entry->pwr = '\0';
-	entry->tx_nr = 1;
-	*entry->tx_x = '\0';
+	*entry->power = '\0';
+	entry->txnr = 1;
+	*entry->txextra = '\0';
 
 	return;
 }
@@ -310,28 +305,7 @@ static int get_mode(const char *prompt, op_mode_t *data) {
 }
 
 
-static void print_log_data(log_entry_t *entry) {
 
-	printf("\nc: Call [%s]\no: Operator's name: [%s]\n", entry->call, entry->name);
-	printf("r: RXRST [%s]\nR: TXRST [%s]\n", entry->rxrst, entry->txrst);
-	printf("t: QTH [%s]\na: QRA [%s]\n", entry->QTH, entry->QRA);
-	printf("g: QRG [%f]\nm: mode [%s]\np: Power: [%s]\n", entry->QRG, entry->mode.name, entry->pwr);
-	printf("n: RXNR [%04"PRIu64"]\nN: TXNR [%04"PRIu64"]\n", entry->rx_nr, entry->tx_nr);
-	printf("x: RX_EXTRA [%s]\nX: TX_EXTRA [%s]\n", entry->rx_x, entry->tx_x);
-	printf("e: Comment [%s]\n\n", entry->comment);
-	printf("w: Write!\ts: Select station\tq: QRT\n");
-	return;
-}
-
-
-static void strupper(char *s) {
-	while (*s) {
-		if ((*s >= 'a' ) && (*s <= 'z')) {
-			*s -= ('a'-'A');
-		}
-		s++;
-	}
-}
 
 
 static void printver(void) {
