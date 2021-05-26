@@ -255,7 +255,7 @@ int getMaxNr(llog_t *log, log_entry_t *entry) {
 }
 
 
-int setLogEntry(llog_t *log, log_entry_t *entry) {
+int db_set_log_entry(llog_t *log, log_entry_t *entry) {
 	int ret, ret_val = OK;
 	sqlite3_stmt *sq3_stmt;
 	char buff[BUF_SIZ];
