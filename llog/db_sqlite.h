@@ -56,7 +56,7 @@ int db_sqlite_close(llog_t *llog);
 int lookupStation(llog_t *llog, station_entry_t *station);
 int db_set_log_entry(llog_t *log, log_entry_t *entry);
 int checkDupQSO(llog_t *log, log_entry_t *entry);
-int getMaxNr(llog_t *log, log_entry_t *entry);
+int db_get_max_nr(llog_t *log, log_entry_t *entry);
 int db_get_station_entry(llog_t *log, station_entry_t *station);
 int db_get_log_entries(llog_t *log, log_entry_t *entry);
 

@@ -97,6 +97,7 @@ typedef struct {
 
 /*Mode data storage.*/
 typedef struct {
+	uint32_t id;
 	char name[MODE_LEN];
 	char default_rst[MODE_LEN];
 } op_mode_t;
@@ -145,7 +146,10 @@ int llog_open_db(void);
 void llog_shutdown(void);
 int llog_add_log_entries(void);
 int llog_add_station_entries(void);
-void llog_get_time(log_entry_t *log_entry);
+int llog_add_modes_entries(void);
+int llog_log_entry(log_entry_t *entry);
+int llog_reset_entry(log_entry_t *entry);
+void llog_get_time(log_entry_t *entry);
 void llog_print_log_data(log_entry_t *entry);
 void llog_strupper(char *s);
 

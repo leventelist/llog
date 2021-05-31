@@ -125,7 +125,7 @@ int main(int argc, char *argv[]) {
 
 /*get the maximum TX number*/
 
-//	getMaxNr(&llog, &log_entry);
+//	db_get_max_nr(&llog, &log_entry);
 
 //	fprintf(stderr, "\tTX serial number: %04d\n", log_variables.txnr);
 
