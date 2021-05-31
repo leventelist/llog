@@ -14,8 +14,11 @@ typedef struct {
 	GtkTreeViewColumn *logged_list_column[LLOG_COLUMNS];
 	GtkCellRenderer *logged_list_renderer[LLOG_COLUMNS];
 	GtkListStore *station_list_store;
+	GtkListStore *modes_list_store;
 	GtkEntry *log_entries[LLOG_ENTRIES];
 	GtkButton *log_button;
+	GtkComboBox *mode_entry;
+	GtkComboBox *station_entry;
 } app_widgets;
 
 
@@ -58,6 +61,7 @@ int main_window_draw(void) {
 	widgets->logged_list = GTK_TREE_VIEW(gtk_builder_get_object(builder, "logged_list"));
 	widgets->logged_list_selection = GTK_TREE_SELECTION(gtk_builder_get_object(builder, "logged_list_selection"));
 	widgets->station_list_store = GTK_LIST_STORE(gtk_builder_get_object(builder, "station_list_store"));
+	widgets->modes_list_store = GTK_LIST_STORE(gtk_builder_get_object(builder, "modes_store"));
 
 	/*Putting together the log list*/
 	widgets->logged_list_store = GTK_TREE_STORE(gtk_builder_get_object(builder, "logged_list_store"));
@@ -90,7 +94,7 @@ int main_window_draw(void) {
 	widgets->log_entries[llog_entry_name] = GTK_ENTRY(gtk_builder_get_object(builder, "name_entry"));
 	widgets->log_entries[llog_entry_qra] = GTK_ENTRY(gtk_builder_get_object(builder, "qra_entry"));
 	widgets->log_entries[llog_entry_qrg] = GTK_ENTRY(gtk_builder_get_object(builder, "qrg_entry"));
-	widgets->log_entries[llog_entry_mode] = GTK_ENTRY(gtk_builder_get_object(builder, "mode_entry"));
+//	widgets->log_entries[llog_entry_mode] = GTK_ENTRY(gtk_builder_get_object(builder, "mode_entry"));
 	widgets->log_entries[llog_entry_power] = GTK_ENTRY(gtk_builder_get_object(builder, "power_entry"));
 	widgets->log_entries[llog_entry_rxnr] = GTK_ENTRY(gtk_builder_get_object(builder, "rxnr_entry"));
 	widgets->log_entries[llog_entry_txnr] = GTK_ENTRY(gtk_builder_get_object(builder, "txnr_entry"));
@@ -140,6 +144,7 @@ void on_menuitm_open_activate(GtkMenuItem *menuitem, app_widgets *app_wdgts) {
 			file_success = llog_open_db();
 			llog_add_log_entries();
 			llog_add_station_entries();
+			llog_add_modes_entries();
 			if (file_success != 0) {
 				printf("Error opening database.\n");
 				return;
@@ -185,6 +190,8 @@ void on_window_main_entry_changed(GtkEntry *entry) {
 }
 
 void on_log_btn_clicked(void) {
+	int ret;
+
 	/*Gather log data*/
 	snprintf(log_entry_data.date, NAME_LEN, gtk_entry_get_text(widgets->log_entries[llog_entry_date]));
 	snprintf(log_entry_data.utc, NAME_LEN, gtk_entry_get_text(widgets->log_entries[llog_entry_utc]));
@@ -194,7 +201,7 @@ void on_log_btn_clicked(void) {
 	snprintf(log_entry_data.name, NAME_LEN, gtk_entry_get_text(widgets->log_entries[llog_entry_name]));
 	snprintf(log_entry_data.qra, QRA_LEN, gtk_entry_get_text(widgets->log_entries[llog_entry_qra]));
 	log_entry_data.qrg = atof(gtk_entry_get_text(widgets->log_entries[llog_entry_qrg]));
-	snprintf(log_entry_data.mode.name, NAME_LEN, gtk_entry_get_text(widgets->log_entries[llog_entry_mode]));
+//	snprintf(log_entry_data.mode.name, NAME_LEN, gtk_entry_get_text(widgets->log_entries[llog_entry_mode]));
 	snprintf(log_entry_data.power, NAME_LEN, gtk_entry_get_text(widgets->log_entries[llog_entry_power]));
 	log_entry_data.rxnr = strtoul(gtk_entry_get_text(widgets->log_entries[llog_entry_rxnr]), NULL, 0);
 	log_entry_data.txnr = strtoul(gtk_entry_get_text(widgets->log_entries[llog_entry_txnr]), NULL, 0);
@@ -203,6 +210,26 @@ void on_log_btn_clicked(void) {
 	snprintf(log_entry_data.comment, X_LEN, gtk_entry_get_text(widgets->log_entries[llog_entry_comment]));
 
 	llog_print_log_data(&log_entry_data);
+	/*Write log entry to the DB */
+
+	ret = llog_log_entry(&log_entry_data);
+
+	switch (ret) {
+		case OK:
+			/* No news is good news, so we don't do anything. */
+		case LLOG_ERR:
+			/*Display some error message.*/
+		break;
+		default:
+		break;
+	}
+
+	llog_reset_entry(&log_entry_data);
+
+	gtk_entry_set_text(widgets->log_entries[llog_entry_date], log_entry_data.date);
+	gtk_entry_set_text(widgets->log_entries[llog_entry_utc], log_entry_data.utc);
+	gtk_entry_set_text(widgets->log_entries[llog_entry_rxrst], log_entry_data.rxrst);
+
 }
 
 void on_utc_btn_clicked(void) {
@@ -274,4 +301,8 @@ void main_window_clear_log_list(void) {
 
 void main_window_clear_station_list(void) {
 	gtk_list_store_clear(widgets->station_list_store);
+}
+
+void main_window_clear_modes_list(void) {
+	gtk_list_store_clear(widgets->modes_list_store);
 }

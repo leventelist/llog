@@ -11,6 +11,12 @@ CREATE TABLE station (
 	ant TEXT
 );
 
+CREATE TABLE mode (
+	name TEXT,
+	default_rst TEXT default "599",
+	comment TEXT default ""
+);
+
 CREATE TABLE log (
 	date TEXT,
 	UTC TEXT,

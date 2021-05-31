@@ -16,6 +16,12 @@
       <column type="gchararray"/>
     </columns>
   </object>
+  <object class="GtkListStore" id="modes_store">
+    <columns>
+      <!-- column-name modes -->
+      <column type="gchararray"/>
+    </columns>
+  </object>
   <object class="GtkListStore" id="station_list_store">
     <columns>
       <!-- column-name stations -->
@@ -322,17 +328,6 @@
                   </packing>
                 </child>
                 <child>
-                  <object class="GtkEntry" id="mode_entry">
-                    <property name="visible">True</property>
-                    <property name="can_focus">True</property>
-                    <signal name="changed" handler="on_window_main_entry_changed" swapped="no"/>
-                  </object>
-                  <packing>
-                    <property name="left_attach">1</property>
-                    <property name="top_attach">9</property>
-                  </packing>
-                </child>
-                <child>
                   <object class="GtkEntry" id="qth_entry">
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
@@ -596,7 +591,7 @@
                     <property name="has_entry">True</property>
                     <property name="entry_text_column">0</property>
                     <child internal-child="entry">
-                      <object class="GtkEntry">
+                      <object class="GtkEntry" id="station_select_combobox">
                         <property name="can_focus">False</property>
                         <property name="primary_icon_stock">gtk-home</property>
                         <property name="placeholder_text" translatable="yes">Select station</property>
@@ -606,6 +601,26 @@
                   <packing>
                     <property name="left_attach">1</property>
                     <property name="top_attach">19</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkComboBox" id="mode_select">
+                    <property name="visible">True</property>
+                    <property name="can_focus">False</property>
+                    <property name="model">modes_store</property>
+                    <property name="has_entry">True</property>
+                    <property name="entry_text_column">0</property>
+                    <child internal-child="entry">
+                      <object class="GtkEntry" id="mode_select_combobox">
+                        <property name="can_focus">False</property>
+                        <property name="primary_icon_stock">gtk-jump-to</property>
+                        <property name="placeholder_text" translatable="yes">Select mode</property>
+                      </object>
+                    </child>
+                  </object>
+                  <packing>
+                    <property name="left_attach">1</property>
+                    <property name="top_attach">9</property>
                   </packing>
                 </child>
                 <child>

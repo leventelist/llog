@@ -217,7 +217,7 @@ int db_get_log_entries(llog_t *log, log_entry_t *entry) {
 }
 
 
-int getMaxNr(llog_t *log, log_entry_t *entry) {
+int db_get_max_nr(llog_t *log, log_entry_t *entry) {
 	int ret, ret_val = OK;
 	sqlite3_stmt *sq3_stmt;
 	char buff[BUF_SIZ];
@@ -259,31 +259,28 @@ int db_set_log_entry(llog_t *log, log_entry_t *entry) {
 	int ret, ret_val = OK;
 	sqlite3_stmt *sq3_stmt;
 	char buff[BUF_SIZ];
-	int have_work = 1;
 
 	snprintf(buff, BUF_SIZ, "INSERT INTO log (date, UTC, call, rxrst, txrst, rxnr, txnr, rxextra, txextra, QTH, name, QRA, QRG, mode, pwr, rxQSL, txQSL, comment, station) VALUES ('%s', '%s', '%s', '%s', '%s', %"PRIu64", %"PRIu64", '%s', '%s', '%s', '%s', '%s', %f, '%s', '%s', %"PRIu64", %"PRIu64", '%s', %"PRIu64");", entry->date, entry->utc, entry->call, entry->rxrst, entry->txrst, entry->rxnr, entry->txnr, entry->rxextra, entry->txextra, entry->qth, entry->name, entry->qra, entry->qrg, entry->mode.name, entry->power, (uint64_t)0U, (uint64_t)0U, entry->comment, entry->stationId);
 	sqlite3_prepare_v2(log->db, buff, -1, &sq3_stmt, NULL);
 
-	while (have_work == 1) {
-		ret = sqlite3_step(sq3_stmt);
-		switch (ret) {
+
+	ret = sqlite3_step(sq3_stmt);
+	switch (ret) {
 		case SQLITE_ROW:
+		/*This should not happen.*/
 		break;
 		case SQLITE_DONE:
-		have_work = 0;
-		ret_val = OK;
+			ret_val = OK;
 		break;
 		case SQLITE_BUSY:
-		ret_val = LLOG_ERR;
-		have_work = 0;
+			ret_val = LLOG_ERR;
 		break;
 		default:
-		ret_val = LLOG_ERR;
-		have_work = 0;
-		printf("Error inserting log entry: %s\n", sqlite3_errmsg(log->db));
+			ret_val = LLOG_ERR;
+			printf("Error inserting log entry: %s\n", sqlite3_errmsg(log->db));
 		break;
-		}
 	}
+
 
 	sqlite3_finalize(sq3_stmt);
 

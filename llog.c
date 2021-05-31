@@ -56,6 +56,42 @@ int llog_add_log_entries(void) {
 }
 
 
+int llog_log_entry(log_entry_t *entry) {
+	int ret_val = OK;
+
+	ret_val = db_set_log_entry(&llog, entry);
+
+	return ret_val;
+}
+
+
+int llog_reset_entry(log_entry_t *entry) {
+	int ret_val;
+
+	ret_val = db_get_max_nr(&llog, entry);
+
+	entry->date[0] = '\0';
+	entry->utc[0] = '\0';
+	entry->rxrst[0] = '\0';
+	entry->call[0] = '\0';
+	entry->name[0] = '\0';
+
+	if (entry->mode.id !=0 ) {
+		strcpy(entry->txrst, entry->mode.default_rst);
+	}
+
+	entry->rxrst[0] = '\0';
+	entry->qth[0] = '\0';
+	entry->qra[0] = '\0';
+	entry->rxnr = 0;
+	entry->rxextra[0] = '\0';
+	entry->txextra[0] = '\0';
+	entry->comment[0] = '\0';
+
+	return ret_val;
+}
+
+
 int llog_add_station_entries(void) {
 
 	int ret_val = OK;
@@ -78,14 +114,23 @@ int llog_add_station_entries(void) {
 }
 
 
-void llog_get_time(log_entry_t *log_entry) {
+int llog_add_modes_entries(void) {
+	int ret_val = OK;
+
+	main_window_clear_modes_list();
+
+	return ret_val;
+}
+
+
+void llog_get_time(log_entry_t *entry) {
 	struct timeval qso_time;
 	struct tm qso_bdt;
 
 	gettimeofday(&qso_time, NULL);
 	gmtime_r(&qso_time.tv_sec, &qso_bdt);
-	sprintf(log_entry->date, "%d-%02d-%02d", 1900+qso_bdt.tm_year, 1+qso_bdt.tm_mon, qso_bdt.tm_mday);
-	sprintf(log_entry->utc, "%02d%02d", qso_bdt.tm_hour, qso_bdt.tm_min);
+	sprintf(entry->date, "%d-%02d-%02d", 1900+qso_bdt.tm_year, 1+qso_bdt.tm_mon, qso_bdt.tm_mday);
+	sprintf(entry->utc, "%02d%02d", qso_bdt.tm_hour, qso_bdt.tm_min);
 }
 
 
