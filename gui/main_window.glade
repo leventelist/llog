@@ -16,7 +16,7 @@
       <column type="gchararray"/>
     </columns>
   </object>
-  <object class="GtkListStore" id="modes_store">
+  <object class="GtkListStore" id="mode_list_store">
     <columns>
       <!-- column-name modes -->
       <column type="gchararray"/>
@@ -57,15 +57,6 @@
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
                     <child>
-                      <object class="GtkImageMenuItem">
-                        <property name="label">gtk-new</property>
-                        <property name="visible">True</property>
-                        <property name="can_focus">False</property>
-                        <property name="use_underline">True</property>
-                        <property name="use_stock">True</property>
-                      </object>
-                    </child>
-                    <child>
                       <object class="GtkImageMenuItem" id="open_log_file">
                         <property name="label">gtk-open</property>
                         <property name="visible">True</property>
@@ -76,21 +67,12 @@
                       </object>
                     </child>
                     <child>
-                      <object class="GtkImageMenuItem">
-                        <property name="label">gtk-save</property>
+                      <object class="GtkImageMenuItem" id="reload">
+                        <property name="label">gtk-refresh</property>
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
-                        <property name="use_underline">True</property>
                         <property name="use_stock">True</property>
-                      </object>
-                    </child>
-                    <child>
-                      <object class="GtkImageMenuItem">
-                        <property name="label">gtk-save-as</property>
-                        <property name="visible">True</property>
-                        <property name="can_focus">False</property>
-                        <property name="use_underline">True</property>
-                        <property name="use_stock">True</property>
+                        <signal name="activate" handler="on_reload_activate" swapped="no"/>
                       </object>
                     </child>
                     <child>
@@ -104,71 +86,12 @@
                         <property name="label">gtk-quit</property>
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
-                        <property name="use_underline">True</property>
                         <property name="use_stock">True</property>
                         <signal name="activate" handler="on_qrt_activate" swapped="no"/>
                       </object>
                     </child>
                   </object>
                 </child>
-              </object>
-            </child>
-            <child>
-              <object class="GtkMenuItem">
-                <property name="visible">True</property>
-                <property name="can_focus">False</property>
-                <property name="label" translatable="yes">_Edit</property>
-                <property name="use_underline">True</property>
-                <child type="submenu">
-                  <object class="GtkMenu">
-                    <property name="visible">True</property>
-                    <property name="can_focus">False</property>
-                    <child>
-                      <object class="GtkImageMenuItem">
-                        <property name="label">gtk-cut</property>
-                        <property name="visible">True</property>
-                        <property name="can_focus">False</property>
-                        <property name="use_underline">True</property>
-                        <property name="use_stock">True</property>
-                      </object>
-                    </child>
-                    <child>
-                      <object class="GtkImageMenuItem">
-                        <property name="label">gtk-copy</property>
-                        <property name="visible">True</property>
-                        <property name="can_focus">False</property>
-                        <property name="use_underline">True</property>
-                        <property name="use_stock">True</property>
-                      </object>
-                    </child>
-                    <child>
-                      <object class="GtkImageMenuItem">
-                        <property name="label">gtk-paste</property>
-                        <property name="visible">True</property>
-                        <property name="can_focus">False</property>
-                        <property name="use_underline">True</property>
-                        <property name="use_stock">True</property>
-                      </object>
-                    </child>
-                    <child>
-                      <object class="GtkImageMenuItem">
-                        <property name="label">gtk-delete</property>
-                        <property name="visible">True</property>
-                        <property name="can_focus">False</property>
-                        <property name="use_underline">True</property>
-                        <property name="use_stock">True</property>
-                      </object>
-                    </child>
-                  </object>
-                </child>
-              </object>
-            </child>
-            <child>
-              <object class="GtkMenuItem">
-                <property name="visible">True</property>
-                <property name="can_focus">False</property>
-                <property name="label" translatable="yes">_View</property>
-                <property name="use_underline">True</property>
               </object>
             </child>
             <child>
@@ -188,6 +111,7 @@
                         <property name="can_focus">False</property>
                         <property name="use_underline">True</property>
                         <property name="use_stock">True</property>
+                        <signal name="activate" handler="on_about_menu_activate" swapped="no"/>
                       </object>
                     </child>
                   </object>
@@ -213,7 +137,7 @@
                 <property name="row_spacing">5</property>
                 <property name="column_spacing">5</property>
                 <child>
-                  <object class="GtkLabel">
+                  <object class="GtkLabel" id="call_label">
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
                     <property name="label" translatable="yes">Call</property>
@@ -591,7 +515,7 @@
                     <property name="has_entry">True</property>
                     <property name="entry_text_column">0</property>
                     <child internal-child="entry">
-                      <object class="GtkEntry" id="station_select_combobox">
+                      <object class="GtkEntry" id="station_select_entry">
                         <property name="can_focus">False</property>
                         <property name="primary_icon_stock">gtk-home</property>
                         <property name="placeholder_text" translatable="yes">Select station</property>
@@ -607,14 +531,15 @@
                   <object class="GtkComboBox" id="mode_select">
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
-                    <property name="model">modes_store</property>
+                    <property name="model">mode_list_store</property>
                     <property name="has_entry">True</property>
                     <property name="entry_text_column">0</property>
                     <child internal-child="entry">
-                      <object class="GtkEntry" id="mode_select_combobox">
+                      <object class="GtkEntry" id="mode_entry">
                         <property name="can_focus">False</property>
                         <property name="primary_icon_stock">gtk-jump-to</property>
                         <property name="placeholder_text" translatable="yes">Select mode</property>
+                        <signal name="changed" handler="on_mode_entry_change" swapped="no"/>
                       </object>
                     </child>
                   </object>
@@ -657,7 +582,6 @@
                   <object class="GtkTreeView" id="logged_list">
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
-                    <property name="halign">start</property>
                     <property name="margin_right">10</property>
                     <property name="hexpand">True</property>
                     <property name="model">logged_list_store</property>
@@ -695,6 +619,7 @@
                     </child>
                     <child>
                       <object class="GtkTreeViewColumn" id="QRG">
+                        <property name="resizable">True</property>
                         <property name="title" translatable="yes">QRG</property>
                         <child>
                           <object class="GtkCellRendererText" id="QRG_text"/>
@@ -703,6 +628,7 @@
                     </child>
                     <child>
                       <object class="GtkTreeViewColumn" id="mode">
+                        <property name="resizable">True</property>
                         <property name="title" translatable="yes">mode</property>
                         <child>
                           <object class="GtkCellRendererText" id="mode_text"/>
@@ -730,19 +656,21 @@
   </object>
   <object class="GtkAboutDialog" id="about_dialog">
     <property name="can_focus">False</property>
-    <property name="title" translatable="yes">llog program</property>
+    <property name="title" translatable="yes">About llog</property>
     <property name="type_hint">dialog</property>
     <property name="deletable">False</property>
     <property name="transient_for">window_main</property>
     <property name="program_name">llog</property>
-    <property name="version">2.3.4</property>
-    <property name="copyright" translatable="yes">HA5OGL</property>
+    <property name="version">1.0.0</property>
+    <property name="copyright" translatable="yes">Copyright  2017-2021 Levente Kovacs, HA5OGL</property>
     <property name="comments" translatable="yes">A simple, yet powerfull log program for amateur radio operators.</property>
-    <property name="website">www.logonex.eu</property>
-    <property name="website_label" translatable="yes">logonex.eu</property>
+    <property name="website">http://levente.logonex.eu/ham</property>
+    <property name="website_label" translatable="yes">levente.logonex.eu/ham</property>
     <property name="authors">Levente Kovacs, HA5OGL</property>
-    <property name="logo_icon_name">image-missing</property>
+    <property name="artists">Levente Kovacs, HA5OGL</property>
+    <property name="logo"/>
     <property name="license_type">mit-x11</property>
+    <signal name="response" handler="on_about_dialog_response" swapped="no"/>
     <child>
       <placeholder/>
     </child>

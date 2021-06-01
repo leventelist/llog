@@ -52,12 +52,13 @@ enum db_state {
 
 /*functions*/
 int db_sqlite_init(llog_t *llog);
-int db_sqlite_close(llog_t *llog);
-int lookupStation(llog_t *llog, station_entry_t *station);
+int db_close(llog_t *llog);
+int db_lookup_station(llog_t *llog, station_entry_t *station);
 int db_set_log_entry(llog_t *log, log_entry_t *entry);
-int checkDupQSO(llog_t *log, log_entry_t *entry);
+int db_check_dup_qso(llog_t *log, log_entry_t *entry);
 int db_get_max_nr(llog_t *log, log_entry_t *entry);
 int db_get_station_entry(llog_t *log, station_entry_t *station);
+int db_get_mode_entry(llog_t *log, mode_entry_t *mode, uint64_t *id);
 int db_get_log_entries(llog_t *log, log_entry_t *entry);
 
 #endif
