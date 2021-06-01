@@ -40,12 +40,8 @@
 #define CALL_LEN 40
 #define NAME_LEN 100
 #define COMMENT_LEN 2048
-#define QSL_LEN 10
 #define ASL_LEN 20
 #define PWR_LEN 20
-#define LIST_LEN 50
-#define LINE_LEN 1024
-#define SUBSTR_LEN 512
 #define X_LEN 40
 #define STATION_LEN 256
 
@@ -55,17 +51,8 @@
 #define FILE_ERR 1
 #define CMD_LINE_ERR 2
 
-#define LLOG_EOF 1
-#define LLOG_CANCEL 2
 #define LLOG_ERR 3
-
-#define LLOG_MODE_L 1
-#define LLOG_MODE_N 2
-
-
-
-#define PROMPT "\n: "
-
+#define LLOG_DUP 4
 
 enum llog_entry_pos {
 	llog_entry_call = 0,
@@ -83,7 +70,8 @@ enum llog_entry_pos {
 	llog_entry_txnr,
 	llog_entry_rxextra,
 	llog_entry_txextra,
-	llog_entry_comment
+	llog_entry_comment,
+	llog_entry_station_id
 };
 
 /*Main data storage*/
@@ -97,10 +85,12 @@ typedef struct {
 
 /*Mode data storage.*/
 typedef struct {
-	uint32_t id;
+	uint64_t id;
 	char name[MODE_LEN];
 	char default_rst[MODE_LEN];
-} op_mode_t;
+	char comment[COMMENT_LEN];
+	uint32_t data_stat;
+} mode_entry_t;
 
 
 typedef struct {
@@ -116,10 +106,10 @@ typedef struct {
 	char name[NAME_LEN];
 	char qra[QRA_LEN];
 	double qrg;
-	op_mode_t mode;
+	mode_entry_t mode;
 	char power[PWR_LEN];
 	char comment[COMMENT_LEN];
-	uint64_t stationId;
+	uint64_t station_id;
 	char date[NAME_LEN];
 	char utc[NAME_LEN];
 	uint32_t data_stat;
@@ -148,10 +138,14 @@ int llog_add_log_entries(void);
 int llog_add_station_entries(void);
 int llog_add_modes_entries(void);
 int llog_log_entry(log_entry_t *entry);
-int llog_reset_entry(log_entry_t *entry);
+void llog_reset_entry(log_entry_t *entry);
 void llog_get_time(log_entry_t *entry);
 void llog_print_log_data(log_entry_t *entry);
 void llog_strupper(char *s);
+void llog_tokenize(const char *in, char *out, uint64_t *id);
+int llog_check_dup_qso(log_entry_t *entry);
+int llog_get_default_rst(char *default_rst, char *mode_string);
+int llog_get_max_nr(log_entry_t *entry);
+int llog_load_static_data(log_entry_t *entry);
 
 #endif
-

@@ -43,7 +43,7 @@ int db_sqlite_init(llog_t *llog) {
 	int ret_val = OK;
 
 	if (llog->stat == db_opened) {
-		db_sqlite_close(llog);
+		db_close(llog);
 		llog->stat = db_closed;
 	}
 
@@ -63,7 +63,7 @@ int db_sqlite_init(llog_t *llog) {
 }
 
 
-int db_sqlite_close(llog_t *llog) {
+int db_close(llog_t *llog) {
 
 	sqlite3_close(llog->db);
 
@@ -71,7 +71,7 @@ int db_sqlite_close(llog_t *llog) {
 }
 
 
-int lookupStation(llog_t *llog, station_entry_t *station) {
+int db_lookup_station(llog_t *llog, station_entry_t *station) {
 	sqlite3_stmt *sq3_stmt;
 	char buff[BUF_SIZ];
 	int ret, ret_val = LLOG_ERR;
@@ -116,43 +116,37 @@ int lookupStation(llog_t *llog, station_entry_t *station) {
 }
 
 
-/*int setStation(log_entry_t *entry) {
+int db_check_dup_qso(llog_t *log, log_entry_t *entry) {
 	int ret, ret_val = OK;
 	sqlite3_stmt *sq3_stmt;
 	char buff[BUF_SIZ];
-	int have_work;
-
-	return ret_val;
-}*/
-
-int checkDupQSO(llog_t *log, log_entry_t *entry) {
-	int ret, ret_val = OK;
-	sqlite3_stmt *sq3_stmt;
-	char buff[BUF_SIZ];
-	int have_work = 1;
+	bool have_work = true;
 
 
 	sprintf(buff, "SELECT date, UTC FROM log WHERE call='%s';", entry->call);
 	sqlite3_prepare_v2(log->db, buff, -1, &sq3_stmt, NULL);
 
-	while (have_work == 1) {
+	while (have_work) {
 		ret = sqlite3_step(sq3_stmt);
 		switch (ret) {
 		case SQLITE_ROW:
-		printf("\nDUP QSO on %s at %sUTC.\n", sqlite3_column_text(sq3_stmt, 0), sqlite3_column_text(sq3_stmt, 1));
-		ret_val = OK;
+		strncpy(entry->date, (char *) sqlite3_column_text(sq3_stmt, 0), NAME_LEN);
+		strncpy(entry->utc, (char *) sqlite3_column_text(sq3_stmt, 1), NAME_LEN);
+		printf("\nDUP QSO on %s at %sUTC.\n", entry->date, entry->utc);
+		ret_val = LLOG_DUP;
+		have_work = false;
 		break;
 		case SQLITE_DONE:
-		have_work = 0;
+		have_work = false;
 		ret_val = OK;
 		break;
 		case SQLITE_BUSY:
 		ret_val = LLOG_ERR;
-		have_work = 0;
+		have_work = false;
 		break;
 		default:
 		ret_val = LLOG_ERR;
-		have_work = 0;
+		have_work = false;
 		printf("Error looking up DUP QSOs: %s\n", sqlite3_errmsg(log->db));
 		break;
 		}
@@ -225,7 +219,7 @@ int db_get_max_nr(llog_t *log, log_entry_t *entry) {
 
 	entry->txnr = 0;
 
-	sprintf(buff, "SELECT txnr FROM log ORDER BY rowid DESC LIMIT 1;");
+	sprintf(buff, "SELECT txnr FROM log ORDER BY txnr DESC LIMIT 1;");
 	sqlite3_prepare_v2(log->db, buff, -1, &sq3_stmt, NULL);
 
 	while (have_work == 1) {
@@ -260,7 +254,7 @@ int db_set_log_entry(llog_t *log, log_entry_t *entry) {
 	sqlite3_stmt *sq3_stmt;
 	char buff[BUF_SIZ];
 
-	snprintf(buff, BUF_SIZ, "INSERT INTO log (date, UTC, call, rxrst, txrst, rxnr, txnr, rxextra, txextra, QTH, name, QRA, QRG, mode, pwr, rxQSL, txQSL, comment, station) VALUES ('%s', '%s', '%s', '%s', '%s', %"PRIu64", %"PRIu64", '%s', '%s', '%s', '%s', '%s', %f, '%s', '%s', %"PRIu64", %"PRIu64", '%s', %"PRIu64");", entry->date, entry->utc, entry->call, entry->rxrst, entry->txrst, entry->rxnr, entry->txnr, entry->rxextra, entry->txextra, entry->qth, entry->name, entry->qra, entry->qrg, entry->mode.name, entry->power, (uint64_t)0U, (uint64_t)0U, entry->comment, entry->stationId);
+	snprintf(buff, BUF_SIZ, "INSERT INTO log (date, UTC, call, rxrst, txrst, rxnr, txnr, rxextra, txextra, QTH, name, QRA, QRG, mode, pwr, rxQSL, txQSL, comment, station) VALUES ('%s', '%s', '%s', '%s', '%s', %"PRIu64", %"PRIu64", '%s', '%s', '%s', '%s', '%s', %f, '%s', '%s', %"PRIu64", %"PRIu64", '%s', %"PRIu64");", entry->date, entry->utc, entry->call, entry->rxrst, entry->txrst, entry->rxnr, entry->txnr, entry->rxextra, entry->txextra, entry->qth, entry->name, entry->qra, entry->qrg, entry->mode.name, entry->power, (uint64_t)0U, (uint64_t)0U, entry->comment, entry->station_id);
 	sqlite3_prepare_v2(log->db, buff, -1, &sq3_stmt, NULL);
 
 
@@ -359,6 +353,69 @@ int db_get_station_entry(llog_t *log, station_entry_t *station) {
 		break;
 	}
 
+
+	if (finalize) {
+		sqlite3_finalize(sq3_stmt);
+	}
+
+	return ret_val;
+}
+
+
+int db_get_mode_entry(llog_t *log, mode_entry_t *mode, uint64_t *id) {
+
+	sqlite3_stmt *sq3_stmt;
+	char buff[BUF_SIZ];
+	int ret, ret_val = LLOG_ERR;
+	bool finalize = true;
+	char *cell;
+
+
+	if (mode->data_stat == db_data_init) {
+		if (id == NULL) {
+			sprintf(buff, "SELECT rowid, name, default_rst, comment FROM mode ORDER BY rowid DESC;");
+		} else {
+			sprintf(buff, "SELECT rowid, name, default_rst, comment FROM mode WHERE rowid=%" PRIu64 ";", *id);
+		}
+		sqlite3_prepare_v2(log->db, buff, -1, &sq3_stmt, NULL);
+	}
+
+	mode->data_stat = db_data_err;
+
+	ret = sqlite3_step(sq3_stmt);
+	switch (ret) {
+		case SQLITE_ROW:
+		mode->id = sqlite3_column_int64(sq3_stmt, 0);
+		cell = (char *)sqlite3_column_text(sq3_stmt, 1);
+		if (cell == NULL) {
+			cell = EMPTY_STRING;
+		}
+		strncpy(mode->name, cell, NAME_LEN);
+		cell = (char *)sqlite3_column_text(sq3_stmt, 2);
+		if (cell == NULL) {
+			cell = EMPTY_STRING;
+		}
+		strncpy(mode->default_rst, cell, NAME_LEN);
+		cell = (char *)sqlite3_column_text(sq3_stmt, 2);
+		if (cell == NULL) {
+			cell = EMPTY_STRING;
+		}
+		strncpy(mode->comment, cell, NAME_LEN);
+		ret_val = OK;
+		finalize = false;
+		mode->data_stat = db_data_valid;
+		break;
+		case SQLITE_DONE:
+		mode->data_stat = db_data_last;
+		break;
+		case SQLITE_BUSY:
+		ret_val = LLOG_ERR;
+		break;
+		default:
+		ret_val = LLOG_ERR;
+		printf("Error looking up mode: %s\n", sqlite3_errmsg(log->db));
+		break;
+	}
 
 	if (finalize) {
 		sqlite3_finalize(sq3_stmt);
