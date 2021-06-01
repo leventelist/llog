@@ -23,15 +23,6 @@
 #include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
-#include <signal.h>
-#include <sys/time.h>
-#include <time.h>
-#include <readline/readline.h>
-#include <readline/history.h>
-#include <stdint.h>
-#include <inttypes.h>
-#include "db_sqlite.h"
 
 #include "main_window.h"
 
