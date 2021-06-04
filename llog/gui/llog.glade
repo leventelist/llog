@@ -71,6 +71,7 @@
                         <property name="label">gtk-refresh</property>
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
+                        <property name="use_underline">True</property>
                         <property name="use_stock">True</property>
                         <signal name="activate" handler="on_reload_activate" swapped="no"/>
                       </object>
@@ -86,6 +87,7 @@
                         <property name="label">gtk-quit</property>
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
+                        <property name="use_underline">True</property>
                         <property name="use_stock">True</property>
                         <signal name="activate" handler="on_qrt_activate" swapped="no"/>
                       </object>
@@ -668,8 +670,8 @@
     <property name="website_label" translatable="yes">levente.logonex.eu/ham</property>
     <property name="authors">Levente Kovacs, HA5OGL</property>
     <property name="artists">Levente Kovacs, HA5OGL</property>
-    <property name="logo"/>
-    <property name="license_type">mit-x11</property>
+    <property name="logo">llog.png</property>
+    <property name="license_type">gpl-3-0</property>
     <signal name="response" handler="on_about_dialog_response" swapped="no"/>
     <child>
       <placeholder/>

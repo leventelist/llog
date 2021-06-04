@@ -53,7 +53,7 @@ int main(int argc, char *argv[]) {
 			llog_init(optarg);
 			llog_open_db();
 		break;
-		case 's':
+//		case 's':
 //			strncpy(llog.station, optarg, STATION_LEN);
 		break;
 		case 'v':
@@ -82,7 +82,7 @@ int main(int argc, char *argv[]) {
 static void printver(void) {
 
 	printf("\nThis is llog, a minimalist HAM log software.\n");
-	printf("\nLicense: GNU 2.0.\n");
+	printf("\nLicense: GNU 3.0.\n");
 	printf("Version: %s.\n", VERSION);
 	printf("Author: ha5ogl@logonex.eu.\n\n");
 }
@@ -92,7 +92,7 @@ static void printhelp(void) {
 
 	printver();
 	printf("\nCommand line options\n\n");
-	printf("\t-s STATION\t\tSelect station. Id or name.\n");
+//	printf("\t-s STATION\t\tSelect station. Id or name.\n");
 	printf("\t-f FILE\t\tWrite output to logfile FILE.\n");
 	printf("\t-h\t\tGet help.\n");
 	printf("\t-v\t\tPrint version information.\n\n");

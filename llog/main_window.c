@@ -17,14 +17,15 @@
  */
 
 #include <gtk/gtk.h>
-
+#include <inttypes.h>
 #include "main_window.h"
 #include "llog.h"
-#include <inttypes.h>
+#include "llog_Config.h"
 
 #define BUFF_SIZ 1024
 
 typedef struct {
+	GtkWindow *main_window;
 	GtkWidget *w_txtvw_main;	// Pointer to text view object
 	GtkWidget *logfile_choose;	// Pointer to file chooser dialog box
 	GtkWidget *log_entry_list;	// Pointer to the log entry list
@@ -62,7 +63,7 @@ int main_window_draw(void) {
 	ret_val = 0;
 
 	GtkBuilder      *builder;
-	GtkWidget       *window;
+
 	widgets = g_slice_new(app_widgets);
 
 	gtk_init(NULL, NULL);
@@ -76,11 +77,11 @@ int main_window_draw(void) {
 		widgets->log_entries[i] = NULL;
 	}
 
-	builder = gtk_builder_new_from_file("./glade/main_window.glade");
+	builder = gtk_builder_new_from_file(LLOG_GLADE);
 
 	/*Get widget pointers*/
-	window = GTK_WIDGET(gtk_builder_get_object(builder, "window_main"));
-	g_signal_connect(window, "destroy", G_CALLBACK(on_window_main_destroy), NULL);
+	widgets->main_window = GTK_WINDOW(gtk_builder_get_object(builder, "window_main"));
+	g_signal_connect(widgets->main_window, "destroy", G_CALLBACK(on_window_main_destroy), NULL);
 	widgets->logfile_choose = GTK_WIDGET(gtk_builder_get_object(builder, "logfile_choose"));
 	widgets->logged_list = GTK_TREE_VIEW(gtk_builder_get_object(builder, "logged_list"));
 	widgets->logged_list_selection = GTK_TREE_SELECTION(gtk_builder_get_object(builder, "logged_list_selection"));
@@ -144,7 +145,7 @@ int main_window_draw(void) {
 	g_object_unref(builder);
 
 	/*Let's rock!*/
-	gtk_widget_show(window);
+	gtk_widget_show(GTK_WIDGET(widgets->main_window));
 
 	llog_load_static_data(&log_entry_data);
 	set_static_data();
@@ -258,6 +259,8 @@ void on_mode_entry_change(GtkEntry *entry) {
 void on_log_btn_clicked(void) {
 	int ret;
 	char buff[BUFF_SIZ];
+	GtkDialogFlags 	flags = GTK_DIALOG_DESTROY_WITH_PARENT;
+	GtkWidget *error_dialog;
 
 	/*Gather log data*/
 	snprintf(log_entry_data.date, NAME_LEN, gtk_entry_get_text(widgets->log_entries[llog_entry_date]));
@@ -280,12 +283,16 @@ void on_log_btn_clicked(void) {
 
 	llog_tokenize(gtk_entry_get_text(widgets->log_entries[llog_entry_station_id]), NULL, &log_entry_data.station_id);
 
-	llog_print_log_data(&log_entry_data);
+	/*This is for debug. Print log data to stdout*/
+	//llog_print_log_data(&log_entry_data);
 
 	/*Sanity chack of the data*/
 
 	if (strlen(log_entry_data.call) < 2) {
 		printf("Not logging. Call too short.\n");
+		error_dialog = gtk_message_dialog_new(widgets->main_window, flags, GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Call must be longer then 2 characters.");
+		gtk_dialog_run(GTK_DIALOG(error_dialog));
+		gtk_widget_destroy (error_dialog);
 		return;
 	}
 
@@ -294,9 +301,16 @@ void on_log_btn_clicked(void) {
 
 	switch (ret) {
 		case OK:
-			/* No news is good news, so we don't do anything. */
+			/* Increment the conter. */
+			log_entry_data.txnr++;
+			break;
 		case LLOG_ERR:
 			/*Display some error message.*/
+			error_dialog = gtk_message_dialog_new(widgets->main_window, flags, GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Error logging the QSO!");
+			gtk_message_dialog_format_secondary_text(GTK_MESSAGE_DIALOG(error_dialog), "Database is not ready.");
+			gtk_dialog_run(GTK_DIALOG(error_dialog));
+			gtk_widget_destroy(error_dialog);
+			break;
 		break;
 		default:
 		break;
@@ -318,15 +332,11 @@ void on_log_btn_clicked(void) {
 	gtk_entry_set_text(widgets->log_entries[llog_entry_rxextra], log_entry_data.rxextra);
 	gtk_entry_set_text(widgets->log_entries[llog_entry_comment], log_entry_data.comment);
 
-	log_entry_data.txnr++;
 	snprintf(buff, BUFF_SIZ, "%04" PRIu64, log_entry_data.txnr);
 	gtk_entry_set_text(widgets->log_entries[llog_entry_txnr], buff);
 
-
 	/*Refresh the log list*/
-
 	llog_add_log_entries();
-
 }
 
 
@@ -340,14 +350,12 @@ void on_utc_btn_clicked(void) {
 void on_window_main_destroy(void) {
 
 	gtk_main_quit();
-//	llog_shutdown();
 }
 
 
 void on_qrt_activate(void) {
 
 	gtk_main_quit();
-//	llog_shutdown();
 }
 
 
@@ -362,14 +370,15 @@ void on_reload_activate(GtkMenuItem *menuitem, app_widgets *app_wdgts) {
 	set_static_data();
 }
 
+
 void on_about_dialog_response(GtkMenuItem *menuitem, gint response_id, app_widgets *app_wdgts) {
 
 	(void)response_id;
 	(void)menuitem;
 
 	gtk_widget_hide((GtkWidget*)app_wdgts->about_dialog);
-
 }
+
 
 void on_about_menu_activate(GtkMenuItem *menuitem, app_widgets *app_wdgts) {
 
@@ -441,9 +450,11 @@ void main_window_clear_log_list(void) {
 	gtk_tree_store_clear(widgets->logged_list_store);
 }
 
+
 void main_window_clear_station_list(void) {
 	gtk_list_store_clear(widgets->station_list_store);
 }
+
 
 void main_window_clear_modes_list(void) {
 	gtk_list_store_clear(widgets->mode_list_store);

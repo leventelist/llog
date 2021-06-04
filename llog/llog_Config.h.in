@@ -1,0 +1,3 @@
+/*Configuration for llog*/
+
+#define LLOG_GLADE "@GLADE_FILE_PATH@"
