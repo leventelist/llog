@@ -1,19 +1,21 @@
 /*	This is llog, a minimalist HAM logging software.
  *	Copyright (C) 2013-2021  Levente Kovacs
  *
- *	This program is free software; you can redistribute it and/or modify
- *	it under the terms of the GNU General Public License as published by
- *	the Free Software Foundation; either version 2 of the License, or
- *	(at your option) any later version.
+ *	This program is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
  *
- *	This program is distributed in the hope that it will be useful,
- *	but WITHOUT ANY WARRANTY; without even the implied warranty of
- *	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *	GNU General Public License for more details.
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
  *
- *	You should have received a copy of the GNU General Public License
- *	along with this program; if not, write to the Free Software
- *	Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ *
+ * http://levente.logonex.eu
+ * ha5ogl.levente@gmail.com
  */
 
 #include <gtk/gtk.h>
@@ -22,6 +24,8 @@
 #include "llog.h"
 #include "llog_Config.h"
 
+#define LLOG_COLUMNS 16
+#define LLOG_ENTRIES 32
 #define BUFF_SIZ 1024
 
 typedef struct {
@@ -98,18 +102,21 @@ int main_window_draw(void) {
 	widgets->logged_list_column[2] = GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(builder, "date"));
 	widgets->logged_list_column[3] = GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(builder, "QRG"));
 	widgets->logged_list_column[4] = GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(builder, "mode"));
+	widgets->logged_list_column[5] = GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(builder, "utc"));
 
 	widgets->logged_list_renderer[0] = GTK_CELL_RENDERER(gtk_builder_get_object(builder, "id_text"));
 	widgets->logged_list_renderer[1] = GTK_CELL_RENDERER(gtk_builder_get_object(builder, "call_text"));
 	widgets->logged_list_renderer[2] = GTK_CELL_RENDERER(gtk_builder_get_object(builder, "date_text"));
 	widgets->logged_list_renderer[3] = GTK_CELL_RENDERER(gtk_builder_get_object(builder, "QRG_text"));
 	widgets->logged_list_renderer[4] = GTK_CELL_RENDERER(gtk_builder_get_object(builder, "mode_text"));
+	widgets->logged_list_renderer[5] = GTK_CELL_RENDERER(gtk_builder_get_object(builder, "utc_text"));
 
 	gtk_tree_view_column_add_attribute(widgets->logged_list_column[0], widgets->logged_list_renderer[0], "text", 0);
 	gtk_tree_view_column_add_attribute(widgets->logged_list_column[1], widgets->logged_list_renderer[1], "text", 1);
 	gtk_tree_view_column_add_attribute(widgets->logged_list_column[2], widgets->logged_list_renderer[2], "text", 2);
 	gtk_tree_view_column_add_attribute(widgets->logged_list_column[3], widgets->logged_list_renderer[3], "text", 3);
 	gtk_tree_view_column_add_attribute(widgets->logged_list_column[4], widgets->logged_list_renderer[4], "text", 4);
+	gtk_tree_view_column_add_attribute(widgets->logged_list_column[5], widgets->logged_list_renderer[5], "text", 5);
 
 	/*Get the pointers of the entries*/
 	widgets->log_entries[llog_entry_call] = GTK_ENTRY(gtk_builder_get_object(builder, "call_entry"));
@@ -183,7 +190,6 @@ void on_menuitm_open_activate(GtkMenuItem *menuitem, app_widgets *app_wdgts) {
         // Get the file name from the dialog box
         file_name = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(app_wdgts->logfile_choose));
         if (file_name != NULL) {
-			printf("Yaayyy!!! We know which file to load!\n");
 			llog_init(file_name);
 			file_success = llog_open_db();
 			llog_load_static_data(&log_entry_data);
@@ -393,21 +399,22 @@ void on_about_menu_activate(GtkMenuItem *menuitem, app_widgets *app_wdgts) {
 int main_window_add_log_entry_to_list(log_entry_t *entry) {
 	int ret_val = OK;
 	static GtkTreeIter iter;
-	char buff[LOG_ENTRY_LEN];
+	char buff[BUFF_SIZ];
 
 	gtk_tree_store_prepend(widgets->logged_list_store, &iter, NULL);
 	/*Create the text*/
-	snprintf(buff, LOG_ENTRY_LEN, "%s %s %s", entry->call, entry->rxrst, entry->txrst);
+	snprintf(buff, BUFF_SIZ, "%s %s %s", entry->call, entry->date, entry->utc);
 
 	printf("Adding log item... %s\n", buff);
 
-	sprintf(buff, "%lu", entry->id);
+	snprintf(buff, BUFF_SIZ, "%" PRIu64, entry->id);
 
 	gtk_tree_store_set(widgets->logged_list_store, &iter, 0, buff, -1);
 	gtk_tree_store_set(widgets->logged_list_store, &iter, 1, entry->call, -1);
 	gtk_tree_store_set(widgets->logged_list_store, &iter, 2, entry->date, -1);
 	gtk_tree_store_set(widgets->logged_list_store, &iter, 3, entry->qrg, -1);
 	gtk_tree_store_set(widgets->logged_list_store, &iter, 4, entry->mode.name, -1);
+	gtk_tree_store_set(widgets->logged_list_store, &iter, 5, entry->utc, -1);
 
 
 	return ret_val;
@@ -416,11 +423,11 @@ int main_window_add_log_entry_to_list(log_entry_t *entry) {
 
 int main_window_add_station_entry_to_list(station_entry_t *station) {
 	int ret_val = OK;
-	char buff[LOG_ENTRY_LEN];
+	char buff[BUFF_SIZ];
 
 	static GtkTreeIter iter;
 
-	sprintf(buff, "%s [%lu]", station->name, station->id);
+	snprintf(buff, BUFF_SIZ, "%s [%"PRIu64"]", station->name, station->id);
 	printf("Adding %s to the station list.\n", buff);
 
 	gtk_list_store_prepend(widgets->station_list_store, &iter);
@@ -432,11 +439,11 @@ int main_window_add_station_entry_to_list(station_entry_t *station) {
 
 int main_window_add_mode_entry_to_list(mode_entry_t *mode) {
 	int ret_val = OK;
-	char buff[LOG_ENTRY_LEN];
+	char buff[BUFF_SIZ];
 
 	static GtkTreeIter iter;
 
-	sprintf(buff, "%s [%lu]", mode->name, mode->id);
+	snprintf(buff, BUFF_SIZ, "%s [%"PRIu64"]", mode->name, mode->id);
 	printf("Adding %s to the mode list.\n", buff);
 
 	gtk_list_store_prepend(widgets->mode_list_store, &iter);

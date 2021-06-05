@@ -14,6 +14,8 @@
       <column type="gfloat"/>
       <!-- column-name mode -->
       <column type="gchararray"/>
+      <!-- column-name utc -->
+      <column type="gchararray"/>
     </columns>
   </object>
   <object class="GtkListStore" id="mode_list_store">
@@ -620,6 +622,15 @@
                       </object>
                     </child>
                     <child>
+                      <object class="GtkTreeViewColumn" id="utc">
+                        <property name="resizable">True</property>
+                        <property name="title" translatable="yes">UTC</property>
+                        <child>
+                          <object class="GtkCellRendererText" id="utc_text"/>
+                        </child>
+                      </object>
+                    </child>
+                    <child>
                       <object class="GtkTreeViewColumn" id="QRG">
                         <property name="resizable">True</property>
                         <property name="title" translatable="yes">QRG</property>
@@ -663,7 +674,7 @@
     <property name="deletable">False</property>
     <property name="transient_for">window_main</property>
     <property name="program_name">llog</property>
-    <property name="version">1.0.0</property>
+    <property name="version">1.3.1</property>
     <property name="copyright" translatable="yes">Copyright  2017-2021 Levente Kovacs, HA5OGL</property>
     <property name="comments" translatable="yes">A simple, yet powerfull log program for amateur radio operators.</property>
     <property name="website">http://levente.logonex.eu/ham</property>

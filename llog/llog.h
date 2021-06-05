@@ -1,19 +1,21 @@
 /*	This is llog, a minimalist HAM logging software.
  *	Copyright (C) 2013-2021  Levente Kovacs
  *
- *	This program is free software; you can redistribute it and/or modify
- *	it under the terms of the GNU General Public License as published by
- *	the Free Software Foundation; either version 2 of the License, or
- *	(at your option) any later version.
+ *	This program is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
  *
- *	This program is distributed in the hope that it will be useful,
- *	but WITHOUT ANY WARRANTY; without even the implied warranty of
- *	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *	GNU General Public License for more details.
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
  *
- *	You should have received a copy of the GNU General Public License
- *	along with this program; if not, write to the Free Software
- *	Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ *
+ * http://levente.logonex.eu
+ * ha5ogl.levente@gmail.com
  */
 
 #ifndef LLOG_H
@@ -26,8 +28,6 @@
 #include <sqlite3.h>
 
 #define DATABASE_TIMEOUT 1000
-
-#define LOG_ENTRY_LEN 2048
 
 #define LOGFILE_LEN 100
 #define QTH_LEN 100
@@ -44,8 +44,6 @@
 #define PWR_LEN 20
 #define X_LEN 40
 #define STATION_LEN 256
-
-#define MONDE_N 256
 
 #define OK 0
 #define FILE_ERR 1

@@ -2,23 +2,21 @@
  *
  *	Copyright (C) 2017-2021 Levente Kovacs
  *
- *	This program is free software; you can redistribute it and/or modify
- *	it under the terms of the GNU General Public License as published by
- *	the Free Software Foundation; either version 2 of the License, or
- *	(at your option) any later version.
+ *	This program is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
  *
- *	This program is distributed in the hope that it will be useful,
- *	but WITHOUT ANY WARRANTY; without even the implied warranty of
- *	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *	GNU General Public License for more details.
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
  *
- *	You should have received a copy of the GNU General Public License
- *	along with this program; if not, write to the Free Software
- *	Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  *
  * http://levente.logonex.eu
- * lev@logonex.eu
- *
+ * ha5ogl.levente@gmail.com
  */
 
 /* To aid portability the only SQL statements is used is INSERT, SELECT,
@@ -35,6 +33,9 @@
 #include <inttypes.h>
 #include <string.h>
 #include <stdio.h>
+
+#define BUF_SIZ 8192
+#define EMPTY_STRING ""
 
 
 int db_sqlite_init(llog_t *llog) {
