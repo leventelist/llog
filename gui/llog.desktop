@@ -1,0 +1,11 @@
+[Desktop Entry]
+Name=llog
+Comment=Logging program for amateur radio operators
+TryExec=llog
+Exec=llog %F
+Icon=llog.png
+Terminal=false
+Type=Application
+Categories=Utility;Database;HamRadio;GTK
+MimeType=text/x-llog
+
