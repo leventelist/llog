@@ -307,7 +307,7 @@ void on_log_btn_clicked(void) {
 
 	switch (ret) {
 		case OK:
-			/* Increment the conter. */
+			/* Increment the counter. */
 			log_entry_data.txnr++;
 			break;
 		case LLOG_ERR:
