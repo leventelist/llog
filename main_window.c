@@ -281,8 +281,8 @@ void on_log_btn_clicked(void) {
 	llog_tokenize(gtk_entry_get_text(widgets->log_entries[llog_entry_mode]), log_entry_data.mode.name, NULL);
 
 	snprintf(log_entry_data.power, NAME_LEN, gtk_entry_get_text(widgets->log_entries[llog_entry_power]));
-	log_entry_data.rxnr = strtoul(gtk_entry_get_text(widgets->log_entries[llog_entry_rxnr]), NULL, 0);
-	log_entry_data.txnr = strtoul(gtk_entry_get_text(widgets->log_entries[llog_entry_txnr]), NULL, 0);
+	log_entry_data.rxnr = strtoul(gtk_entry_get_text(widgets->log_entries[llog_entry_rxnr]), NULL, 10);
+	log_entry_data.txnr = strtoul(gtk_entry_get_text(widgets->log_entries[llog_entry_txnr]), NULL, 10);
 	snprintf(log_entry_data.rxextra, X_LEN, gtk_entry_get_text(widgets->log_entries[llog_entry_rxextra]));
 	snprintf(log_entry_data.txextra, X_LEN, gtk_entry_get_text(widgets->log_entries[llog_entry_txextra]));
 	snprintf(log_entry_data.comment, X_LEN, gtk_entry_get_text(widgets->log_entries[llog_entry_comment]));
