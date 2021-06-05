@@ -16,45 +16,21 @@
  *
  * http://levente.logonex.eu
  * ha5ogl.levente@gmail.com
- *
  */
 
-#ifndef DB_SQLITE_H
-#define DB_SQLITE_H
+
+#ifndef __MAIN_WINDOW_H__
+#define __MAIN_WINDOW_H__
 
 #include "llog.h"
-#include <stdint.h>
 
 
-/*data status*/
-
-enum db_data_state {
-    db_data_init,
-    db_data_valid,
-    db_data_last,
-    db_data_err
-};
-
-
-/*return values*/
-#define DB_OK 0
-#define DB_ERROR 1
-
-enum db_state {
-	db_opened,
-	db_closed
-};
-
-
-/*functions*/
-int db_sqlite_init(llog_t *llog);
-int db_close(llog_t *llog);
-int db_lookup_station(llog_t *llog, station_entry_t *station);
-int db_set_log_entry(llog_t *log, log_entry_t *entry);
-int db_check_dup_qso(llog_t *log, log_entry_t *entry);
-int db_get_max_nr(llog_t *log, log_entry_t *entry);
-int db_get_station_entry(llog_t *log, station_entry_t *station);
-int db_get_mode_entry(llog_t *log, mode_entry_t *mode, uint64_t *id);
-int db_get_log_entries(llog_t *log, log_entry_t *entry);
+int main_window_draw(void);
+int main_window_add_log_entry_to_list(log_entry_t *entry);
+int main_window_add_station_entry_to_list(station_entry_t *station);
+int main_window_add_mode_entry_to_list(mode_entry_t *mode);
+void main_window_clear_log_list(void);
+void main_window_clear_station_list(void);
+void main_window_clear_modes_list(void);
 
 #endif

@@ -1,25 +1,27 @@
 /*	This is llog, a minimalist HAM logging software.
  *	Copyright (C) 2013-2021  Levente Kovacs
  *
- *	This program is free software; you can redistribute it and/or modify
- *	it under the terms of the GNU General Public License as published by
- *	the Free Software Foundation; either version 2 of the License, or
- *	(at your option) any later version.
+ *	This program is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
  *
- *	This program is distributed in the hope that it will be useful,
- *	but WITHOUT ANY WARRANTY; without even the implied warranty of
- *	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *	GNU General Public License for more details.
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
  *
- *	You should have received a copy of the GNU General Public License
- *	along with this program; if not, write to the Free Software
- *	Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ *
+ * http://levente.logonex.eu
+ * ha5ogl.levente@gmail.com
  */
 
 #ifndef LLOG_H
 #define LLOG_H
 
-#define VERSION "v1.3.1"
+#define VERSION "v1.4.0"
 #include <stdint.h>
 #include <sys/time.h>
 #include <time.h>
@@ -37,102 +39,111 @@
 #define RST_LEN 20
 #define CALL_LEN 40
 #define NAME_LEN 100
-#define COMMENT_LEN 200
-#define QSL_LEN 10
+#define COMMENT_LEN 2048
 #define ASL_LEN 20
 #define PWR_LEN 20
-#define LIST_LEN 50
-#define LINE_LEN 1024
-#define SUBSTR_LEN 512
 #define X_LEN 40
 #define STATION_LEN 256
-
-#define MONDE_N 256
 
 #define OK 0
 #define FILE_ERR 1
 #define CMD_LINE_ERR 2
 
-#define LLOG_EOF 1
-#define LLOG_CANCEL 2
 #define LLOG_ERR 3
+#define LLOG_DUP 4
 
-#define LLOG_MODE_L 1
-#define LLOG_MODE_N 2
+enum llog_entry_pos {
+	llog_entry_call = 0,
+	llog_entry_date,
+	llog_entry_utc,
+	llog_entry_rxrst,
+	llog_entry_txrst,
+	llog_entry_qth,
+	llog_entry_name,
+	llog_entry_qra,
+	llog_entry_qrg,
+	llog_entry_mode,
+	llog_entry_power,
+	llog_entry_rxnr,
+	llog_entry_txnr,
+	llog_entry_rxextra,
+	llog_entry_txextra,
+	llog_entry_comment,
+	llog_entry_station_id
+};
 
-#define PROMPT "\n: "
-
-/*CSV stuff*/
-#define CSV_LIST_LEN 23
-/*CSV field positions*/
-#define CSV_DATE_POS 0
-#define CSV_TIME_POS 1
-#define CSV_CALL_POS 2
-#define CSV_RXRST_POS 3
-#define CSV_TXRST_POS 4
-#define CSV_QTH_POS 5
-#define CSV_QRA_POS 6
-#define CSV_NAME_POS 7
-#define CSV_QRG_POS 8
-#define CSV_MODE_POS 9
-#define CSV_RXNR_POS 10
-#define CSV_TXNR_POS 11
-#define CSV_RXX_POS 12
-#define CSV_TXX_POS 13
-#define CSV_COMMENT_POS 14
-#define CSV_QSL_POS 15
-#define CSV_LOCAL_CALL_POS 16
-#define CSV_LOCAL_QTH_POS 17
-#define CSV_LOCAL_QRA_POS 18
-#define CSV_LOCAL_ALT_POS 19
-#define CSV_LOCAL_RIG_POS 20
-#define CSV_LOCAL_PWR_POS 21
-#define CSV_LOCAL_ANT_POS 22
-
+/*Main data storage*/
 typedef struct {
 	char logfileFn[LOGFILE_LEN]; /*SQLite database file name*/
 	char station[STATION_LEN];
 	sqlite3 *db;
+	uint32_t stat;
 } llog_t;
 
 
+/*Mode data storage.*/
 typedef struct {
-	char *name;
-	char *default_rst;
-} op_mode_t;
-
-
-typedef struct {
-	char call[CALL_LEN];
-	char rxrst[RST_LEN];
-	char txrst[RST_LEN];
-	uint64_t tx_nr;
-	uint64_t rx_nr;
-	char rx_x[X_LEN];
-	char tx_x[X_LEN];
-	char QTH[QTH_LEN];
-	char name[NAME_LEN];
-	char QRA[QRA_LEN];
-	double QRG;
-	op_mode_t mode;
-	char pwr[PWR_LEN];
+	uint64_t id;
+	char name[MODE_LEN];
+	char default_rst[MODE_LEN];
 	char comment[COMMENT_LEN];
-	uint64_t stationId;
-	struct timeval tv;
-} logEntry_t;
+	uint32_t data_stat;
+} mode_entry_t;
 
 
 typedef struct {
 	uint64_t id;
+	char call[CALL_LEN];
+	char rxrst[RST_LEN];
+	char txrst[RST_LEN];
+	uint64_t txnr;
+	uint64_t rxnr;
+	char rxextra[X_LEN];
+	char txextra[X_LEN];
+	char qth[QTH_LEN];
 	char name[NAME_LEN];
+	char qra[QRA_LEN];
+	double qrg;
+	mode_entry_t mode;
+	char power[PWR_LEN];
+	char comment[COMMENT_LEN];
+	uint64_t station_id;
+	char date[NAME_LEN];
+	char utc[NAME_LEN];
+	uint32_t data_stat;
+} log_entry_t;
+
+
+/*station data*/
+typedef struct {
+	uint64_t id;
+	char name[STATION_LEN];
 	char call[CALL_LEN];
 	char QTH[QTH_LEN];
 	char QRA[QRA_LEN];
 	char ASL[ASL_LEN];
-	char RIG[RIG_LEN];
-	char ANT[ANT_LEN];
-} stationEntry_t;
+	char rig[RIG_LEN];
+	char ant[ANT_LEN];
+	uint32_t data_stat;
+} station_entry_t;
 
+
+/*Function definitions*/
+int llog_init(char *logfile_name);
+int llog_open_db(void);
+void llog_shutdown(void);
+int llog_add_log_entries(void);
+int llog_add_station_entries(void);
+int llog_add_modes_entries(void);
+int llog_log_entry(log_entry_t *entry);
+void llog_reset_entry(log_entry_t *entry);
+void llog_get_time(log_entry_t *entry);
+void llog_print_log_data(log_entry_t *entry);
+void llog_strupper(char *s);
+void llog_tokenize(const char *in, char *out, uint64_t *id);
+int llog_check_dup_qso(log_entry_t *entry);
+int llog_get_default_rst(char *default_rst, char *mode_string);
+int llog_get_max_nr(log_entry_t *entry);
+int llog_load_static_data(log_entry_t *entry);
 
 #endif
-
