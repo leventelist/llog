@@ -1,19 +1,21 @@
 /*	This is llog, a minimalist HAM logging software.
  *	Copyright (C) 2013-2021  Levente Kovacs
  *
- *	This program is free software; you can redistribute it and/or modify
- *	it under the terms of the GNU General Public License as published by
- *	the Free Software Foundation; either version 2 of the License, or
- *	(at your option) any later version.
+ *	This program is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
  *
- *	This program is distributed in the hope that it will be useful,
- *	but WITHOUT ANY WARRANTY; without even the implied warranty of
- *	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *	GNU General Public License for more details.
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
  *
- *	You should have received a copy of the GNU General Public License
- *	along with this program; if not, write to the Free Software
- *	Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ *
+ * http://levente.logonex.eu
+ * ha5ogl.levente@gmail.com
  */
 
 #include <stdlib.h>
@@ -26,6 +28,7 @@
 #include "db_sqlite.h"
 #include "main_window.h"
 
+#define BUF_SIZ 1024
 
 static llog_t llog;
 
@@ -62,7 +65,10 @@ int llog_add_log_entries(void) {
 	main_window_clear_log_list();
 
 	while (entry.data_stat != db_data_last) {
-		db_get_log_entries(&llog, &entry);
+		ret_val = db_get_log_entries(&llog, &entry);
+		if (ret_val != OK) {
+			break;
+		}
 		if (entry.data_stat == db_data_valid) {
 			main_window_add_log_entry_to_list(&entry);
 		} else {
