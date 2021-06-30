@@ -19,5 +19,7 @@ def main():
     for station in stations:
         print(str(station['rowid']) + " " + station['name'] + " " + station["CALL"])
 
+    llogd.close_database();
+
 if __name__ == '__main__':
     main()

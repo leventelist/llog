@@ -14,6 +14,9 @@ class Llog():
         self.db_conn.row_factory = sqlite3.Row
         self.db_cursor = self.db_conn.cursor()
 
+    def close_database(self):
+        self.db_cursor.close()
+
     def get_qsos(self, pattern = None):
         print("Returning QSOs.")
         if pattern != None:
