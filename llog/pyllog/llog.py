@@ -38,7 +38,7 @@ class Llog():
     def get_mode(self, mode = None):
         print("Returning modes")
         if mode != None:
-            query = "SELECT rowid, * FROM mode WHERE mode={0}".format(mode)
+            query = "SELECT rowid, * FROM mode WHERE name='{0}'".format(mode)
         else:
             query = "SELECT rowid, * FROM mode;"
         self.db_cursor.execute(query)
