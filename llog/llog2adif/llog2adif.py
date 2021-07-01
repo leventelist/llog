@@ -39,7 +39,7 @@ def main():
         modes = llogd.get_mode(sub_mode)
         mode = modes[0]
 
-        adi.add_qso(call = qso['call'], datetime_on = date, mode = mode['super_mode'], name = qso['name'], band = qso_band, freq = qso['QRG'], my_gridsquare = station['QRA'], my_rig = station['rig'], qth = qso['QTH'], STATION_CALLSIGN = station['CALL'], RST_RCVD = qso['rxrst'], RST_SENT = qso['txrst'], GRIDSQUARE = qso['QRA'])
+        adi.add_qso(call = qso['call'], datetime_on = date, mode = mode['super_mode'], name = qso['name'], band = qso_band, freq = qso['QRG'], my_gridsquare = station['QRA'], my_rig = station['rig'], qth = qso['QTH'], STATION_CALLSIGN = station['CALL'], RST_RCVD = qso['rxrst'], RST_SENT = qso['txrst'], GRIDSQUARE = qso['QRA'], OPERATOR = station['OPERATOR_CALL'])
 
     adi.close()
     llogd.close_database()
