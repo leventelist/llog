@@ -218,7 +218,7 @@ int db_get_max_nr(llog_t *log, log_entry_t *entry) {
 	char buff[BUF_SIZ];
 	int have_work = 1;
 
-	entry->txnr = 0;
+	entry->txnr = 1;
 
 	sprintf(buff, "SELECT txnr FROM log ORDER BY txnr DESC LIMIT 1;");
 	sqlite3_prepare_v2(log->db, buff, -1, &sq3_stmt, NULL);
