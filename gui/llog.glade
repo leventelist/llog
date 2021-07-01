@@ -256,7 +256,7 @@
                   </packing>
                 </child>
                 <child>
-                  <object class="GtkEntry" id="qth_entry">
+                  <object class="GtkEntry" id="name_entry">
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
                     <signal name="changed" handler="on_window_main_entry_changed" swapped="no"/>
@@ -270,7 +270,7 @@
                   <object class="GtkLabel">
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
-                    <property name="label" translatable="yes">QTH</property>
+                    <property name="label" translatable="yes">Name</property>
                   </object>
                   <packing>
                     <property name="left_attach">0</property>
@@ -281,7 +281,7 @@
                   <object class="GtkLabel">
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
-                    <property name="label" translatable="yes">Name</property>
+                    <property name="label" translatable="yes">QTH</property>
                   </object>
                   <packing>
                     <property name="left_attach">0</property>
@@ -289,7 +289,7 @@
                   </packing>
                 </child>
                 <child>
-                  <object class="GtkEntry" id="name_entry">
+                  <object class="GtkEntry" id="qth_entry">
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
                     <signal name="changed" handler="on_window_main_entry_changed" swapped="no"/>
