@@ -258,6 +258,7 @@ void on_mode_entry_change(GtkEntry *entry) {
 	llog_get_default_rst(log_entry_data.txrst, (char *)gtk_entry_get_text(entry));
 
 	gtk_entry_set_text(widgets->log_entries[llog_entry_txrst], log_entry_data.txrst);
+	gtk_entry_set_text(widgets->log_entries[llog_entry_rxrst], log_entry_data.txrst);
 
 }
 
@@ -327,7 +328,6 @@ void on_log_btn_clicked(void) {
 	gtk_entry_set_text(widgets->log_entries[llog_entry_call], log_entry_data.call);
 	gtk_entry_set_text(widgets->log_entries[llog_entry_date], log_entry_data.date);
 	gtk_entry_set_text(widgets->log_entries[llog_entry_utc], log_entry_data.utc);
-	gtk_entry_set_text(widgets->log_entries[llog_entry_rxrst], log_entry_data.rxrst);
 
 	on_mode_entry_change(widgets->log_entries[llog_entry_mode]);
 

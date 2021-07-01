@@ -374,7 +374,7 @@ int db_get_mode_entry(llog_t *log, mode_entry_t *mode, uint64_t *id) {
 
 	if (mode->data_stat == db_data_init) {
 		if (id == NULL) {
-			sprintf(buff, "SELECT rowid, name, default_rst, comment FROM mode ORDER BY rowid DESC;");
+			sprintf(buff, "SELECT rowid, name, default_rst, comment FROM mode ORDER BY name DESC;");
 		} else {
 			sprintf(buff, "SELECT rowid, name, default_rst, comment FROM mode WHERE rowid=%" PRIu64 ";", *id);
 		}
