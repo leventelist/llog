@@ -21,7 +21,7 @@
 #ifndef LLOG_H
 #define LLOG_H
 
-#define VERSION "v1.4.2"
+#define VERSION "v1.4.3"
 #include <stdint.h>
 #include <sys/time.h>
 #include <time.h>
