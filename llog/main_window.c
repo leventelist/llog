@@ -317,6 +317,7 @@ void on_log_btn_clicked(void) {
 			gtk_message_dialog_format_secondary_text(GTK_MESSAGE_DIALOG(error_dialog), "Database is not ready.");
 			gtk_dialog_run(GTK_DIALOG(error_dialog));
 			gtk_widget_destroy(error_dialog);
+			return;
 			break;
 		break;
 		default:
