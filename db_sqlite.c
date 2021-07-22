@@ -153,13 +153,15 @@ int db_check_dup_qso(llog_t *log, log_entry_t *entry) {
 		}
 	}
 
+	sqlite3_finalize(sq3_stmt);
+
 	return ret_val;
 }
 
 
 /* Get a single log entry.
  *
- * Call this function repetativly untill you get an error,
+ * Call this function repetatively until you get an error,
  * or a db_data_last in the status of the entry pointer, even if you don't want more.
  * */
 int db_get_log_entries(llog_t *log, log_entry_t *entry) {
@@ -216,14 +218,14 @@ int db_get_max_nr(llog_t *log, log_entry_t *entry) {
 	int ret, ret_val = OK;
 	sqlite3_stmt *sq3_stmt;
 	char buff[BUF_SIZ];
-	int have_work = 1;
+	bool have_work = true;
 
 	entry->txnr = 1;
 
 	sprintf(buff, "SELECT txnr FROM log ORDER BY txnr DESC LIMIT 1;");
 	sqlite3_prepare_v2(log->db, buff, -1, &sq3_stmt, NULL);
 
-	while (have_work == 1) {
+	while (have_work) {
 		ret = sqlite3_step(sq3_stmt);
 		switch (ret) {
 		case SQLITE_ROW:
@@ -231,20 +233,22 @@ int db_get_max_nr(llog_t *log, log_entry_t *entry) {
 		ret_val = OK;
 		break;
 		case SQLITE_DONE:
-		have_work = 0;
+		have_work = false;
 		ret_val = OK;
 		break;
 		case SQLITE_BUSY:
 		ret_val = LLOG_ERR;
-		have_work = 0;
+		have_work = false;
 		break;
 		default:
 		ret_val = LLOG_ERR;
-		have_work = 0;
+		have_work = false;
 		printf("Error looking up serial number: %s\n", sqlite3_errmsg(log->db));
 		break;
 		}
 	}
+
+	sqlite3_finalize(sq3_stmt);
 
 	return ret_val;
 }
