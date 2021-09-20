@@ -63,10 +63,12 @@ int main_window_draw(void) {
 
 	int ret_val;
 	int i;
+	char buff[BUFF_SIZ];
+	station_entry_t *initial_station;
 
 	ret_val = 0;
 
-	GtkBuilder      *builder;
+	GtkBuilder *builder;
 
 	widgets = g_slice_new(app_widgets);
 
@@ -151,6 +153,12 @@ int main_window_draw(void) {
 
 	g_object_unref(builder);
 
+	llog_get_initial_station(&initial_station);
+	if (initial_station->name[0]!='\0') {
+		sprintf(buff, "%s [%"PRIu64"]", initial_station->name, initial_station->id);
+		gtk_entry_set_text(widgets->log_entries[llog_entry_station_id], buff);
+	}
+
 	/*Let's rock!*/
 	gtk_widget_show(GTK_WIDGET(widgets->main_window));
 
@@ -179,8 +187,17 @@ void set_static_data(void) {
 void on_menuitm_open_activate(GtkMenuItem *menuitem, app_widgets *app_wdgts) {
     gchar *file_name = NULL;        // Name of file to open from dialog box
     int file_success;  // File read status
+	char *current_log_file_name;
 
 	(void)menuitem;
+
+	llog_get_log_file_path(&current_log_file_name);
+
+	/*Add last loaded filename to the chooser*/
+	if (current_log_file_name != NULL) {
+		gtk_file_chooser_set_filename(GTK_FILE_CHOOSER(app_wdgts->logfile_choose), current_log_file_name);
+	}
+
 
     // Show the "Open Text File" dialog box
     gtk_widget_show(app_wdgts->logfile_choose);
@@ -190,10 +207,11 @@ void on_menuitm_open_activate(GtkMenuItem *menuitem, app_widgets *app_wdgts) {
         // Get the file name from the dialog box
         file_name = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(app_wdgts->logfile_choose));
         if (file_name != NULL) {
-			llog_init(file_name);
+			llog_set_log_file(file_name);
 			file_success = llog_open_db();
 			llog_load_static_data(&log_entry_data);
 			set_static_data();
+			llog_save_config_file();
 			if (file_success != 0) {
 				printf("Error opening database.\n");
 				return;
@@ -207,6 +225,7 @@ void on_menuitm_open_activate(GtkMenuItem *menuitem, app_widgets *app_wdgts) {
     gtk_widget_hide(app_wdgts->logfile_choose);
 }
 
+
 void on_window_main_entry_changed(GtkEntry *entry) {
 	int entry_id;
 	int ret;
@@ -217,8 +236,6 @@ void on_window_main_entry_changed(GtkEntry *entry) {
 			break;
 		}
 	}
-
-	//printf("Entry changed\n");
 
 	switch (entry_id) {
 		case llog_entry_call:
@@ -406,8 +423,6 @@ int main_window_add_log_entry_to_list(log_entry_t *entry) {
 	/*Create the text*/
 	snprintf(buff, BUFF_SIZ, "%s %s %s", entry->call, entry->date, entry->utc);
 
-	printf("Adding log item... %s\n", buff);
-
 	snprintf(buff, BUFF_SIZ, "%" PRIu64, entry->id);
 
 	gtk_tree_store_set(widgets->logged_list_store, &iter, 0, buff, -1);
@@ -429,7 +444,6 @@ int main_window_add_station_entry_to_list(station_entry_t *station) {
 	static GtkTreeIter iter;
 
 	snprintf(buff, BUFF_SIZ, "%s [%"PRIu64"]", station->name, station->id);
-	printf("Adding %s to the station list.\n", buff);
 
 	gtk_list_store_prepend(widgets->station_list_store, &iter);
 	gtk_list_store_set(widgets->station_list_store, &iter, 0, buff, -1);
@@ -445,7 +459,6 @@ int main_window_add_mode_entry_to_list(mode_entry_t *mode) {
 	static GtkTreeIter iter;
 
 	snprintf(buff, BUFF_SIZ, "%s [%"PRIu64"]", mode->name, mode->id);
-	printf("Adding %s to the mode list.\n", buff);
 
 	gtk_list_store_prepend(widgets->mode_list_store, &iter);
 	gtk_list_store_set(widgets->mode_list_store, &iter, 0, buff, -1);

@@ -26,10 +26,11 @@
 #include <sys/time.h>
 #include <time.h>
 #include <sqlite3.h>
+#include "conf.h"
 
 #define DATABASE_TIMEOUT 1000
 
-#define LOGFILE_LEN 100
+#define FILE_LEN 100
 #define QTH_LEN 100
 #define QRA_LEN 20
 #define QRG_LEN 20
@@ -74,10 +75,13 @@ enum llog_entry_pos {
 
 /*Main data storage*/
 typedef struct {
-	char logfileFn[LOGFILE_LEN]; /*SQLite database file name*/
-	char station[STATION_LEN];
+	char log_file_name[FILE_LEN]; /*SQLite database file name*/
+	char config_file_name[FILE_LEN];
+//	char station[STATION_LEN];
+	uint64_t station_id;
 	sqlite3 *db;
 	uint32_t stat;
+	config_attribute_t *ca;
 } llog_t;
 
 
@@ -129,11 +133,17 @@ typedef struct {
 
 
 /*Function definitions*/
-int llog_init(char *logfile_name);
+int llog_init(void);
+int llog_set_log_file(char *log_file_name);
+int llog_set_config_file(char *config_file_name);
+int llog_get_log_file_path(char **path);
 int llog_open_db(void);
 void llog_shutdown(void);
 int llog_add_log_entries(void);
 int llog_add_station_entries(void);
+int llog_get_initial_station(station_entry_t **station);
+int llog_save_config_file(void);
+int llog_parse_config_file(void);
 int llog_add_modes_entries(void);
 int llog_log_entry(log_entry_t *entry);
 void llog_reset_entry(log_entry_t *entry);

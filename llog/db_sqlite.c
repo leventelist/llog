@@ -48,11 +48,11 @@ int db_sqlite_init(llog_t *llog) {
 		llog->stat = db_closed;
 	}
 
-	ret = sqlite3_open(llog->logfileFn, &llog->db);
+	ret = sqlite3_open(llog->log_file_name, &llog->db);
 
 	do {
 		if (ret != SQLITE_OK) {
-			printf("Error opening the log database '%s'.\n", llog->logfileFn);
+			printf("Error opening the log database '%s'.\n", llog->log_file_name);
 			ret_val = FILE_ERR;
 			break;
 		}
@@ -69,51 +69,6 @@ int db_close(llog_t *llog) {
 	sqlite3_close(llog->db);
 
 	return OK;
-}
-
-
-int db_lookup_station(llog_t *llog, station_entry_t *station) {
-	sqlite3_stmt *sq3_stmt;
-	char buff[BUF_SIZ];
-	int ret, ret_val = LLOG_ERR;
-	int have_work;
-
-	have_work = 1;
-
-	sprintf(buff, "SELECT rowid, name FROM station WHERE name='%s' OR rowid=%lu ORDER BY rowid DESC LIMIT 1;", llog->station, strtoul(llog->station, NULL, 0));
-	sqlite3_prepare_v2(llog->db, buff, -1, &sq3_stmt, NULL);
-	station->id = 1;
-
-	while (have_work == 1) {
-		ret = sqlite3_step(sq3_stmt);
-		switch (ret) {
-		case SQLITE_ROW:
-		station->id = sqlite3_column_int64(sq3_stmt, 0);
-		strncpy(station->name, (char *) sqlite3_column_text(sq3_stmt, 1), NAME_LEN);
-		printf("\nUsing staion '%s'.\n", station->name);
-		ret_val = OK;
-		break;
-		case SQLITE_DONE:
-		have_work = 0;
-		if (ret_val != OK) {
-			printf("\nUnkown station '%s'. Using the default.\n", llog->station);
-		}
-		break;
-		case SQLITE_BUSY:
-		ret_val = LLOG_ERR;
-		have_work = 0;
-		break;
-		default:
-		ret_val = LLOG_ERR;
-		have_work = 0;
-		printf("Error looking up station: %s\n", sqlite3_errmsg(llog->db));
-		break;
-		}
-	}
-
-	sqlite3_finalize(sq3_stmt);
-
-	return ret_val;
 }
 
 
@@ -289,7 +244,7 @@ int db_set_log_entry(llog_t *log, log_entry_t *entry) {
 
 int db_get_station_entry(llog_t *log, station_entry_t *station) {
 
-	sqlite3_stmt *sq3_stmt;
+	static sqlite3_stmt *sq3_stmt;
 	char buff[BUF_SIZ];
 	int ret, ret_val = LLOG_ERR;
 	bool finalize = true;
@@ -297,7 +252,11 @@ int db_get_station_entry(llog_t *log, station_entry_t *station) {
 
 
 	if (station->data_stat == db_data_init) {
-		sprintf(buff, "SELECT rowid, name, CALL, QTH, QRA, ASL, rig, ant FROM station ORDER BY rowid DESC;");
+		if (station->id == 0) {
+			sprintf(buff, "SELECT rowid, name, CALL, QTH, QRA, ASL, rig, ant FROM station ORDER BY rowid DESC;");
+		} else {
+			sprintf(buff, "SELECT rowid, name, CALL, QTH, QRA, ASL, rig, ant FROM station WHERE rowid=%"PRIu64" ORDER BY rowid DESC;", station->id);
+		}
 		sqlite3_prepare_v2(log->db, buff, -1, &sq3_stmt, NULL);
 	}
 
@@ -369,7 +328,7 @@ int db_get_station_entry(llog_t *log, station_entry_t *station) {
 
 int db_get_mode_entry(llog_t *log, mode_entry_t *mode, uint64_t *id) {
 
-	sqlite3_stmt *sq3_stmt;
+	static sqlite3_stmt *sq3_stmt;
 	char buff[BUF_SIZ];
 	int ret, ret_val = LLOG_ERR;
 	bool finalize = true;
