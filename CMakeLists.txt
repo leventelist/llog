@@ -20,8 +20,7 @@ set(CMAKE_C_FLAGS_RELEASE "-O2")
 pkg_check_modules(SQLITE REQUIRED IMPORTED_TARGET sqlite3)
 pkg_check_modules(GTK REQUIRED IMPORTED_TARGET gtk+-3.0)
 
-add_executable(${PROJECT_NAME} main.c db_sqlite.c main_window.c llog.c)
-
+add_executable(${PROJECT_NAME} main.c db_sqlite.c main_window.c llog.c conf.c)
 
 #set up include directories
 include_directories("${PROJECT_BINARY_DIR}")

@@ -27,18 +27,76 @@
 #include "llog.h"
 #include "db_sqlite.h"
 #include "main_window.h"
+#include "conf.h"
 
 #define BUF_SIZ 1024
 
 static llog_t llog;
+static station_entry_t initial_station;
 
-int llog_init(char *logfile_name) {
+/*Define configuration items*/
+static config_attribute_t llog_ca[] = {
+	{"log_filename", CONFIG_String, llog.log_file_name},
+	{"station", CONFIG_ULLInteger, &initial_station.id},
+	{NULL, CONFIG_Unused, NULL}
+};
+
+
+int llog_init(void) {
 
 	llog.db = NULL;
-	strncpy(llog.logfileFn, logfile_name, LOGFILE_LEN);
+	llog.config_file_name[0] = '\0';
+	llog.log_file_name[0] = '\0';
 	llog.stat = db_closed;
 
-	return 0;
+	llog.ca = llog_ca;
+
+	return OK;
+}
+
+int llog_set_log_file(char *log_file_name) {
+
+	llog.db = NULL;
+	strncpy(llog.log_file_name, log_file_name, FILE_LEN);
+	llog.stat = db_closed;
+
+	return OK;
+}
+
+int llog_set_config_file(char *config_file_name) {
+	int ret = OK;
+
+	strncpy(llog.config_file_name, config_file_name, FILE_LEN);
+
+	return ret;
+}
+
+
+int llog_parse_config_file(void) {
+	int ret_val;
+	int ret = OK;
+
+		/*Check if there were log file name supplied at the command line*/
+	if (llog.log_file_name[0]=='\0') { /*It wasn't*/
+		ret_val = config_file_read(llog.config_file_name, llog.ca);
+		if (ret_val == CONF_READ_ERR) {
+			printf("Error reading config file `%s`\n", llog.config_file_name);
+			ret = FILE_ERR;
+		}
+	}
+
+	if (ret == OK) {
+		llog_open_db();
+	}
+
+	initial_station.data_stat = db_data_init;
+	ret_val = db_get_station_entry(&llog, &initial_station);
+
+	if( ret_val != LLOG_ERR) {
+		db_get_station_entry(&llog, &initial_station); /*This will finalize the data*/
+	}
+
+	return ret;
 }
 
 
@@ -46,14 +104,29 @@ int llog_open_db(void) {
 
 	int ret;
 
-	printf("Opening log file %s\n", llog.logfileFn);
+	printf("Opening log file %s\n", llog.log_file_name);
 
 	ret = db_sqlite_init(&llog);
 
 	return ret;
-
 }
 
+
+int llog_get_initial_station(station_entry_t **station) {
+	*station = &initial_station;
+	return OK;
+}
+
+
+int llog_save_config_file(void) {
+	config_print_file(llog.config_file_name, llog.ca);
+	return OK;
+}
+
+int llog_get_log_file_path(char **path) {
+	*path = llog.log_file_name;
+	return OK;
+}
 
 int llog_add_log_entries(void) {
 
@@ -122,6 +195,7 @@ int llog_add_station_entries(void) {
 	main_window_clear_station_list();
 
 	while (station.data_stat != db_data_last) {
+		station.id = 0;
 		db_get_station_entry(&llog, &station);
 		if (station.data_stat == db_data_valid) {
 			main_window_add_station_entry_to_list(&station);

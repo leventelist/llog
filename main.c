@@ -36,26 +36,21 @@ static void printver(void);
 int main(int argc, char *argv[]) {
 
 	int opt;
+	char buff[1024];
 
 	/*Initialize main data structures*/
-	llog_init("log.sqlite");
-
+	llog_init();
 
 	/*Parse command line arguments*/
 
-	while ((opt = getopt(argc, argv, "f:s:hv")) !=-1) {
+	while ((opt = getopt(argc, argv, "f:hv")) !=-1) {
 		switch (opt) {
 		case 'h': /*print help*/
 			printhelp();
 			return(OK);
 		break;
-
 		case 'f':
-			llog_init(optarg);
-			llog_open_db();
-		break;
-//		case 's':
-//			strncpy(llog.station, optarg, STATION_LEN);
+			llog_set_log_file(optarg);
 		break;
 		case 'v':
 			printver();
@@ -64,12 +59,19 @@ int main(int argc, char *argv[]) {
 		case '?':
 		case ':':
 		default:
-			printf("Error parsing the command line arguemts\n");
+			printf("Error parsing the command line arguments\n");
 			printhelp();
 			return(CMD_LINE_ERR);
 			break;
 		}
 	}
+
+	char *homedir = getenv("HOME");
+	sprintf(buff, "%s/llog.cf", homedir);
+
+	llog_set_config_file(buff);
+	/*This will also open the database for us.*/
+	llog_parse_config_file();
 
 	/*Draw main window*/
 	main_window_draw();
