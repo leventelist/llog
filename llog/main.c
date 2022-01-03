@@ -27,16 +27,15 @@
 
 #include "main_window.h"
 
-static void printver(void);
-static void printhelp(void);
+static void print_ver(void);
+static void print_help(void);
 
-static void printver(void);
+static void print_ver(void);
 
 
 int main(int argc, char *argv[]) {
 
 	int opt;
-	char buff[1024];
 
 	/*Initialize main data structures*/
 	llog_init();
@@ -46,30 +45,27 @@ int main(int argc, char *argv[]) {
 	while ((opt = getopt(argc, argv, "f:hv")) !=-1) {
 		switch (opt) {
 		case 'h': /*print help*/
-			printhelp();
+			print_help();
 			return(OK);
 		break;
 		case 'f':
 			llog_set_log_file(optarg);
+			llog_save_config_file();
 		break;
 		case 'v':
-			printver();
+			print_ver();
 			return(OK);
 		break;
 		case '?':
 		case ':':
 		default:
 			printf("Error parsing the command line arguments\n");
-			printhelp();
+			print_help();
 			return(CMD_LINE_ERR);
 			break;
 		}
 	}
 
-	char *homedir = getenv("HOME");
-	sprintf(buff, "%s/llog.cf", homedir);
-
-	llog_set_config_file(buff);
 	/*This will also open the database for us.*/
 	llog_parse_config_file();
 
@@ -82,7 +78,7 @@ int main(int argc, char *argv[]) {
 }
 
 
-static void printver(void) {
+static void print_ver(void) {
 
 	printf("\nThis is llog, a minimalist HAM log software.\n");
 	printf("\nLicense: GNU 3.0.\n");
@@ -91,11 +87,10 @@ static void printver(void) {
 }
 
 
-static void printhelp(void) {
+static void print_help(void) {
 
-	printver();
+	print_ver();
 	printf("\nCommand line options\n\n");
-//	printf("\t-s STATION\t\tSelect station. Id or name.\n");
 	printf("\t-f FILE\t\tWrite output to logfile FILE.\n");
 	printf("\t-h\t\tGet help.\n");
 	printf("\t-v\t\tPrint version information.\n\n");

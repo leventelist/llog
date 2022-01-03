@@ -23,6 +23,7 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <inttypes.h>
+#include <limits.h>
 
 #include "llog.h"
 #include "db_sqlite.h"
@@ -44,8 +45,10 @@ static config_attribute_t llog_ca[] = {
 
 int llog_init(void) {
 
+	char *homedir = getenv("HOME");
+
+	sprintf(llog.config_file_name, "%s/llog.cf", homedir);
 	llog.db = NULL;
-	llog.config_file_name[0] = '\0';
 	llog.log_file_name[0] = '\0';
 	llog.stat = db_closed;
 
@@ -56,11 +59,28 @@ int llog_init(void) {
 
 int llog_set_log_file(char *log_file_name) {
 
+	char real_log_file_name[FILE_LEN];
+	int ret_val;
+
+	if (realpath(log_file_name, real_log_file_name) == NULL) {
+		ret_val = ERR;
+	} else {
+		ret_val = OK;
+	}
+
+	if (ret_val == OK) {
+		strncpy(llog.log_file_name, real_log_file_name, FILE_LEN);
+	}
+
+	/* Indicate that the database is closed.
+	 * FIXME!!! We shall check if the database is opened, and close it.
+	 * This is kinda memory leak.
+	 */
+
 	llog.db = NULL;
-	strncpy(llog.log_file_name, log_file_name, FILE_LEN);
 	llog.stat = db_closed;
 
-	return OK;
+	return ret_val;
 }
 
 int llog_set_config_file(char *config_file_name) {
@@ -76,7 +96,7 @@ int llog_parse_config_file(void) {
 	int ret_val;
 	int ret = OK;
 
-		/*Check if there were log file name supplied at the command line*/
+	/*Check if there were log file name supplied at the command line*/
 	if (llog.log_file_name[0]=='\0') { /*It wasn't*/
 		ret_val = config_file_read(llog.config_file_name, llog.ca);
 		if (ret_val == CONF_READ_ERR) {

@@ -30,7 +30,7 @@
 
 #define DATABASE_TIMEOUT 1000
 
-#define FILE_LEN 100
+#define FILE_LEN 1024
 #define QTH_LEN 100
 #define QRA_LEN 20
 #define QRG_LEN 20
@@ -49,6 +49,7 @@
 #define OK 0
 #define FILE_ERR 1
 #define CMD_LINE_ERR 2
+#define ERR 3
 
 #define LLOG_ERR 3
 #define LLOG_DUP 4
