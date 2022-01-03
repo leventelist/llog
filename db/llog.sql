@@ -10,7 +10,8 @@ CREATE TABLE station (
 	QRA TEXT,
 	ASL TEXT,
 	rig TEXT,
-	ant TEXT
+	ant TEXT,
+	comment TEXT
 );
 
 
