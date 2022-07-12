@@ -1,7 +1,7 @@
 # llog
 Log software for HAM operators
 
-## Prerquisites
+## Prerequisites
 
 * libsqlite3-dev
 * libgtk-3-dev
@@ -30,3 +30,7 @@ Log software for HAM operators
 4. Run llog -f /your/log/path/database.sqlite.
 5. Next time you can run llog without any argument, and it'll open your database
 6. Profit
+
+You can always edit your database with sqlitebrowser.
+
+Patches, improvements are welcome.
