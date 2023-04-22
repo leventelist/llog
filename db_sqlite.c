@@ -139,10 +139,10 @@ int db_get_log_entries(llog_t *log, log_entry_t *entry) {
 		strncpy(entry->date, (char *)sqlite3_column_text(sq3_stmt, 1), NAME_LEN);
 		strncpy(entry->utc, (char *)sqlite3_column_text(sq3_stmt, 2), NAME_LEN);
 		strncpy(entry->call, (char *)sqlite3_column_text(sq3_stmt, 3), CALL_LEN);
-		strncpy(entry->rxrst, (char *)sqlite3_column_text(sq3_stmt, 4), X_LEN);
-		strncpy(entry->txrst, (char *)sqlite3_column_text(sq3_stmt, 5), X_LEN);
+		strncpy(entry->rxrst, (char *)sqlite3_column_text(sq3_stmt, 4), RST_LEN);
+		strncpy(entry->txrst, (char *)sqlite3_column_text(sq3_stmt, 5), RST_LEN);
 		entry->qrg = sqlite3_column_double(sq3_stmt, 6);
-		strncpy(entry->mode.name, (char *)sqlite3_column_text(sq3_stmt, 7), X_LEN);
+		strncpy(entry->mode.name, (char *)sqlite3_column_text(sq3_stmt, 7), MODE_LEN);
 		finalize = false;
 		ret_val = OK;
 		entry->data_stat = db_data_valid;
@@ -354,12 +354,12 @@ int db_get_mode_entry(llog_t *log, mode_entry_t *mode, uint64_t *id) {
 		if (cell == NULL) {
 			cell = EMPTY_STRING;
 		}
-		strncpy(mode->name, cell, NAME_LEN);
+		strncpy(mode->name, cell, MODE_LEN);
 		cell = (char *)sqlite3_column_text(sq3_stmt, 2);
 		if (cell == NULL) {
 			cell = EMPTY_STRING;
 		}
-		strncpy(mode->default_rst, cell, NAME_LEN);
+		strncpy(mode->default_rst, cell, MODE_LEN);
 		cell = (char *)sqlite3_column_text(sq3_stmt, 2);
 		if (cell == NULL) {
 			cell = EMPTY_STRING;
