@@ -37,331 +37,327 @@ static station_entry_t initial_station;
 
 /*Define configuration items*/
 static config_attribute_t llog_ca[] = {
-	{"log_filename", CONFIG_String, llog.log_file_name},
-	{"station", CONFIG_ULLInteger, &initial_station.id},
-	{NULL, CONFIG_Unused, NULL}
+  { "log_filename", CONFIG_String, llog.log_file_name },
+  { "station", CONFIG_ULLInteger, &initial_station.id },
+  { NULL, CONFIG_Unused, NULL }
 };
 
 
 int llog_init(void) {
+  char *homedir = getenv("HOME");
 
-	char *homedir = getenv("HOME");
+  sprintf(llog.config_file_name, "%s/llog.cf", homedir);
+  llog.db = NULL;
+  llog.log_file_name[0] = '\0';
+  llog.stat = db_closed;
 
-	sprintf(llog.config_file_name, "%s/llog.cf", homedir);
-	llog.db = NULL;
-	llog.log_file_name[0] = '\0';
-	llog.stat = db_closed;
+  llog.ca = llog_ca;
 
-	llog.ca = llog_ca;
-
-	return OK;
+  return OK;
 }
 
 int llog_set_log_file(char *log_file_name) {
+  char real_log_file_name[FILE_LEN];
+  int ret_val;
 
-	char real_log_file_name[FILE_LEN];
-	int ret_val;
+  if (realpath(log_file_name, real_log_file_name) == NULL) {
+      ret_val = ERR;
+    }
+  else {
+      ret_val = OK;
+    }
 
-	if (realpath(log_file_name, real_log_file_name) == NULL) {
-		ret_val = ERR;
-	} else {
-		ret_val = OK;
-	}
+  if (ret_val == OK) {
+      strncpy(llog.log_file_name, real_log_file_name, FILE_LEN);
+    }
 
-	if (ret_val == OK) {
-		strncpy(llog.log_file_name, real_log_file_name, FILE_LEN);
-	}
+  /* Indicate that the database is closed.
+   * FIXME!!! We shall check if the database is opened, and close it.
+   * This is kinda memory leak.
+   */
 
-	/* Indicate that the database is closed.
-	 * FIXME!!! We shall check if the database is opened, and close it.
-	 * This is kinda memory leak.
-	 */
+  llog.db = NULL;
+  llog.stat = db_closed;
 
-	llog.db = NULL;
-	llog.stat = db_closed;
-
-	return ret_val;
+  return ret_val;
 }
 
 int llog_set_config_file(char *config_file_name) {
-	int ret = OK;
+  int ret = OK;
 
-	strncpy(llog.config_file_name, config_file_name, FILE_LEN);
+  strncpy(llog.config_file_name, config_file_name, FILE_LEN);
 
-	return ret;
+  return ret;
 }
 
 
 int llog_parse_config_file(void) {
-	int ret_val;
-	int ret = OK;
+  int ret_val;
+  int ret = OK;
 
-	/*Check if there were log file name supplied at the command line*/
-	if (llog.log_file_name[0]=='\0') { /*It wasn't*/
-		ret_val = config_file_read(llog.config_file_name, llog.ca);
-		if (ret_val == CONF_READ_ERR) {
-			printf("Error reading config file `%s`\n", llog.config_file_name);
-			ret = FILE_ERR;
-		}
-	}
+  /*Check if there were log file name supplied at the command line*/
+  if (llog.log_file_name[0] == '\0') {     /*It wasn't*/
+      ret_val = config_file_read(llog.config_file_name, llog.ca);
+      if (ret_val == CONF_READ_ERR) {
+          printf("Error reading config file `%s`\n", llog.config_file_name);
+          ret = FILE_ERR;
+        }
+    }
 
-	if (ret == OK) {
-		llog_open_db();
-	}
+  if (ret == OK) {
+      llog_open_db();
+    }
 
-	initial_station.data_stat = db_data_init;
-	ret_val = db_get_station_entry(&llog, &initial_station);
+  initial_station.data_stat = db_data_init;
+  ret_val = db_get_station_entry(&llog, &initial_station);
 
-	if( ret_val != LLOG_ERR) {
-		db_get_station_entry(&llog, &initial_station); /*This will finalize the data*/
-	}
+  if (ret_val != LLOG_ERR) {
+      db_get_station_entry(&llog, &initial_station);           /*This will finalize the data*/
+    }
 
-	return ret;
+  return ret;
 }
 
 
 int llog_open_db(void) {
+  int ret;
 
-	int ret;
+  printf("Opening log file %s\n", llog.log_file_name);
 
-	printf("Opening log file %s\n", llog.log_file_name);
+  ret = db_sqlite_init(&llog);
 
-	ret = db_sqlite_init(&llog);
-
-	return ret;
+  return ret;
 }
 
 
 int llog_get_initial_station(station_entry_t **station) {
-	*station = &initial_station;
-	return OK;
+  *station = &initial_station;
+  return OK;
 }
 
 
 int llog_save_config_file(void) {
-	config_print_file(llog.config_file_name, llog.ca);
-	return OK;
+  config_print_file(llog.config_file_name, llog.ca);
+  return OK;
 }
 
 int llog_get_log_file_path(char **path) {
-	*path = llog.log_file_name;
-	return OK;
+  *path = llog.log_file_name;
+  return OK;
 }
 
 int llog_add_log_entries(void) {
+  int ret_val = OK;
+  log_entry_t entry;
 
-	int ret_val = OK;
-	log_entry_t entry;
+  entry.data_stat = db_data_init;
 
-	entry.data_stat = db_data_init;
+  main_window_clear_log_list();
 
-	main_window_clear_log_list();
+  while (entry.data_stat != db_data_last) {
+      ret_val = db_get_log_entries(&llog, &entry);
+      if (ret_val != OK) {
+          break;
+        }
+      if (entry.data_stat == db_data_valid) {
+          main_window_add_log_entry_to_list(&entry);
+        }
+      else {
+          break;
+        }
+    }
 
-	while (entry.data_stat != db_data_last) {
-		ret_val = db_get_log_entries(&llog, &entry);
-		if (ret_val != OK) {
-			break;
-		}
-		if (entry.data_stat == db_data_valid) {
-			main_window_add_log_entry_to_list(&entry);
-		} else {
-			break;
-		}
-	}
-
-	return ret_val;
+  return ret_val;
 }
 
 
 int llog_log_entry(log_entry_t *entry) {
-	int ret_val = OK;
+  int ret_val = OK;
 
-	ret_val = db_set_log_entry(&llog, entry);
+  ret_val = db_set_log_entry(&llog, entry);
 
-	return ret_val;
+  return ret_val;
 }
 
 
 void llog_reset_entry(log_entry_t *entry) {
+  entry->date[0] = '\0';
+  entry->utc[0] = '\0';
+  entry->rxrst[0] = '\0';
+  entry->call[0] = '\0';
+  entry->name[0] = '\0';
 
-	entry->date[0] = '\0';
-	entry->utc[0] = '\0';
-	entry->rxrst[0] = '\0';
-	entry->call[0] = '\0';
-	entry->name[0] = '\0';
+  if (entry->mode.id != 0) {
+      strcpy(entry->txrst, entry->mode.default_rst);
+    }
 
-	if (entry->mode.id !=0 ) {
-		strcpy(entry->txrst, entry->mode.default_rst);
-	}
-
-	entry->rxrst[0] = '\0';
-	entry->qth[0] = '\0';
-	entry->qra[0] = '\0';
-	entry->rxnr = 0;
-	entry->rxextra[0] = '\0';
-	entry->txextra[0] = '\0';
-	entry->comment[0] = '\0';
-
+  entry->rxrst[0] = '\0';
+  entry->qth[0] = '\0';
+  entry->qra[0] = '\0';
+  entry->rxnr = 0;
+  entry->rxextra[0] = '\0';
+  entry->txextra[0] = '\0';
+  entry->comment[0] = '\0';
 }
 
 
 int llog_add_station_entries(void) {
+  int ret_val = OK;
+  station_entry_t station;
 
-	int ret_val = OK;
-	station_entry_t station;
+  station.data_stat = db_data_init;
 
-	station.data_stat = db_data_init;
+  main_window_clear_station_list();
 
-	main_window_clear_station_list();
+  while (station.data_stat != db_data_last) {
+      station.id = 0;
+      db_get_station_entry(&llog, &station);
+      if (station.data_stat == db_data_valid) {
+          main_window_add_station_entry_to_list(&station);
+        }
+      else {
+          break;
+        }
+    }
 
-	while (station.data_stat != db_data_last) {
-		station.id = 0;
-		db_get_station_entry(&llog, &station);
-		if (station.data_stat == db_data_valid) {
-			main_window_add_station_entry_to_list(&station);
-		} else {
-			break;
-		}
-	}
-
-	return ret_val;
+  return ret_val;
 }
 
 
 int llog_add_modes_entries(void) {
-	int ret_val = OK;
-	mode_entry_t mode;
+  int ret_val = OK;
+  mode_entry_t mode;
 
-	mode.data_stat = db_data_init;
+  mode.data_stat = db_data_init;
 
-	main_window_clear_modes_list();
+  main_window_clear_modes_list();
 
-	while (mode.data_stat != db_data_last) {
-		db_get_mode_entry(&llog, &mode, NULL);
-		if (mode.data_stat == db_data_valid) {
-			main_window_add_mode_entry_to_list(&mode);
-		} else {
-			break;
-		}
-	}
+  while (mode.data_stat != db_data_last) {
+      db_get_mode_entry(&llog, &mode, NULL);
+      if (mode.data_stat == db_data_valid) {
+          main_window_add_mode_entry_to_list(&mode);
+        }
+      else {
+          break;
+        }
+    }
 
-	return ret_val;
+  return ret_val;
 }
 
 
 int llog_get_default_rst(char *default_rst, char *mode_string) {
-	uint64_t mode_id;
-	mode_entry_t mode;
-	int ret;
+  uint64_t mode_id;
+  mode_entry_t mode;
+  int ret;
 
-	mode.data_stat = db_data_init;
+  mode.data_stat = db_data_init;
 
-	llog_tokenize(mode_string, NULL, &mode_id);
-	ret = db_get_mode_entry(&llog, &mode, &mode_id);
-	if (ret == OK) {
-		strncpy(default_rst, mode.default_rst, MODE_LEN);
-	}
-	
-	return ret;
+  llog_tokenize(mode_string, NULL, &mode_id);
+  ret = db_get_mode_entry(&llog, &mode, &mode_id);
+  if (ret == OK) {
+      strncpy(default_rst, mode.default_rst, MODE_LEN);
+    }
+
+  return ret;
 }
 
 
 int llog_get_max_nr(log_entry_t *entry) {
-	int ret;
+  int ret;
 
-	ret = db_get_max_nr(&llog, entry);
+  ret = db_get_max_nr(&llog, entry);
 
-	return ret;
+  return ret;
 }
 
 
 void llog_get_time(log_entry_t *entry) {
-	struct timeval qso_time;
-	struct tm qso_bdt;
+  struct timeval qso_time;
+  struct tm qso_bdt;
 
-	gettimeofday(&qso_time, NULL);
-	gmtime_r(&qso_time.tv_sec, &qso_bdt);
-	sprintf(entry->date, "%d-%02d-%02d", 1900+qso_bdt.tm_year, 1+qso_bdt.tm_mon, qso_bdt.tm_mday);
-	sprintf(entry->utc, "%02d%02d", qso_bdt.tm_hour, qso_bdt.tm_min);
+  gettimeofday(&qso_time, NULL);
+  gmtime_r(&qso_time.tv_sec, &qso_bdt);
+  sprintf(entry->date, "%d-%02d-%02d", 1900 + qso_bdt.tm_year, 1 + qso_bdt.tm_mon, qso_bdt.tm_mday);
+  sprintf(entry->utc, "%02d%02d", qso_bdt.tm_hour, qso_bdt.tm_min);
 }
 
 
 int llog_check_dup_qso(log_entry_t *entry) {
-	int ret_val;
+  int ret_val;
 
-	entry->data_stat = db_data_init;
+  entry->data_stat = db_data_init;
 
-	ret_val = db_check_dup_qso(&llog, entry);
+  ret_val = db_check_dup_qso(&llog, entry);
 
-	return ret_val;
+  return ret_val;
 }
 
 
 int llog_load_static_data(log_entry_t *entry) {
-	int ret;
+  int ret;
 
-	do {
-		ret = llog_add_log_entries();
-		if (ret != OK) {
-			break;
-		}
-		ret = llog_add_station_entries();
-		if (ret != OK) {
-			break;
-		}
-		ret = llog_add_modes_entries();
-		if (ret != OK) {
-			break;
-		}
-		ret = llog_get_max_nr(entry);
-		if (ret != OK) {
-			break;
-		}
-	} while (0);
+  do {
+      ret = llog_add_log_entries();
+      if (ret != OK) {
+          break;
+        }
+      ret = llog_add_station_entries();
+      if (ret != OK) {
+          break;
+        }
+      ret = llog_add_modes_entries();
+      if (ret != OK) {
+          break;
+        }
+      ret = llog_get_max_nr(entry);
+      if (ret != OK) {
+          break;
+        }
+    } while (0);
 
-	return ret;
+  return ret;
 }
 
 
 void llog_print_log_data(log_entry_t *entry) {
-
-	printf("\nCall [%s]\nOperator's name: [%s]\n", entry->call, entry->name);
-	printf("RXRST [%s]\nTXRST [%s]\n", entry->rxrst, entry->txrst);
-	printf("QTH [%s]\nQRA [%s]\n", entry->qth, entry->qra);
-	printf("QRG [%f]\nMode [%s]\nPower: [%s]\n", entry->qrg, entry->mode.name, entry->power);
-	printf("RXNR [%04"PRIu64"]\nTXNR [%04"PRIu64"]\n", entry->rxnr, entry->txnr);
-	printf("RX_EXTRA [%s]\nTX_EXTRA [%s]\n", entry->rxextra, entry->txextra);
-	printf("Comment [%s]\n\n", entry->comment);
-	return;
+  printf("\nCall [%s]\nOperator's name: [%s]\n", entry->call, entry->name);
+  printf("RXRST [%s]\nTXRST [%s]\n", entry->rxrst, entry->txrst);
+  printf("QTH [%s]\nQRA [%s]\n", entry->qth, entry->qra);
+  printf("QRG [%f]\nMode [%s]\nPower: [%s]\n", entry->qrg, entry->mode.name, entry->power);
+  printf("RXNR [%04" PRIu64 "]\nTXNR [%04" PRIu64 "]\n", entry->rxnr, entry->txnr);
+  printf("RX_EXTRA [%s]\nTX_EXTRA [%s]\n", entry->rxextra, entry->txextra);
+  printf("Comment [%s]\n\n", entry->comment);
+  return;
 }
 
 
 void llog_strupper(char *s) {
-	while (*s) {
-		if ((*s >= 'a' ) && (*s <= 'z')) {
-			*s -= ('a'-'A');
-		}
-		s++;
-	}
+  while (*s) {
+      if ((*s >= 'a') && (*s <= 'z')) {
+          *s -= ('a' - 'A');
+        }
+      s++;
+    }
 }
 
 
 void llog_tokenize(const char *in, char *out, uint64_t *id) {
-	uint64_t fake_id;
-	char buff[BUF_SIZ];
+  uint64_t fake_id;
+  char buff[BUF_SIZ];
 
-	if (out == NULL) {
-		out = buff;
-	}
+  if (out == NULL) {
+      out = buff;
+    }
 
-	if (id == NULL) {
-		id = &fake_id;
-	}
+  if (id == NULL) {
+      id = &fake_id;
+    }
 
-	sscanf(in, "%s [%" PRIu64 "]", out, id);
+  sscanf(in, "%s [%" PRIu64 "]", out, id);
 }
 
 
 void llog_shutdown(void) {
-	db_close(&llog);
+  db_close(&llog);
 }

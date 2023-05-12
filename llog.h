@@ -55,81 +55,81 @@
 #define LLOG_DUP 4
 
 enum llog_entry_pos {
-	llog_entry_call = 0,
-	llog_entry_date,
-	llog_entry_utc,
-	llog_entry_rxrst,
-	llog_entry_txrst,
-	llog_entry_qth,
-	llog_entry_name,
-	llog_entry_qra,
-	llog_entry_qrg,
-	llog_entry_mode,
-	llog_entry_power,
-	llog_entry_rxnr,
-	llog_entry_txnr,
-	llog_entry_rxextra,
-	llog_entry_txextra,
-	llog_entry_comment,
-	llog_entry_station_id
+  llog_entry_call = 0,
+  llog_entry_date,
+  llog_entry_utc,
+  llog_entry_rxrst,
+  llog_entry_txrst,
+  llog_entry_qth,
+  llog_entry_name,
+  llog_entry_qra,
+  llog_entry_qrg,
+  llog_entry_mode,
+  llog_entry_power,
+  llog_entry_rxnr,
+  llog_entry_txnr,
+  llog_entry_rxextra,
+  llog_entry_txextra,
+  llog_entry_comment,
+  llog_entry_station_id
 };
 
 /*Main data storage*/
 typedef struct {
-	char log_file_name[FILE_LEN]; /*SQLite database file name*/
-	char config_file_name[FILE_LEN];
+  char log_file_name[FILE_LEN];       /*SQLite database file name*/
+  char config_file_name[FILE_LEN];
 //	char station[STATION_LEN];
-	uint64_t station_id;
-	sqlite3 *db;
-	uint32_t stat;
-	config_attribute_t *ca;
+  uint64_t station_id;
+  sqlite3 *db;
+  uint32_t stat;
+  config_attribute_t *ca;
 } llog_t;
 
 
 /*Mode data storage.*/
 typedef struct {
-	uint64_t id;
-	char name[MODE_LEN];
-	char default_rst[MODE_LEN];
-	char comment[COMMENT_LEN];
-	uint32_t data_stat;
+  uint64_t id;
+  char name[MODE_LEN];
+  char default_rst[MODE_LEN];
+  char comment[COMMENT_LEN];
+  uint32_t data_stat;
 } mode_entry_t;
 
 
 typedef struct {
-	uint64_t id;
-	char call[CALL_LEN];
-	char rxrst[RST_LEN];
-	char txrst[RST_LEN];
-	uint64_t txnr;
-	uint64_t rxnr;
-	char rxextra[X_LEN];
-	char txextra[X_LEN];
-	char qth[QTH_LEN];
-	char name[NAME_LEN];
-	char qra[QRA_LEN];
-	double qrg;
-	mode_entry_t mode;
-	char power[PWR_LEN];
-	char comment[COMMENT_LEN];
-	uint64_t station_id;
-	char date[NAME_LEN];
-	char utc[NAME_LEN];
-	uint32_t data_stat;
+  uint64_t id;
+  char call[CALL_LEN];
+  char rxrst[RST_LEN];
+  char txrst[RST_LEN];
+  uint64_t txnr;
+  uint64_t rxnr;
+  char rxextra[X_LEN];
+  char txextra[X_LEN];
+  char qth[QTH_LEN];
+  char name[NAME_LEN];
+  char qra[QRA_LEN];
+  double qrg;
+  mode_entry_t mode;
+  char power[PWR_LEN];
+  char comment[COMMENT_LEN];
+  uint64_t station_id;
+  char date[NAME_LEN];
+  char utc[NAME_LEN];
+  uint32_t data_stat;
 } log_entry_t;
 
 
 /*station data*/
 typedef struct {
-	uint64_t id;
-	char name[STATION_LEN];
-	char call[CALL_LEN];
-	char QTH[QTH_LEN];
-	char QRA[QRA_LEN];
-	char ASL[ASL_LEN];
-	char rig[RIG_LEN];
-	char ant[ANT_LEN];
-	uint32_t data_stat;
+  uint64_t id;
+  char name[STATION_LEN];
+  char call[CALL_LEN];
+  char QTH[QTH_LEN];
+  char QRA[QRA_LEN];
+  char ASL[ASL_LEN];
+  char rig[RIG_LEN];
+  char ant[ANT_LEN];
+  uint32_t data_stat;
 } station_entry_t;
 
 

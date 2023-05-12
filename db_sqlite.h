@@ -29,17 +29,16 @@
 /*data status*/
 
 enum db_data_state {
-    db_data_init,
-    db_data_valid,
-    db_data_last,
-    db_data_err
+  db_data_init,
+  db_data_valid,
+  db_data_last,
+  db_data_err
 };
 
 enum db_state {
-	db_opened,
-	db_closed
+  db_opened,
+  db_closed
 };
-
 
 /*functions*/
 int db_sqlite_init(llog_t *llog);
