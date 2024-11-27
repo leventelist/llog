@@ -49,7 +49,8 @@
 #define OK 0
 #define FILE_ERR 1
 #define CMD_LINE_ERR 2
-#define ERR 3
+#define NO_DATA 3
+#define ERR 0xffff
 
 #define LLOG_ERR 3
 #define LLOG_DUP 4

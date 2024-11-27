@@ -11,6 +11,8 @@ CREATE TABLE station (
 	ASL TEXT,
 	rig TEXT,
 	ant TEXT,
+	SOTA_REF TEXT,
+	S2S_REF TEXT,
 	comment TEXT
 );
 

@@ -19,15 +19,18 @@ set(CMAKE_C_FLAGS_RELEASE "-O2")
 
 pkg_check_modules(SQLITE REQUIRED IMPORTED_TARGET sqlite3)
 pkg_check_modules(GTK REQUIRED IMPORTED_TARGET gtk+-3.0)
+pkg_check_modules(GPS REQUIRED IMPORTED_TARGET libgps)
 
-add_executable(${PROJECT_NAME} main.c db_sqlite.c main_window.c llog.c conf.c)
+add_executable(${PROJECT_NAME} main.c db_sqlite.c main_window.c llog.c conf.c
+																position.c)
 
 #set up include directories
 include_directories("${PROJECT_BINARY_DIR}")
 
 target_link_libraries(${PROJECT_NAME} PUBLIC
-        PkgConfig::SQLITE
-        PkgConfig::GTK)
+				PkgConfig::SQLITE
+				PkgConfig::GTK
+				PkgConfig::GPS)
 
 install (TARGETS ${PROJECT_NAME}
 			DESTINATION bin

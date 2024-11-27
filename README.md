@@ -1,11 +1,20 @@
 # llog
 Log software for HAM operators
 
+Inspired by [Ham2K](https://play.google.com/store/apps/details?id=com.ham2k.polo.beta&hl=en-US) for mobile devices.
+
+This is mainly targets SOTA operators. The user case is that you have
+your computer with you, and nothing else. Not even a smartphone.
+
 ## Prerequisites
 
 * libsqlite3-dev
 * libgtk-3-dev
+* libgps-dev
 * python3
+    - SQLite3
+    - csv
+    - requests
 * hamutils python3 package
 * sqlitebrowser
 
