@@ -23,25 +23,27 @@ conn = sqlite3.connect(sqlite_db)
 cursor = conn.cursor()
 
 # Create the table (if it doesn't exist)
+cursor.execute('DROP TABLE IF EXISTS GPSData')
+
 cursor.execute('''
 CREATE TABLE IF NOT EXISTS GPSData (
-    SummitCode TEXT,
-    AssociationName TEXT,
-    RegionName TEXT,
-    SummitName TEXT,
-    AltM INTEGER,
-    AltFt INTEGER,
-    GridRef1 REAL,
-    GridRef2 REAL,
-    Longitude REAL,
-    Latitude REAL,
-    Points INTEGER,
-    BonusPoints INTEGER,
-    ValidFrom TEXT,
-    ValidTo TEXT,
-    ActivationCount INTEGER,
-    ActivationDate TEXT,
-    ActivationCall TEXT
+  SummitCode TEXT,
+  AssociationName TEXT,
+  RegionName TEXT,
+  SummitName TEXT,
+  AltM INTEGER,
+  AltFt INTEGER,
+  GridRef1 REAL,
+  GridRef2 REAL,
+  Longitude REAL,
+  Latitude REAL,
+  Points INTEGER,
+  BonusPoints INTEGER,
+  ValidFrom TEXT,
+  ValidTo TEXT,
+  ActivationCount INTEGER,
+  ActivationDate TEXT,
+  ActivationCall TEXT
 )
 ''')
 
