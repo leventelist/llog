@@ -18,7 +18,7 @@ set(CMAKE_C_FLAGS_DEBUG "-O0 -g")
 set(CMAKE_C_FLAGS_RELEASE "-O2")
 
 pkg_check_modules(SQLITE REQUIRED IMPORTED_TARGET sqlite3)
-pkg_check_modules(GTK REQUIRED IMPORTED_TARGET gtk+-3.0)
+pkg_check_modules(GTK REQUIRED IMPORTED_TARGET gtk4)
 pkg_check_modules(GPS REQUIRED IMPORTED_TARGET libgps)
 
 add_executable(${PROJECT_NAME} main.c db_sqlite.c main_window.c llog.c conf.c

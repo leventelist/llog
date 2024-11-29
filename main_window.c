@@ -71,7 +71,7 @@ int main_window_draw(void) {
 
   widgets = g_slice_new(app_widgets);
 
-  gtk_init(NULL, NULL);
+  gtk_init();
 
   for (i = 0; i < LLOG_COLUMNS; i++) {
       widgets->logged_list_column[i] = NULL;
@@ -183,7 +183,7 @@ void set_static_data(void) {
 
 /*Main window callbacks*/
 
-void on_menuitm_open_activate(GtkMenuItem *menuitem, app_widgets *app_wdgts) {
+void on_menuitm_open_activate(GMenuItem *menuitem, app_widgets *app_wdgts) {
   gchar *file_name = NULL;          // Name of file to open from dialog box
   int file_success;    // File read status
   char *current_log_file_name;
@@ -384,7 +384,7 @@ void on_qrt_activate(void) {
 }
 
 
-void on_reload_activate(GtkMenuItem *menuitem, app_widgets *app_wdgts) {
+void on_reload_activate(GMenuItem *menuitem, app_widgets *app_wdgts) {
   (void)menuitem;
   (void)app_wdgts;
 
@@ -395,7 +395,7 @@ void on_reload_activate(GtkMenuItem *menuitem, app_widgets *app_wdgts) {
 }
 
 
-void on_about_dialog_response(GtkMenuItem *menuitem, gint response_id, app_widgets *app_wdgts) {
+void on_about_dialog_response(GMenuItem *menuitem, gint response_id, app_widgets *app_wdgts) {
   (void)response_id;
   (void)menuitem;
 
@@ -403,7 +403,7 @@ void on_about_dialog_response(GtkMenuItem *menuitem, gint response_id, app_widge
 }
 
 
-void on_about_menu_activate(GtkMenuItem *menuitem, app_widgets *app_wdgts) {
+void on_about_menu_activate(GMenuItem *menuitem, app_widgets *app_wdgts) {
   (void)menuitem;
 
   gtk_widget_show((GtkWidget*)app_wdgts->about_dialog);
