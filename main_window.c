@@ -1,5 +1,5 @@
 /*	This is llog, a minimalist HAM logging software.
- *	Copyright (C) 2013-2021  Levente Kovacs
+ *	Copyright (C) 2013-2024  Levente Kovacs
  *
  *	This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -311,7 +311,7 @@ void on_log_btn_clicked(void) {
   /*This is for debug. Print log data to stdout*/
   //llog_print_log_data(&log_entry_data);
 
-  /*Sanity chack of the data*/
+  /*Sanity check of the data*/
 
   if (strlen(log_entry_data.call) < 2) {
       printf("Not logging. Call too short.\n");
