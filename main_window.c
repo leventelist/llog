@@ -59,7 +59,26 @@ void on_utc_btn_clicked(void);
 void on_mode_entry_change(GtkEntry *entry);
 void set_static_data(void);
 
-int main_window_draw(void) {
+
+static void on_activate(GtkApplication *app, gpointer user_data);
+
+
+
+int main_window_draw(int argc, char *argv[]) {
+  GtkApplication *app;
+  int status;
+
+  app = gtk_application_new("com.example.GtkApplication", G_APPLICATION_DEFAULT_FLAGS);
+  g_signal_connect(app, "activate", G_CALLBACK(on_activate), NULL);
+  status = g_application_run(G_APPLICATION(app), argc, argv);
+  g_object_unref(app);
+
+  return OK;
+}
+
+
+
+static void on_activate(GtkApplication *app, gpointer user_data) {
   int ret_val;
   int i;
   char buff[BUFF_SIZ];
@@ -74,13 +93,13 @@ int main_window_draw(void) {
   gtk_init();
 
   for (i = 0; i < LLOG_COLUMNS; i++) {
-      widgets->logged_list_column[i] = NULL;
-      widgets->logged_list_renderer[i] = NULL;
-    }
+    widgets->logged_list_column[i] = NULL;
+    widgets->logged_list_renderer[i] = NULL;
+  }
 
   for (i = 0; i < LLOG_ENTRIES; i++) {
-      widgets->log_entries[i] = NULL;
-    }
+    widgets->log_entries[i] = NULL;
+  }
 
   builder = gtk_builder_new_from_file(LLOG_GLADE);
 
@@ -154,9 +173,9 @@ int main_window_draw(void) {
 
   llog_get_initial_station(&initial_station);
   if (initial_station->name[0] != '\0') {
-      sprintf(buff, "%s [%" PRIu64 "]", initial_station->name, initial_station->id);
-      gtk_entry_set_text(widgets->log_entries[llog_entry_station_id], buff);
-    }
+    sprintf(buff, "%s [%" PRIu64 "]", initial_station->name, initial_station->id);
+    gtk_entry_set_text(widgets->log_entries[llog_entry_station_id], buff);
+  }
 
   /*Let's rock!*/
   gtk_widget_show(GTK_WIDGET(widgets->main_window));
@@ -194,8 +213,8 @@ void on_menuitm_open_activate(GMenuItem *menuitem, app_widgets *app_wdgts) {
 
   /*Add last loaded filename to the chooser*/
   if (current_log_file_name != NULL) {
-      gtk_file_chooser_set_filename(GTK_FILE_CHOOSER(app_wdgts->logfile_choose), current_log_file_name);
-    }
+  //  gtk_file_chooser_set_file(GTK_FILE_CHOOSER(app_wdgts->logfile_choose), current_log_file_name);
+  }
 
 
   // Show the "Open Text File" dialog box
@@ -203,22 +222,22 @@ void on_menuitm_open_activate(GMenuItem *menuitem, app_widgets *app_wdgts) {
 
   // Check return value from Open Text File dialog box to see if user clicked the Open button
   if (gtk_dialog_run(GTK_DIALOG(app_wdgts->logfile_choose)) == GTK_RESPONSE_OK) {
-      // Get the file name from the dialog box
-      file_name = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(app_wdgts->logfile_choose));
-      if (file_name != NULL) {
-          llog_set_log_file(file_name);
-          file_success = llog_open_db();
-          llog_load_static_data(&log_entry_data);
-          set_static_data();
-          llog_save_config_file();
-          if (file_success != 0) {
-              printf("Error opening database.\n");
-              return;
-            }
-        }
-
-      g_free(file_name);
+    // Get the file name from the dialog box
+    file_name = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(app_wdgts->logfile_choose));
+    if (file_name != NULL) {
+      llog_set_log_file(file_name);
+      file_success = llog_open_db();
+      llog_load_static_data(&log_entry_data);
+      set_static_data();
+      llog_save_config_file();
+      if (file_success != 0) {
+        printf("Error opening database.\n");
+        return;
+      }
     }
+
+    g_free(file_name);
+  }
 
   // Finished with the "Open Text File" dialog box, so hide it
   gtk_widget_hide(app_wdgts->logfile_choose);
@@ -231,45 +250,45 @@ void on_window_main_entry_changed(GtkEntry *entry) {
 
   /*See which entry box has changed*/
   for (entry_id = 0; entry_id < LLOG_ENTRIES; entry_id++) {
-      if (widgets->log_entries[entry_id] == entry) {
-          break;
-        }
+    if (widgets->log_entries[entry_id] == entry) {
+      break;
     }
+  }
 
   switch (entry_id) {
-    case llog_entry_call:
-      snprintf(log_entry_data.call, CALL_LEN, gtk_entry_get_text(entry));
-      llog_strupper(log_entry_data.call);
-      gtk_entry_set_text(entry, log_entry_data.call);
-      /*Get time*/
-      on_utc_btn_clicked();
-      /*Check for dup QSO*/
-      ret = llog_check_dup_qso(&log_entry_data);
-      switch (ret) {
-        case OK:                 /*New QSO*/
-          gtk_label_set_label(widgets->call_label, "Call");
-          break;
-
-        case LLOG_DUP:                 /*DUP QSO*/
-          gtk_label_set_label(widgets->call_label, "Call [DUP]");
-          break;
-
-        default:                 /*ERROR*/
-          break;
-        }
+  case llog_entry_call:
+    snprintf(log_entry_data.call, CALL_LEN, gtk_entry_get_text(entry));
+    llog_strupper(log_entry_data.call);
+    gtk_entry_set_text(entry, log_entry_data.call);
+    /*Get time*/
+    on_utc_btn_clicked();
+    /*Check for dup QSO*/
+    ret = llog_check_dup_qso(&log_entry_data);
+    switch (ret) {
+    case OK:                     /*New QSO*/
+      gtk_label_set_label(widgets->call_label, "Call");
       break;
 
-    case llog_entry_mode:
+    case LLOG_DUP:                     /*DUP QSO*/
+      gtk_label_set_label(widgets->call_label, "Call [DUP]");
       break;
 
-    case llog_entry_qra:
-      snprintf(log_entry_data.qra, QRA_LEN, gtk_entry_get_text(entry));
-      llog_strupper(log_entry_data.qra);
-      gtk_entry_set_text(entry, log_entry_data.qra);
-
-    default:
+    default:                     /*ERROR*/
       break;
     }
+    break;
+
+  case llog_entry_mode:
+    break;
+
+  case llog_entry_qra:
+    snprintf(log_entry_data.qra, QRA_LEN, gtk_entry_get_text(entry));
+    llog_strupper(log_entry_data.qra);
+    gtk_entry_set_text(entry, log_entry_data.qra);
+
+  default:
+    break;
+  }
 }
 
 
@@ -314,35 +333,35 @@ void on_log_btn_clicked(void) {
   /*Sanity check of the data*/
 
   if (strlen(log_entry_data.call) < 2) {
-      printf("Not logging. Call too short.\n");
-      error_dialog = gtk_message_dialog_new(widgets->main_window, flags, GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Call must be longer then 2 characters.");
-      gtk_dialog_run(GTK_DIALOG(error_dialog));
-      gtk_widget_destroy(error_dialog);
-      return;
-    }
+    printf("Not logging. Call too short.\n");
+    error_dialog = gtk_message_dialog_new(widgets->main_window, flags, GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Call must be longer then 2 characters.");
+    gtk_dialog_run(GTK_DIALOG(error_dialog));
+    //gtk_widget_destroy(error_dialog);
+    return;
+  }
 
   /*Write log entry to the DB */
   ret = llog_log_entry(&log_entry_data);
 
   switch (ret) {
-    case OK:
-      /* Increment the counter. */
-      log_entry_data.txnr++;
-      break;
+  case OK:
+    /* Increment the counter. */
+    log_entry_data.txnr++;
+    break;
 
-    case LLOG_ERR:
-      /*Display some error message.*/
-      error_dialog = gtk_message_dialog_new(widgets->main_window, flags, GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Error logging the QSO!");
-      gtk_message_dialog_format_secondary_text(GTK_MESSAGE_DIALOG(error_dialog), "Database is not ready.");
-      gtk_dialog_run(GTK_DIALOG(error_dialog));
-      gtk_widget_destroy(error_dialog);
-      return;
-      break;
-      break;
+  case LLOG_ERR:
+    /*Display some error message.*/
+    error_dialog = gtk_message_dialog_new(widgets->main_window, flags, GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Error logging the QSO!");
+    gtk_message_dialog_format_secondary_text(GTK_MESSAGE_DIALOG(error_dialog), "Database is not ready.");
+    gtk_dialog_run(GTK_DIALOG(error_dialog));
+    //gtk_widget_destroy(error_dialog);
+    return;
+    break;
+    break;
 
-    default:
-      break;
-    }
+  default:
+    break;
+  }
 
   llog_reset_entry(&log_entry_data);
 
@@ -375,12 +394,12 @@ void on_utc_btn_clicked(void) {
 
 
 void on_window_main_destroy(void) {
-  gtk_main_quit();
+  //g_main_loop_quit();
 }
 
 
 void on_qrt_activate(void) {
-  gtk_main_quit();
+  //g_main_loop_quit();
 }
 
 
@@ -399,14 +418,14 @@ void on_about_dialog_response(GMenuItem *menuitem, gint response_id, app_widgets
   (void)response_id;
   (void)menuitem;
 
-  gtk_widget_hide((GtkWidget*)app_wdgts->about_dialog);
+  gtk_widget_hide((GtkWidget *)app_wdgts->about_dialog);
 }
 
 
 void on_about_menu_activate(GMenuItem *menuitem, app_widgets *app_wdgts) {
   (void)menuitem;
 
-  gtk_widget_show((GtkWidget*)app_wdgts->about_dialog);
+  gtk_widget_show((GtkWidget *)app_wdgts->about_dialog);
 }
 
 /*Actions*/

@@ -70,7 +70,7 @@ int main(int argc, char *argv[]) {
 	llog_parse_config_file();
 
 	/*Draw main window*/
-	main_window_draw();
+	main_window_draw(argc, argv);
 
 	llog_shutdown();
 
