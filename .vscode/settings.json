@@ -1,5 +1,6 @@
 {
   "files.associations": {
-    "llog.h": "c"
+    "llog.h": "c",
+    "atomic": "c"
   }
 }
