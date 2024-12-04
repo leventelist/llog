@@ -39,6 +39,26 @@ enum {
 };
 
 
+char entry_labels[LLOG_ENTRIES][20] = {
+  "Call",
+  "Date",
+  "UTC",
+  "RX RST",
+  "TX RST",
+  "QTH",
+  "Name",
+  "QRA",
+  "QRG",
+  "Mode",
+  "Power",
+  "RX NR",
+  "TX NR",
+  "RX Extra",
+  "TX Extra",
+  "Comment",
+  "Station ID"
+};
+
 typedef struct {
   GtkWindow *main_window;
   GtkBox *vertical_box;
@@ -51,13 +71,13 @@ typedef struct {
   GtkTreeView *logged_list_tree_view;                     // Pointer to the logged elemnt list
   GtkListStore *logged_list_store;
   GtkTreeSelection *logged_list_selection;
-  GtkTreeViewColumn *logged_list_column[LLOG_COLUMNS];
-  GtkCellRenderer *logged_list_renderer[LLOG_COLUMNS];
+//  GtkTreeViewColumn *logged_list_column[LLOG_COLUMNS];
+//  GtkCellRenderer *logged_list_renderer[LLOG_COLUMNS];
 
   /*Log entry store*/
   GtkListStore *station_list_store;
   GtkListStore *mode_list_store;
-  GtkEntry *log_entries[LLOG_ENTRIES];
+  GtkWidget *log_entries[LLOG_ENTRIES];
   GtkEntryBuffer *log_entry_buffers[LLOG_ENTRIES];
   GtkButton *log_button;
   GtkComboBox *mode_entry;
@@ -75,9 +95,10 @@ static log_entry_t log_entry_data;
 static void on_window_main_destroy(void);
 static void on_utc_btn_clicked(void);
 static void on_mode_entry_change(GtkEntryBuffer *entry);
-static void on_window_main_entry_changed(GtkEntryBuffer *entry);
+static void on_window_main_entry_changed(GtkEditable *editable, gpointer user_data);
 static void set_static_data(void);
 static void on_activate(GtkApplication *app, gpointer user_data);
+static void on_log_btn_clicked(void);
 
 
 
@@ -105,11 +126,6 @@ static void on_activate(GtkApplication *app, gpointer user_data) {
 
   widgets = g_slice_new(app_widgets_t);
 
-  for (i = 0; i < LLOG_COLUMNS; i++) {
-    widgets->logged_list_column[i] = NULL;
-    widgets->logged_list_renderer[i] = NULL;
-  }
-
   for (i = 0; i < LLOG_ENTRIES; i++) {
     widgets->log_entry_buffers[i] = NULL;
   }
@@ -122,9 +138,8 @@ static void on_activate(GtkApplication *app, gpointer user_data) {
 
 
   widgets->vertical_box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 1);
-  gtk_window_set_child(GTK_WINDOW(widgets->main_window), widgets->vertical_box);
-
-  /*TODO Add log entry input here*/
+  widgets->horizontal_box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 1);
+  gtk_window_set_child(GTK_WINDOW(widgets->main_window), widgets->horizontal_box);
 
 
   //widgets->logfile_choose = GTK_WIDGET(gtk_builder_get_object(builder, "logfile_choose"));
@@ -148,14 +163,17 @@ static void on_activate(GtkApplication *app, gpointer user_data) {
   renderer = gtk_cell_renderer_text_new();
   column = gtk_tree_view_column_new_with_attributes("ID", renderer, "text", llog_list_id, NULL);
   gtk_tree_view_append_column(GTK_TREE_VIEW(widgets->logged_list_tree_view), column);
+  gtk_tree_view_column_set_sort_column_id(column, llog_list_id);
 
   renderer = gtk_cell_renderer_text_new();
   column = gtk_tree_view_column_new_with_attributes("Date", renderer, "text", llog_list_date, NULL);
   gtk_tree_view_append_column(GTK_TREE_VIEW(widgets->logged_list_tree_view), column);
+  gtk_tree_view_column_set_sort_column_id(column, llog_list_date);
 
   renderer = gtk_cell_renderer_text_new();
   column = gtk_tree_view_column_new_with_attributes("Call", renderer, "text", llog_list_call, NULL);
   gtk_tree_view_append_column(GTK_TREE_VIEW(widgets->logged_list_tree_view), column);
+  gtk_tree_view_column_set_sort_column_id(column, llog_list_call);
 
   renderer = gtk_cell_renderer_text_new();
   column = gtk_tree_view_column_new_with_attributes("QRG", renderer, "text", llog_list_qrg, NULL);
@@ -168,6 +186,12 @@ static void on_activate(GtkApplication *app, gpointer user_data) {
   renderer = gtk_cell_renderer_text_new();
   column = gtk_tree_view_column_new_with_attributes("UTC", renderer, "text", llog_list_utc, NULL);
   gtk_tree_view_append_column(GTK_TREE_VIEW(widgets->logged_list_tree_view), column);
+
+  //gtk_tree_view_column_set_resizable(column, TRUE);
+  gtk_tree_view_column_set_expand(column, TRUE);
+
+
+  gtk_tree_view_set_search_column(GTK_TREE_VIEW(widgets->logged_list_tree_view), llog_list_call);
 
 
   // Build the station list store
@@ -182,13 +206,34 @@ static void on_activate(GtkApplication *app, gpointer user_data) {
   //column = gtk_tree_view_column_new_with_attributes("Edit this!!!", renderer, "text", 0, NULL);
   //gtk_tree_view_append_column(GTK_TREE_VIEW(widgets->mode_list_store), column);
 
+  /*Log button*/
+  widgets->log_button = gtk_button_new_with_label("Log");
+  g_signal_connect(widgets->log_button, "clicked", G_CALLBACK(on_log_btn_clicked), NULL);
 
   /*Putting together the log list*/
 
   /*Build the log entry boxes*/
+  GtkGrid *entry_grid = gtk_grid_new();
+
   for (i = llog_entry_call; i <= llog_entry_station_id; i++) {
-    widgets->log_entry_buffers[i] = gtk_entry_new();
+    GtkWidget *label;
+    widgets->log_entries[i] = gtk_entry_new();
+    gtk_widget_set_size_request(widgets->log_entries[i], 200, -1); // Set minimum width to 200 pixels
+    widgets->log_entry_buffers[i] = gtk_entry_get_buffer(GTK_ENTRY(widgets->log_entries[i]));
+    gtk_editable_set_editable(GTK_EDITABLE(widgets->log_entries[i]), true);
+    if (i != llog_entry_date && i != llog_entry_utc) {
+      //gtk_editable_set_editable(GTK_EDITABLE(widgets->log_entries[i]), false);
+      g_signal_connect(widgets->log_entries[i], "changed", G_CALLBACK(on_window_main_entry_changed), NULL);
+    }
+    label = gtk_label_new(entry_labels[i]);
+    if (i == llog_entry_call) {
+      widgets->call_label = label;
+    }
+    gtk_grid_attach(GTK_GRID(entry_grid), label, 0, i, 1, 1);
+    gtk_grid_attach(GTK_GRID(entry_grid), GTK_WIDGET(widgets->log_entries[i]), 1, i, 1, 1);
   }
+  gtk_grid_attach(GTK_GRID(entry_grid), GTK_WIDGET(widgets->log_button), 0, llog_entry_station_id + 1, 2, 1);
+  gtk_box_append(GTK_BOX(widgets->vertical_box), GTK_WIDGET(entry_grid));
 
 
   for (i = llog_entry_call; i <= llog_entry_station_id; i++) {
@@ -201,11 +246,9 @@ static void on_activate(GtkApplication *app, gpointer user_data) {
   //widgets->log_entry_buffers[llog_entry_station_id] = GTK_ENTRY_BUFFER(gtk_builder_get_object(builder, "station_select_entry"));
 
   /*Buttons*/
-  //widgets->log_button = GTK_BUTTON(gtk_builder_get_object(builder, "log_btn"));
-  //widgets->log_button = GTK_BUTTON(gtk_builder_get_object(builder, "utc_btn"));
 
-  /*Labels*/
-  //widgets->call_label = GTK_LABEL(gtk_builder_get_object(builder, "call_label"));
+//  widgets. = GTK_BUTTON(gtk_builder_get_object(builder, "utc_btn"));
+
 
 //  /*Set default user data*/
 //  gtk_builder_connect_signals(builder, widgets);
@@ -221,8 +264,12 @@ static void on_activate(GtkApplication *app, gpointer user_data) {
 
   // Build the window
 
+  gtk_box_append(GTK_BOX(widgets->horizontal_box), GTK_WIDGET(widgets->vertical_box));
+  gtk_box_append(GTK_BOX(widgets->horizontal_box), GTK_WIDGET(widgets->logged_list_tree_view));
 
-  gtk_box_append(GTK_BOX(widgets->vertical_box), GTK_WIDGET(widgets->logged_list_tree_view));
+  gtk_widget_set_hexpand(widgets->logged_list_tree_view, TRUE);
+  gtk_widget_set_vexpand(widgets->logged_list_tree_view, TRUE);
+
   /*Let's rock!*/
   gtk_widget_show(GTK_WIDGET(widgets->main_window));
 
@@ -306,22 +353,40 @@ static void on_open_file_response(GtkDialog *dialog, gint response_id, gpointer 
 }
 
 
-void on_window_main_entry_changed(GtkEntryBuffer *entry) {
-  int entry_id;
+void on_window_main_entry_changed(GtkEditable *editable, gpointer user_data) {
+  uint64_t entry_id;
   int ret;
+  static bool entry_changed = false;
+  int cursor_position;
+
+  if (entry_changed) {
+    return;
+  }
+
+  entry_changed = true;
+
+  printf("Entry changed\n");
+
+  entry_id = 0xFFFFFFFF;
+
+  GtkEntry *entry = GTK_ENTRY(editable);
+  GtkEntryBuffer *buffer = gtk_entry_get_buffer(entry);
 
   /*See which entry box has changed*/
   for (entry_id = 0; entry_id < LLOG_ENTRIES; entry_id++) {
-    if (widgets->log_entry_buffers[entry_id] == entry) {
+    if (widgets->log_entries[entry_id] == entry) {
       break;
     }
   }
 
   switch (entry_id) {
   case llog_entry_call:
-    snprintf(log_entry_data.call, CALL_LEN, gtk_entry_buffer_get_text(entry));
+    snprintf(log_entry_data.call, CALL_LEN, gtk_entry_buffer_get_text(buffer));
     llog_strupper(log_entry_data.call);
-    gtk_entry_buffer_insert_text(entry, 0, log_entry_data.call, -1);
+    cursor_position = gtk_editable_get_position(GTK_EDITABLE(entry));
+    gtk_entry_buffer_delete_text(buffer, 0, -1);
+    gtk_entry_buffer_insert_text(buffer, 0, log_entry_data.call, -1);
+    gtk_editable_set_position(GTK_EDITABLE(entry), cursor_position);
     /*Get time*/
     on_utc_btn_clicked();
     /*Check for dup QSO*/
@@ -344,13 +409,17 @@ void on_window_main_entry_changed(GtkEntryBuffer *entry) {
     break;
 
   case llog_entry_qra:
-    snprintf(log_entry_data.qra, QRA_LEN, gtk_entry_buffer_get_text(entry));
+    snprintf(log_entry_data.qra, QRA_LEN, gtk_entry_buffer_get_text(buffer));
     llog_strupper(log_entry_data.qra);
-    gtk_entry_buffer_insert_text(entry, 0, log_entry_data.qra, -1);
+    cursor_position = gtk_editable_get_position(GTK_EDITABLE(entry));
+    gtk_entry_buffer_delete_text(buffer, 0, -1);
+    gtk_entry_buffer_insert_text(buffer, 0, log_entry_data.qra, -1);
+    gtk_editable_set_position(GTK_EDITABLE(entry), cursor_position);
 
   default:
     break;
   }
+  entry_changed = false;
 }
 
 
@@ -362,7 +431,7 @@ void on_mode_entry_change(GtkEntryBuffer *entry) {
 }
 
 
-void on_log_btn_clicked(void) {
+static void on_log_btn_clicked(void) {
   int ret;
   char buff[BUFF_SIZ];
   GtkDialogFlags flags = GTK_DIALOG_DESTROY_WITH_PARENT; // This might be changed
@@ -452,7 +521,9 @@ void on_log_btn_clicked(void) {
 
 void on_utc_btn_clicked(void) {
   llog_get_time(&log_entry_data);
+  gtk_entry_buffer_delete_text(widgets->log_entry_buffers[llog_entry_date], 0, -1);
   gtk_entry_buffer_insert_text(widgets->log_entry_buffers[llog_entry_date], 0, log_entry_data.date, -1);
+  gtk_entry_buffer_delete_text(widgets->log_entry_buffers[llog_entry_utc], 0, -1);
   gtk_entry_buffer_insert_text(widgets->log_entry_buffers[llog_entry_utc], 0, log_entry_data.utc, -1);
 }
 
