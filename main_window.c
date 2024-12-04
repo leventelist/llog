@@ -36,7 +36,6 @@ enum {
   llog_list_qrg,
   llog_list_mode,
   llog_list_utc
-
 };
 
 
@@ -50,7 +49,7 @@ typedef struct {
 
   /*Logged list store*/
   GtkTreeView *logged_list_tree_view;                     // Pointer to the logged elemnt list
-  GtkTreeStore *logged_list_store;
+  GtkListStore *logged_list_store;
   GtkTreeSelection *logged_list_selection;
   GtkTreeViewColumn *logged_list_column[LLOG_COLUMNS];
   GtkCellRenderer *logged_list_renderer[LLOG_COLUMNS];
@@ -65,20 +64,19 @@ typedef struct {
   GtkComboBox *station_entry;
   GtkLabel *call_label;
   GtkAboutDialog *about_dialog;
-} app_widgets;
+} app_widgets_t;
 
 
 /*Module variables*/
-static app_widgets *widgets;
+static app_widgets_t *widgets;
 static log_entry_t log_entry_data;
 
-
-void on_window_main_destroy(void);
-void on_utc_btn_clicked(void);
-void on_mode_entry_change(GtkEntryBuffer *entry);
-void set_static_data(void);
-
-
+/*Callbacks*/
+static void on_window_main_destroy(void);
+static void on_utc_btn_clicked(void);
+static void on_mode_entry_change(GtkEntryBuffer *entry);
+static void on_window_main_entry_changed(GtkEntryBuffer *entry);
+static void set_static_data(void);
 static void on_activate(GtkApplication *app, gpointer user_data);
 
 
@@ -105,11 +103,7 @@ static void on_activate(GtkApplication *app, gpointer user_data) {
 
   ret_val = 0;
 
-  GtkBuilder *builder;
-
-  widgets = g_slice_new(app_widgets);
-
-  gtk_init();
+  widgets = g_slice_new(app_widgets_t);
 
   for (i = 0; i < LLOG_COLUMNS; i++) {
     widgets->logged_list_column[i] = NULL;
@@ -120,30 +114,32 @@ static void on_activate(GtkApplication *app, gpointer user_data) {
     widgets->log_entry_buffers[i] = NULL;
   }
 
-  //builder = gtk_builder_new_from_file(LLOG_GLADE);
-
   /*Build main window*/
   widgets->main_window = gtk_application_window_new(app);
-  gtk_window_set_title(GTK_WINDOW(window), "Llog");
-  gtk_window_set_default_size(GTK_WINDOW(window), 400, 300);
+  gtk_window_set_title(GTK_WINDOW(widgets->main_window), "Llog");
+  gtk_window_set_default_size(GTK_WINDOW(widgets->main_window), 400, 300);
   g_signal_connect(widgets->main_window, "destroy", G_CALLBACK(on_window_main_destroy), NULL);
 
 
   widgets->vertical_box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 1);
   gtk_window_set_child(GTK_WINDOW(widgets->main_window), widgets->vertical_box);
 
-  widgets->logfile_choose = GTK_WIDGET(gtk_builder_get_object(builder, "logfile_choose"));
+  /*TODO Add log entry input here*/
+
+
+  //widgets->logfile_choose = GTK_WIDGET(gtk_builder_get_object(builder, "logfile_choose"));
 
   /*Build the logged list tree view*/
   widgets->logged_list_store = gtk_list_store_new(6,
                                                   G_TYPE_STRING, // call
                                                   G_TYPE_STRING, // date
                                                   G_TYPE_STRING, // id
-                                                  G_TYPE_FLOAT, // QRG
+                                                  G_TYPE_DOUBLE, // QRG
                                                   G_TYPE_STRING, // mode
                                                   G_TYPE_STRING); // utc
 
-  widgets->logged_list_tree_view = gtk_tree_view_new_with_model(GTK_TREE_MODEL(widgets->mode_list_store));
+
+  widgets->logged_list_tree_view = gtk_tree_view_new_with_model(GTK_TREE_MODEL(widgets->logged_list_store));
 
 
   GtkCellRenderer *renderer;
@@ -158,42 +154,36 @@ static void on_activate(GtkApplication *app, gpointer user_data) {
   gtk_tree_view_append_column(GTK_TREE_VIEW(widgets->logged_list_tree_view), column);
 
   renderer = gtk_cell_renderer_text_new();
-  column = gtk_tree_view_column_new_with_attributes("Call", renderer, "text", llog_entry_call, NULL);
+  column = gtk_tree_view_column_new_with_attributes("Call", renderer, "text", llog_list_call, NULL);
   gtk_tree_view_append_column(GTK_TREE_VIEW(widgets->logged_list_tree_view), column);
 
   renderer = gtk_cell_renderer_text_new();
-  column = gtk_tree_view_column_new_with_attributes("QRG", renderer, "text", llog_entry_qrg, NULL);
+  column = gtk_tree_view_column_new_with_attributes("QRG", renderer, "text", llog_list_qrg, NULL);
   gtk_tree_view_append_column(GTK_TREE_VIEW(widgets->logged_list_tree_view), column);
 
   renderer = gtk_cell_renderer_text_new();
-  column = gtk_tree_view_column_new_with_attributes("Mode", renderer, "text", llog_entry_mode, NULL);
+  column = gtk_tree_view_column_new_with_attributes("Mode", renderer, "text", llog_list_mode, NULL);
   gtk_tree_view_append_column(GTK_TREE_VIEW(widgets->logged_list_tree_view), column);
 
   renderer = gtk_cell_renderer_text_new();
-  column = gtk_tree_view_column_new_with_attributes("UTC", renderer, "text", llog_entry_utc, NULL);
+  column = gtk_tree_view_column_new_with_attributes("UTC", renderer, "text", llog_list_utc, NULL);
   gtk_tree_view_append_column(GTK_TREE_VIEW(widgets->logged_list_tree_view), column);
-
-
-//  widgets->logged_list_selection = GTK_TREE_SELECTION(gtk_builder_get_object(builder, "logged_list_selection"));
 
 
   // Build the station list store
-  widgets->station_list_store = gtk_list_store_new(1, G_TYPE_STRING);
-  renderer = gtk_cell_renderer_text_new();
-  column = gtk_tree_view_column_new_with_attributes("I don't know what is this", renderer, "text", 0, NULL);
-  gtk_tree_view_append_column(GTK_TREE_VIEW(widgets->station_list_store), column);
+  //widgets->station_list_store = gtk_list_store_new(1, G_TYPE_STRING);
+  //renderer = gtk_cell_renderer_text_new();
+  //column = gtk_tree_view_column_new_with_attributes("I don't know what is this", renderer, "text", 0, NULL);
+  //gtk_tree_view_append_column(GTK_TREE_VIEW(widgets->station_list_store), column);
 
-  // Build the station list store
-  widgets->mode_list_store = gtk_list_store_new(1, G_TYPE_STRING);
-  renderer = gtk_cell_renderer_text_new();
-  column = gtk_tree_view_column_new_with_attributes("Edit this!!!", renderer, "text", 0, NULL);
-  gtk_tree_view_append_column(GTK_TREE_VIEW(widgets->mode_list_store), column);
+  // Build the mode list store
+  //widgets->mode_list_store = gtk_list_store_new(1, G_TYPE_STRING);
+  //renderer = gtk_cell_renderer_text_new();
+  //column = gtk_tree_view_column_new_with_attributes("Edit this!!!", renderer, "text", 0, NULL);
+  //gtk_tree_view_append_column(GTK_TREE_VIEW(widgets->mode_list_store), column);
 
-
-  widgets->about_dialog = GTK_ABOUT_DIALOG(gtk_builder_get_object(builder, "about_dialog"));
 
   /*Putting together the log list*/
-  widgets->logged_list_store = gtk_list_store_new(1, G_TYPE_STRING);
 
   /*Build the log entry boxes*/
   for (i = llog_entry_call; i <= llog_entry_station_id; i++) {
@@ -201,51 +191,38 @@ static void on_activate(GtkApplication *app, gpointer user_data) {
   }
 
 
-  for (i = llog_entry_call; i =< llog_entry_station_id; i++) {
-    widgets->log_entry_buffers[i] = gtk_entry_get_buffer(GTK_ENTRY(widgets->log_entries[i]));
-    gtk_editable_set_editable(GTK_EDITABLE(widgets->log_entries[i]), TRUE);
-    g_signal_connect(widgets->log_entry_buffers[i], "changed", G_CALLBACK(on_window_main_entry_changed), NULL);
+  for (i = llog_entry_call; i <= llog_entry_station_id; i++) {
+    //widgets->log_entry_buffers[i] = gtk_entry_get_buffer(GTK_ENTRY(widgets->log_entries[i]));
+    //gtk_editable_set_editable(GTK_EDITABLE(widgets->log_entries[i]), TRUE);
+    //g_signal_connect(widgets->log_entry_buffers[i], "changed", G_CALLBACK(on_window_main_entry_changed), NULL);
   }
 
-  /*Get the pointers of the entries*/
-  widgets->log_entry_buffers[llog_entry_call] = GTK_ENTRY_BUFFER(gtk_builder_get_object(builder, "call_entry"));
-  widgets->log_entry_buffers[llog_entry_date] = GTK_ENTRY_BUFFER(gtk_builder_get_object(builder, "date_entry"));
-  widgets->log_entry_buffers[llog_entry_utc] = GTK_ENTRY_BUFFER(gtk_builder_get_object(builder, "utc_entry"));
-  widgets->log_entry_buffers[llog_entry_rxrst] = GTK_ENTRY_BUFFER(gtk_builder_get_object(builder, "rx_rst_entry"));
-  widgets->log_entry_buffers[llog_entry_txrst] = GTK_ENTRY_BUFFER(gtk_builder_get_object(builder, "tx_rst_entry"));
-  widgets->log_entry_buffers[llog_entry_qth] = GTK_ENTRY_BUFFER(gtk_builder_get_object(builder, "qth_entry"));
-  widgets->log_entry_buffers[llog_entry_name] = GTK_ENTRY_BUFFER(gtk_builder_get_object(builder, "name_entry"));
-  widgets->log_entry_buffers[llog_entry_qra] = GTK_ENTRY_BUFFER(gtk_builder_get_object(builder, "qra_entry"));
-  widgets->log_entry_buffers[llog_entry_qrg] = GTK_ENTRY_BUFFER(gtk_builder_get_object(builder, "qrg_entry"));
-  widgets->log_entry_buffers[llog_entry_mode] = GTK_ENTRY_BUFFER(gtk_builder_get_object(builder, "mode_entry"));
-  widgets->log_entry_buffers[llog_entry_power] = GTK_ENTRY_BUFFER(gtk_builder_get_object(builder, "power_entry"));
-  widgets->log_entry_buffers[llog_entry_rxnr] = GTK_ENTRY_BUFFER(gtk_builder_get_object(builder, "rxnr_entry"));
-  widgets->log_entry_buffers[llog_entry_txnr] = GTK_ENTRY_BUFFER(gtk_builder_get_object(builder, "txnr_entry"));
-  widgets->log_entry_buffers[llog_entry_rxextra] = GTK_ENTRY_BUFFER(gtk_builder_get_object(builder, "rxextra_entry"));
-  widgets->log_entry_buffers[llog_entry_txextra] = GTK_ENTRY_BUFFER(gtk_builder_get_object(builder, "txextra_entry"));
-  widgets->log_entry_buffers[llog_entry_comment] = GTK_ENTRY_BUFFER(gtk_builder_get_object(builder, "comment_entry"));
-
   /*Get the station ID. This is not really a log entry.*/
-  widgets->log_entry_buffers[llog_entry_station_id] = GTK_ENTRY_BUFFER(gtk_builder_get_object(builder, "station_select_entry"));
+  //widgets->log_entry_buffers[llog_entry_station_id] = GTK_ENTRY_BUFFER(gtk_builder_get_object(builder, "station_select_entry"));
 
   /*Buttons*/
-  widgets->log_button = GTK_BUTTON(gtk_builder_get_object(builder, "log_btn"));
-  widgets->log_button = GTK_BUTTON(gtk_builder_get_object(builder, "utc_btn"));
+  //widgets->log_button = GTK_BUTTON(gtk_builder_get_object(builder, "log_btn"));
+  //widgets->log_button = GTK_BUTTON(gtk_builder_get_object(builder, "utc_btn"));
 
   /*Labels*/
-  widgets->call_label = GTK_LABEL(gtk_builder_get_object(builder, "call_label"));
+  //widgets->call_label = GTK_LABEL(gtk_builder_get_object(builder, "call_label"));
 
 //  /*Set default user data*/
 //  gtk_builder_connect_signals(builder, widgets);
 
-  g_object_unref(builder);
+  //g_object_unref(builder);
 
   llog_get_initial_station(&initial_station);
   if (initial_station->name[0] != '\0') {
     sprintf(buff, "%s [%" PRIu64 "]", initial_station->name, initial_station->id);
-    gtk_entry_buffer_insert_text(widgets->log_entry_buffers[llog_entry_station_id], 0, buff, -1);
+    //gtk_entry_buffer_insert_text(widgets->log_entry_buffers[llog_entry_station_id], 0, buff, -1); // Some bug here
   }
 
+
+  // Build the window
+
+
+  gtk_box_append(GTK_BOX(widgets->vertical_box), GTK_WIDGET(widgets->logged_list_tree_view));
   /*Let's rock!*/
   gtk_widget_show(GTK_WIDGET(widgets->main_window));
 
@@ -254,7 +231,7 @@ static void on_activate(GtkApplication *app, gpointer user_data) {
 
 
 //  gtk_main();
-  g_slice_free(app_widgets, widgets);
+//  g_slice_free(app_widgets_t, widgets);
 
   return ret_val;
 }
@@ -271,7 +248,7 @@ void set_static_data(void) {
 
 /*Main window callbacks*/
 
-void on_menuitm_open_activate(GMenuItem *menuitem, app_widgets *app_wdgts) {
+void on_menuitm_open_activate(GMenuItem *menuitem, app_widgets_t *app_wdgts) {
   char *current_log_file_name;
 
   (void)menuitem;
@@ -490,7 +467,7 @@ void on_qrt_activate(void) {
 }
 
 
-void on_reload_activate(GMenuItem *menuitem, app_widgets *app_wdgts) {
+void on_reload_activate(GMenuItem *menuitem, app_widgets_t *app_wdgts) {
   (void)menuitem;
   (void)app_wdgts;
 
@@ -501,7 +478,7 @@ void on_reload_activate(GMenuItem *menuitem, app_widgets *app_wdgts) {
 }
 
 
-void on_about_dialog_response(GMenuItem *menuitem, gint response_id, app_widgets *app_wdgts) {
+void on_about_dialog_response(GMenuItem *menuitem, gint response_id, app_widgets_t *app_wdgts) {
   (void)response_id;
   (void)menuitem;
 
@@ -509,7 +486,7 @@ void on_about_dialog_response(GMenuItem *menuitem, gint response_id, app_widgets
 }
 
 
-void on_about_menu_activate(GMenuItem *menuitem, app_widgets *app_wdgts) {
+void on_about_menu_activate(GMenuItem *menuitem, app_widgets_t *app_wdgts) {
   (void)menuitem;
 
   gtk_widget_show((GtkWidget *)app_wdgts->about_dialog);
@@ -522,18 +499,17 @@ int main_window_add_log_entry_to_list(log_entry_t *entry) {
   static GtkTreeIter iter;
   char buff[BUFF_SIZ];
 
-  gtk_tree_store_prepend(widgets->logged_list_store, &iter, NULL);
-  /*Create the text*/
-  snprintf(buff, BUFF_SIZ, "%s %s %s", entry->call, entry->date, entry->utc);
+  gtk_list_store_append(widgets->logged_list_store, &iter);
 
+  /*Create the text*/
   snprintf(buff, BUFF_SIZ, "%" PRIu64, entry->id);
 
-  gtk_tree_store_set(widgets->logged_list_store, &iter, 0, buff, -1);
-  gtk_tree_store_set(widgets->logged_list_store, &iter, 1, entry->call, -1);
-  gtk_tree_store_set(widgets->logged_list_store, &iter, 2, entry->date, -1);
-  gtk_tree_store_set(widgets->logged_list_store, &iter, 3, entry->qrg, -1);
-  gtk_tree_store_set(widgets->logged_list_store, &iter, 4, entry->mode.name, -1);
-  gtk_tree_store_set(widgets->logged_list_store, &iter, 5, entry->utc, -1);
+  gtk_list_store_set(widgets->logged_list_store, &iter, llog_list_id, buff, -1);
+  gtk_list_store_set(widgets->logged_list_store, &iter, llog_list_call, entry->call, -1);
+  gtk_list_store_set(widgets->logged_list_store, &iter, llog_list_date, entry->date, -1);
+  gtk_list_store_set(widgets->logged_list_store, &iter, llog_list_qrg, entry->qrg, -1);
+  gtk_list_store_set(widgets->logged_list_store, &iter, llog_list_mode, entry->mode.name, -1);
+  gtk_list_store_set(widgets->logged_list_store, &iter, llog_list_utc, entry->utc, -1);
 
 
   return ret_val;
@@ -548,8 +524,8 @@ int main_window_add_station_entry_to_list(station_entry_t *station) {
 
   snprintf(buff, BUFF_SIZ, "%s [%" PRIu64 "]", station->name, station->id);
 
-  gtk_list_store_prepend(widgets->station_list_store, &iter);
-  gtk_list_store_set(widgets->station_list_store, &iter, 0, buff, -1);
+  //gtk_list_store_prepend(widgets->station_list_store, &iter);
+  //gtk_list_store_set(widgets->station_list_store, &iter, 0, buff, -1);
 
   return ret_val;
 }
@@ -563,23 +539,23 @@ int main_window_add_mode_entry_to_list(mode_entry_t *mode) {
 
   snprintf(buff, BUFF_SIZ, "%s [%" PRIu64 "]", mode->name, mode->id);
 
-  gtk_list_store_prepend(widgets->mode_list_store, &iter);
-  gtk_list_store_set(widgets->mode_list_store, &iter, 0, buff, -1);
+  //gtk_list_store_prepend(widgets->mode_list_store, &iter);
+  //gtk_list_store_set(widgets->mode_list_store, &iter, 0, buff, -1);
 
   return ret_val;
 }
 
 
 void main_window_clear_log_list(void) {
-  gtk_tree_store_clear(widgets->logged_list_store);
+  gtk_list_store_clear(GTK_LIST_STORE(widgets->logged_list_store));
 }
 
 
 void main_window_clear_station_list(void) {
-  gtk_list_store_clear(widgets->station_list_store);
+  //gtk_list_store_clear(widgets->station_list_store);
 }
 
 
 void main_window_clear_modes_list(void) {
-  gtk_list_store_clear(widgets->mode_list_store);
+  //gtk_list_store_clear(widgets->mode_list_store);
 }
