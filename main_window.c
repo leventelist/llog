@@ -90,6 +90,7 @@ typedef struct {
 /*Module variables*/
 static app_widgets_t *widgets;
 static log_entry_t log_entry_data;
+static GtkCssProvider *provider;
 
 /*Callbacks*/
 static void on_window_main_destroy(void);
@@ -99,6 +100,8 @@ static void on_window_main_entry_changed(GtkEditable *editable, gpointer user_da
 static void set_static_data(void);
 static void on_activate(GtkApplication *app, gpointer user_data);
 static void on_log_btn_clicked(void);
+static void color_activated(GSimpleAction *action, GVariant *parameter);
+static void on_qrt_activate(void);
 
 
 
@@ -258,20 +261,75 @@ static void on_activate(GtkApplication *app, gpointer user_data) {
   llog_get_initial_station(&initial_station);
   if (initial_station->name[0] != '\0') {
     sprintf(buff, "%s [%" PRIu64 "]", initial_station->name, initial_station->id);
-    //gtk_entry_buffer_insert_text(widgets->log_entry_buffers[llog_entry_station_id], 0, buff, -1); // Some bug here
+    gtk_entry_buffer_insert_text(widgets->log_entry_buffers[llog_entry_station_id], 0, buff, -1); // Some bug here
   }
+
+  /*Menu*/
+  GVariantType *vtype = g_variant_type_new("s");
+  GSimpleAction *act_color = g_simple_action_new_stateful("color", vtype, g_variant_new_string("red"));
+
+  g_variant_type_free(vtype);
+  GSimpleAction *act_quit = g_simple_action_new("quit", NULL);
+
+  g_signal_connect(act_color, "activate", G_CALLBACK(color_activated), NULL);
+  g_signal_connect_swapped(act_quit, "activate", G_CALLBACK(g_application_quit), app);
+  g_action_map_add_action(G_ACTION_MAP(app), G_ACTION(act_color));
+  g_action_map_add_action(G_ACTION_MAP(app), G_ACTION(act_quit));
+
+  GMenu *menubar = g_menu_new();
+  GMenu *menu = g_menu_new();
+  GMenu *section1 = g_menu_new();
+  GMenu *section2 = g_menu_new();
+  GMenu *section3 = g_menu_new();
+  GMenuItem *menu_item_fullscreen = g_menu_item_new("Full Screen", "win.fullscreen");
+  GMenuItem *menu_item_red = g_menu_item_new("Red", "app.color::red");
+  GMenuItem *menu_item_green = g_menu_item_new("Green", "app.color::green");
+  GMenuItem *menu_item_blue = g_menu_item_new("Blue", "app.color::blue");
+  GMenuItem *menu_item_quit = g_menu_item_new("Quit", "app.quit");
+
+  g_menu_append_item(section1, menu_item_fullscreen);
+  g_menu_append_item(section2, menu_item_red);
+  g_menu_append_item(section2, menu_item_green);
+  g_menu_append_item(section2, menu_item_blue);
+  g_menu_append_item(section3, menu_item_quit);
+  g_object_unref(menu_item_red);
+  g_object_unref(menu_item_green);
+  g_object_unref(menu_item_blue);
+  g_object_unref(menu_item_fullscreen);
+  g_object_unref(menu_item_quit);
+
+  g_menu_append_section(menu, NULL, G_MENU_MODEL(section1));
+  g_menu_append_section(menu, "Color", G_MENU_MODEL(section2));
+  g_menu_append_section(menu, NULL, G_MENU_MODEL(section3));
+  g_menu_append_submenu(menubar, "Menu", G_MENU_MODEL(menu));
+  g_object_unref(section1);
+  g_object_unref(section2);
+  g_object_unref(section3);
+  g_object_unref(menu);
+
+  gtk_application_set_menubar(GTK_APPLICATION(app), G_MENU_MODEL(menubar));
+
+
+  provider = gtk_css_provider_new ();
+  /* Initialize the css data */
+  gtk_css_provider_load_from_data (provider, "label.lb {background-color: red;}", -1);
+  /* Add CSS to the default GdkDisplay. */
+  gtk_style_context_add_provider_for_display (gdk_display_get_default (),
+        GTK_STYLE_PROVIDER (provider), GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+  g_signal_connect (app, "shutdown", G_CALLBACK (on_qrt_activate), provider);
+  g_object_unref (provider); /* release provider, but it's still alive because the display owns it */
 
 
   // Build the window
-
   gtk_box_append(GTK_BOX(widgets->horizontal_box), GTK_WIDGET(widgets->vertical_box));
   gtk_box_append(GTK_BOX(widgets->horizontal_box), GTK_WIDGET(widgets->logged_list_tree_view));
 
   gtk_widget_set_hexpand(widgets->logged_list_tree_view, TRUE);
   gtk_widget_set_vexpand(widgets->logged_list_tree_view, TRUE);
 
+  gtk_application_window_set_show_menubar(GTK_APPLICATION_WINDOW(widgets->main_window), TRUE);
   /*Let's rock!*/
-  gtk_widget_show(GTK_WIDGET(widgets->main_window));
+  gtk_window_present(GTK_WINDOW(widgets->main_window));
 
   llog_load_static_data(&log_entry_data);
   set_static_data();
@@ -528,12 +586,12 @@ void on_utc_btn_clicked(void) {
 }
 
 
-void on_window_main_destroy(void) {
+static void on_window_main_destroy(void) {
   //g_main_loop_quit();
 }
 
 
-void on_qrt_activate(void) {
+static void on_qrt_activate(void) {
   //g_main_loop_quit();
 }
 
@@ -629,4 +687,15 @@ void main_window_clear_station_list(void) {
 
 void main_window_clear_modes_list(void) {
   //gtk_list_store_clear(widgets->mode_list_store);
+}
+
+static void
+color_activated(GSimpleAction *action, GVariant *parameter) {
+  char *color = g_strdup_printf ("label.lb {background-color: %s;}", g_variant_get_string (parameter, NULL));
+  /* Change the CSS data in the provider. */
+  /* Previous data is thrown away. */
+  gtk_css_provider_load_from_data (provider, color, -1);
+  g_free (color);
+  g_action_change_state (G_ACTION (action), parameter);
+  printf("Color activated\n");
 }
