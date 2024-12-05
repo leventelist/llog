@@ -60,15 +60,15 @@ char entry_labels[LLOG_ENTRIES][20] = {
 };
 
 typedef struct {
-  GtkWindow *main_window;
-  GtkBox *vertical_box;
-  GtkBox *horizontal_box;
+  GtkWidget *main_window;
+  GtkWidget *vertical_box;
+  GtkWidget *horizontal_box;
   GtkWidget *w_txtvw_main;              // Pointer to text view object
   GtkWidget *logfile_choose;            // Pointer to file chooser dialog box
   GtkWidget *log_entry_list;            // Pointer to the log entry list
 
   /*Logged list store*/
-  GtkTreeView *logged_list_tree_view;                     // Pointer to the logged elemnt list
+  GtkWidget *logged_list_tree_view;                     // Pointer to the logged elemnt list
   GtkListStore *logged_list_store;
   GtkTreeSelection *logged_list_selection;
 //  GtkTreeViewColumn *logged_list_column[LLOG_COLUMNS];
@@ -79,10 +79,10 @@ typedef struct {
   GtkListStore *mode_list_store;
   GtkWidget *log_entries[LLOG_ENTRIES];
   GtkEntryBuffer *log_entry_buffers[LLOG_ENTRIES];
-  GtkButton *log_button;
+  GtkWidget *log_button;
   GtkComboBox *mode_entry;
   GtkComboBox *station_entry;
-  GtkLabel *call_label;
+  GtkWidget *call_label;
   GtkAboutDialog *about_dialog;
 } app_widgets_t;
 
@@ -114,18 +114,17 @@ int main_window_draw(int argc, char *argv[]) {
   status = g_application_run(G_APPLICATION(app), argc, argv);
   g_object_unref(app);
 
-  return OK;
+  return status;
 }
 
 
 
 static void on_activate(GtkApplication *app, gpointer user_data) {
-  int ret_val;
   int i;
   char buff[BUFF_SIZ];
   station_entry_t *initial_station;
 
-  ret_val = 0;
+  (void)user_data;
 
   widgets = g_slice_new(app_widgets_t);
 
@@ -216,7 +215,7 @@ static void on_activate(GtkApplication *app, gpointer user_data) {
   /*Putting together the log list*/
 
   /*Build the log entry boxes*/
-  GtkGrid *entry_grid = gtk_grid_new();
+  GtkWidget *entry_grid = gtk_grid_new();
 
   for (i = llog_entry_call; i <= llog_entry_station_id; i++) {
     GtkWidget *label;
@@ -324,8 +323,8 @@ static void on_activate(GtkApplication *app, gpointer user_data) {
   gtk_box_append(GTK_BOX(widgets->horizontal_box), GTK_WIDGET(widgets->vertical_box));
   gtk_box_append(GTK_BOX(widgets->horizontal_box), GTK_WIDGET(widgets->logged_list_tree_view));
 
-  gtk_widget_set_hexpand(widgets->logged_list_tree_view, TRUE);
-  gtk_widget_set_vexpand(widgets->logged_list_tree_view, TRUE);
+  gtk_widget_set_hexpand(GTK_WIDGET(widgets->logged_list_tree_view), TRUE);
+  gtk_widget_set_vexpand(GTK_WIDGET(widgets->logged_list_tree_view), TRUE);
 
   gtk_application_window_set_show_menubar(GTK_APPLICATION_WINDOW(widgets->main_window), TRUE);
   /*Let's rock!*/
@@ -338,7 +337,7 @@ static void on_activate(GtkApplication *app, gpointer user_data) {
 //  gtk_main();
 //  g_slice_free(app_widgets_t, widgets);
 
-  return ret_val;
+  return;
 }
 
 
@@ -417,6 +416,8 @@ void on_window_main_entry_changed(GtkEditable *editable, gpointer user_data) {
   static bool entry_changed = false;
   int cursor_position;
 
+  (void)user_data;
+
   if (entry_changed) {
     return;
   }
@@ -427,8 +428,8 @@ void on_window_main_entry_changed(GtkEditable *editable, gpointer user_data) {
 
   entry_id = 0xFFFFFFFF;
 
-  GtkEntry *entry = GTK_ENTRY(editable);
-  GtkEntryBuffer *buffer = gtk_entry_get_buffer(entry);
+  GtkWidget *entry = GTK_WIDGET(editable);
+  GtkEntryBuffer *buffer = gtk_entry_get_buffer(GTK_ENTRY(entry));
 
   /*See which entry box has changed*/
   for (entry_id = 0; entry_id < LLOG_ENTRIES; entry_id++) {
@@ -451,11 +452,11 @@ void on_window_main_entry_changed(GtkEditable *editable, gpointer user_data) {
     ret = llog_check_dup_qso(&log_entry_data);
     switch (ret) {
     case OK:                     /*New QSO*/
-      gtk_label_set_label(widgets->call_label, "Call");
+      gtk_label_set_label(GTK_LABEL(widgets->call_label), "Call");
       break;
 
     case LLOG_DUP:                     /*DUP QSO*/
-      gtk_label_set_label(widgets->call_label, "Call [DUP]");
+      gtk_label_set_label(GTK_LABEL(widgets->call_label), "Call [DUP]");
       break;
 
     default:                     /*ERROR*/
@@ -523,9 +524,9 @@ static void on_log_btn_clicked(void) {
 
   if (strlen(log_entry_data.call) < 2) {
     printf("Not logging. Call too short.\n");
-    error_dialog = gtk_message_dialog_new(widgets->main_window, flags, GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Call must be longer then 2 characters.");
+    error_dialog = gtk_message_dialog_new(GTK_WINDOW(widgets->main_window), flags, GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Call must be longer then 2 characters.");
     g_signal_connect(error_dialog, "response", G_CALLBACK(gtk_window_destroy), NULL);
-    gtk_widget_show(GTK_DIALOG(error_dialog));
+    gtk_widget_show(error_dialog);
     //gtk_widget_destroy(error_dialog);
     return;
   }
@@ -541,10 +542,10 @@ static void on_log_btn_clicked(void) {
 
   case LLOG_ERR:
     /*Display some error message.*/
-    error_dialog = gtk_message_dialog_new(widgets->main_window, flags, GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Error logging the QSO!");
+    error_dialog = gtk_message_dialog_new(GTK_WINDOW(widgets->main_window), flags, GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Error logging the QSO!");
     gtk_message_dialog_format_secondary_text(GTK_MESSAGE_DIALOG(error_dialog), "Database is not ready.");
     g_signal_connect(error_dialog, "response", G_CALLBACK(gtk_window_destroy), NULL);
-    gtk_widget_show(GTK_DIALOG(error_dialog));
+    gtk_widget_show(error_dialog);
     //gtk_widget_destroy(error_dialog);
     return;
     break;
@@ -649,7 +650,7 @@ int main_window_add_station_entry_to_list(station_entry_t *station) {
   int ret_val = OK;
   char buff[BUFF_SIZ];
 
-  static GtkTreeIter iter;
+  //static GtkTreeIter iter;
 
   snprintf(buff, BUFF_SIZ, "%s [%" PRIu64 "]", station->name, station->id);
 
@@ -664,7 +665,7 @@ int main_window_add_mode_entry_to_list(mode_entry_t *mode) {
   int ret_val = OK;
   char buff[BUFF_SIZ];
 
-  static GtkTreeIter iter;
+  //static GtkTreeIter iter;
 
   snprintf(buff, BUFF_SIZ, "%s [%" PRIu64 "]", mode->name, mode->id);
 
