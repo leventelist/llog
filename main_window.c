@@ -407,7 +407,7 @@ static void on_menuitm_open_activate(app_widgets_t *app_wdgts) {
                                                           NULL);
 
 /*Add last loaded filename to the chooser*/
-  if (current_log_file_name != NULL) {
+  if (current_log_file_name != NULL && current_log_file_name[0] != '\0') {
     GFile *file = g_file_new_for_path(current_log_file_name);
       gtk_file_chooser_set_file(GTK_FILE_CHOOSER(app_wdgts->logfile_choose), file, NULL);
   }
@@ -424,7 +424,7 @@ static void on_open_file_response(GtkDialog *dialog, gint response_id, gpointer 
 
   (void)user_data;
 
-  if (response_id == GTK_RESPONSE_ACCEPT) {
+  if (response_id == GTK_RESPONSE_OK) {
     GtkFileChooser *chooser = GTK_FILE_CHOOSER(dialog);
     GFile *file = gtk_file_chooser_get_file(chooser);
     char *filename = g_file_get_path(file);
