@@ -83,7 +83,7 @@ typedef struct {
   GtkComboBox *mode_entry;
   GtkComboBox *station_entry;
   GtkWidget *call_label;
-  GtkAboutDialog *about_dialog;
+  GtkWidget *about_dialog;
 } app_widgets_t;
 
 
@@ -102,8 +102,10 @@ static void on_activate(GtkApplication *app, gpointer user_data);
 static void on_log_btn_clicked(void);
 static void color_activated(GSimpleAction *action, GVariant *parameter);
 static void on_qrt_activate(void);
-
-
+static void on_about_menu_activate(app_widgets_t *app_wdgts);
+static void on_reload_activate(GMenuItem *menuitem, app_widgets_t *app_wdgts);
+static void on_menuitm_open_activate(app_widgets_t *app_wdgts);
+static void on_open_file_response(GtkDialog *dialog, gint response_id, gpointer user_data);
 
 int main_window_draw(int argc, char *argv[]) {
   GtkApplication *app;
@@ -131,6 +133,19 @@ static void on_activate(GtkApplication *app, gpointer user_data) {
   for (i = 0; i < LLOG_ENTRIES; i++) {
     widgets->log_entry_buffers[i] = NULL;
   }
+
+
+  //gtk_window_set_transient_for(GTK_WINDOW(widgets->about_dialog), GTK_WINDOW(widgets->main_window));
+
+  //GtkWidget *about_button = gtk_button_new_with_label("About");
+
+  //g_signal_connect(about_button, "clicked", G_CALLBACK(on_about_dialog_response), NULL);
+  //gtk_box_append(GTK_BOX(widgets->vertical_box), about_button);
+
+  //gtk_window_present(GTK_WINDOW(widgets->about_dialog));
+
+  /*Log file chooser*/
+
 
   /*Build main window*/
   widgets->main_window = gtk_application_window_new(app);
@@ -269,24 +284,33 @@ static void on_activate(GtkApplication *app, gpointer user_data) {
 
   g_variant_type_free(vtype);
   GSimpleAction *act_quit = g_simple_action_new("quit", NULL);
+  GSimpleAction *act_reload = g_simple_action_new("reload", NULL);
+  GSimpleAction *act_open = g_simple_action_new("open", NULL);
 
   g_signal_connect(act_color, "activate", G_CALLBACK(color_activated), NULL);
-  g_signal_connect_swapped(act_quit, "activate", G_CALLBACK(g_application_quit), app);
+  g_signal_connect(act_reload, "activate", G_CALLBACK(on_reload_activate), widgets);
+  g_signal_connect_swapped(act_open, "activate", G_CALLBACK(on_menuitm_open_activate), widgets);
+  g_signal_connect_swapped(act_quit, "activate", G_CALLBACK(g_application_quit), app); //Modify this to the QRT function
   g_action_map_add_action(G_ACTION_MAP(app), G_ACTION(act_color));
   g_action_map_add_action(G_ACTION_MAP(app), G_ACTION(act_quit));
+  g_action_map_add_action(G_ACTION_MAP(app), G_ACTION(act_reload));
+  g_action_map_add_action(G_ACTION_MAP(app), G_ACTION(act_open));
 
   GMenu *menubar = g_menu_new();
-  GMenu *menu = g_menu_new();
+  GMenu *file_menu = g_menu_new();
   GMenu *section1 = g_menu_new();
   GMenu *section2 = g_menu_new();
   GMenu *section3 = g_menu_new();
-  GMenuItem *menu_item_fullscreen = g_menu_item_new("Full Screen", "win.fullscreen");
+
   GMenuItem *menu_item_red = g_menu_item_new("Red", "app.color::red");
   GMenuItem *menu_item_green = g_menu_item_new("Green", "app.color::green");
   GMenuItem *menu_item_blue = g_menu_item_new("Blue", "app.color::blue");
-  GMenuItem *menu_item_quit = g_menu_item_new("Quit", "app.quit");
+  GMenuItem *menu_item_open = g_menu_item_new("Open", "app.open");
+  GMenuItem *menu_item_reload = g_menu_item_new("Reload", "app.reload");
+  GMenuItem *menu_item_quit = g_menu_item_new("QRT", "app.quit");
 
-  g_menu_append_item(section1, menu_item_fullscreen);
+  g_menu_append_item(section1, menu_item_open);
+  g_menu_append_item(section1, menu_item_reload);
   g_menu_append_item(section2, menu_item_red);
   g_menu_append_item(section2, menu_item_green);
   g_menu_append_item(section2, menu_item_blue);
@@ -294,29 +318,46 @@ static void on_activate(GtkApplication *app, gpointer user_data) {
   g_object_unref(menu_item_red);
   g_object_unref(menu_item_green);
   g_object_unref(menu_item_blue);
-  g_object_unref(menu_item_fullscreen);
+  g_object_unref(menu_item_open);
+  g_object_unref(menu_item_reload);
   g_object_unref(menu_item_quit);
 
-  g_menu_append_section(menu, NULL, G_MENU_MODEL(section1));
-  g_menu_append_section(menu, "Color", G_MENU_MODEL(section2));
-  g_menu_append_section(menu, NULL, G_MENU_MODEL(section3));
-  g_menu_append_submenu(menubar, "Menu", G_MENU_MODEL(menu));
+  g_menu_append_section(file_menu, NULL, G_MENU_MODEL(section1));
+  g_menu_append_section(file_menu, "Color", G_MENU_MODEL(section2));
+  g_menu_append_section(file_menu, NULL, G_MENU_MODEL(section3));
+  g_menu_append_submenu(menubar, "File", G_MENU_MODEL(file_menu));
   g_object_unref(section1);
   g_object_unref(section2);
   g_object_unref(section3);
-  g_object_unref(menu);
+  g_object_unref(file_menu);
+
+  /*Help menu*/
+  GSimpleAction *act_about = g_simple_action_new("about", NULL);
+  GMenu *help_menu = g_menu_new();
+  GMenu *help_section = g_menu_new();
+  GMenuItem *menu_item_about = g_menu_item_new("About", "app.about");
+
+  g_menu_append_item(help_section, menu_item_about);
+  g_object_unref(menu_item_about);
+  g_menu_append_section(help_menu, NULL, G_MENU_MODEL(help_section));
+  g_menu_append_submenu(menubar, "Help", G_MENU_MODEL(help_menu));
+  g_object_unref(help_section);
+  g_object_unref(help_menu);
+
+  g_signal_connect_swapped(act_about, "activate", G_CALLBACK(on_about_menu_activate), widgets);
+  g_action_map_add_action(G_ACTION_MAP(app), G_ACTION(act_about));
 
   gtk_application_set_menubar(GTK_APPLICATION(app), G_MENU_MODEL(menubar));
 
 
-  provider = gtk_css_provider_new ();
+  provider = gtk_css_provider_new();
   /* Initialize the css data */
-  gtk_css_provider_load_from_data (provider, "label.lb {background-color: red;}", -1);
+  //gtk_css_provider_load_from_data(provider, "label.lb {background-color: red;}", -1);
   /* Add CSS to the default GdkDisplay. */
-  gtk_style_context_add_provider_for_display (gdk_display_get_default (),
-        GTK_STYLE_PROVIDER (provider), GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
-  g_signal_connect (app, "shutdown", G_CALLBACK (on_qrt_activate), provider);
-  g_object_unref (provider); /* release provider, but it's still alive because the display owns it */
+  gtk_style_context_add_provider_for_display(gdk_display_get_default(),
+                                             GTK_STYLE_PROVIDER(provider), GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+  g_signal_connect(app, "shutdown", G_CALLBACK(on_qrt_activate), provider);
+  g_object_unref(provider);  /* release provider, but it's still alive because the display owns it */
 
 
   // Build the window
@@ -352,34 +393,30 @@ void set_static_data(void) {
 
 /*Main window callbacks*/
 
-void on_menuitm_open_activate(GMenuItem *menuitem, app_widgets_t *app_wdgts) {
+static void on_menuitm_open_activate(app_widgets_t *app_wdgts) {
   char *current_log_file_name;
-
-  (void)menuitem;
 
   llog_get_log_file_path(&current_log_file_name);
 
-  /*Add last loaded filename to the chooser*/
+  app_wdgts->logfile_choose = gtk_file_chooser_dialog_new("Open Log File",
+                                                          GTK_WINDOW(app_wdgts->main_window),
+                                                          GTK_FILE_CHOOSER_ACTION_OPEN, "_Cancel",
+                                                          GTK_RESPONSE_CANCEL,
+                                                          "_Open",
+                                                          GTK_RESPONSE_OK,
+                                                          NULL);
+
+/*Add last loaded filename to the chooser*/
   if (current_log_file_name != NULL) {
-    //  gtk_file_chooser_set_file(GTK_FILE_CHOOSER(app_wdgts->logfile_choose), current_log_file_name);
+    GFile *file = g_file_new_for_path(current_log_file_name);
+      gtk_file_chooser_set_file(GTK_FILE_CHOOSER(app_wdgts->logfile_choose), file, NULL);
   }
 
-
-  // This might needed here. I hope that the XML will create the dialog box.
-
-  // app_wdgts->logfile_choose = gtk_file_chooser_dialog_new("Open Log File",
-  //                                                         GTK_WINDOW(app_wdgts->main_window),
-  //                                                         GTK_FILE_CHOOSER_ACTION_OPEN, "_Cancel",
-  //                                                         GTK_RESPONSE_CANCEL,
-  //                                                         "_Open",
-  //                                                         GTK_RESPONSE_OK,
-  //                                                         NULL);
-
-  // g_signal_connect(app_wdgts->logfile_choose, "response", G_CALLBACK(on_open_file_response), app_wdgts);
-
+  g_signal_connect(app_wdgts->logfile_choose, "response", G_CALLBACK(on_open_file_response), app_wdgts);
 
   // Show the "Open Text File" dialog box
-  gtk_widget_show(app_wdgts->logfile_choose);
+  gtk_window_present(GTK_WINDOW(app_wdgts->logfile_choose));
+  return;
 }
 
 static void on_open_file_response(GtkDialog *dialog, gint response_id, gpointer user_data) {
@@ -597,7 +634,7 @@ static void on_qrt_activate(void) {
 }
 
 
-void on_reload_activate(GMenuItem *menuitem, app_widgets_t *app_wdgts) {
+static void on_reload_activate(GMenuItem *menuitem, app_widgets_t *app_wdgts) {
   (void)menuitem;
   (void)app_wdgts;
 
@@ -608,18 +645,17 @@ void on_reload_activate(GMenuItem *menuitem, app_widgets_t *app_wdgts) {
 }
 
 
-void on_about_dialog_response(GMenuItem *menuitem, gint response_id, app_widgets_t *app_wdgts) {
-  (void)response_id;
-  (void)menuitem;
-
-  gtk_widget_hide((GtkWidget *)app_wdgts->about_dialog);
-}
-
-
-void on_about_menu_activate(GMenuItem *menuitem, app_widgets_t *app_wdgts) {
-  (void)menuitem;
-
-  gtk_widget_show((GtkWidget *)app_wdgts->about_dialog);
+static void on_about_menu_activate(app_widgets_t *app_wdgts) {
+  /*About window*/
+  widgets->about_dialog = gtk_about_dialog_new();
+  gtk_about_dialog_set_program_name(GTK_ABOUT_DIALOG(app_wdgts->about_dialog), "Llog");
+  gtk_about_dialog_set_version(GTK_ABOUT_DIALOG(app_wdgts->about_dialog), "1.0");
+  gtk_about_dialog_set_comments(GTK_ABOUT_DIALOG(app_wdgts->about_dialog), "A simple logging application.");
+  gtk_about_dialog_set_website(GTK_ABOUT_DIALOG(app_wdgts->about_dialog), "https://example.com");
+  gtk_about_dialog_set_authors(GTK_ABOUT_DIALOG(app_wdgts->about_dialog), (const char *[]){ "Author Name", NULL });
+  gtk_about_dialog_set_license_type(GTK_ABOUT_DIALOG(app_wdgts->about_dialog), GTK_LICENSE_GPL_3_0);
+  gtk_about_dialog_set_logo_icon_name(GTK_ABOUT_DIALOG(app_wdgts->about_dialog), "llog");
+  gtk_window_present(GTK_WINDOW(app_wdgts->about_dialog));
 }
 
 /*Actions*/
@@ -692,11 +728,12 @@ void main_window_clear_modes_list(void) {
 
 static void
 color_activated(GSimpleAction *action, GVariant *parameter) {
-  char *color = g_strdup_printf ("label.lb {background-color: %s;}", g_variant_get_string (parameter, NULL));
+  char *color = g_strdup_printf("label.lb {background-color: %s;}", g_variant_get_string(parameter, NULL));
+
   /* Change the CSS data in the provider. */
   /* Previous data is thrown away. */
-  gtk_css_provider_load_from_data (provider, color, -1);
-  g_free (color);
-  g_action_change_state (G_ACTION (action), parameter);
+  gtk_css_provider_load_from_data(provider, color, -1);
+  g_free(color);
+  g_action_change_state(G_ACTION(action), parameter);
   printf("Color activated\n");
 }
