@@ -75,7 +75,7 @@ typedef struct {
 //  GtkTreeViewColumn *logged_list_column[LLOG_COLUMNS];
 //  GtkCellRenderer *logged_list_renderer[LLOG_COLUMNS];
 
-  /*Log entry store*/
+  /*Station list store*/
   GtkListStore *station_list_store;
   GtkListStore *mode_list_store;
   GtkWidget *log_entries[LLOG_ENTRIES];
@@ -224,38 +224,57 @@ static void on_activate(GtkApplication *app, gpointer user_data) {
       entry_widget = gtk_label_new(entry_labels[entry_index]);
       widgets->log_entries[entry_index] = gtk_entry_new();
       widgets->call_label = entry_widget;
-
+      g_signal_connect(widgets->log_entries[entry_index], "changed", G_CALLBACK(on_window_main_entry_changed), NULL);
+      widgets->log_entry_buffers[entry_index] = gtk_entry_get_buffer(GTK_ENTRY(widgets->log_entries[entry_index]));
+      gtk_editable_set_editable(GTK_EDITABLE(widgets->log_entries[entry_index]), true);
       break;
 
     case llog_entry_date:
       entry_widget = gtk_label_new(entry_labels[entry_index]);
       widgets->log_entries[entry_index] = gtk_entry_new();
-
+      g_signal_connect(widgets->log_entries[entry_index], "changed", G_CALLBACK(on_window_main_entry_changed), NULL);
+      widgets->log_entry_buffers[entry_index] = gtk_entry_get_buffer(GTK_ENTRY(widgets->log_entries[entry_index]));
+      gtk_editable_set_editable(GTK_EDITABLE(widgets->log_entries[entry_index]), true);
       break;
 
     case llog_entry_utc:
       entry_widget = gtk_button_new_with_label(entry_labels[entry_index]);
       g_signal_connect(entry_widget, "clicked", G_CALLBACK(on_utc_btn_clicked), NULL);
       widgets->log_entries[entry_index] = gtk_entry_new();
+      g_signal_connect(widgets->log_entries[entry_index], "changed", G_CALLBACK(on_window_main_entry_changed), NULL);
+      widgets->log_entry_buffers[entry_index] = gtk_entry_get_buffer(GTK_ENTRY(widgets->log_entries[entry_index]));
+      gtk_editable_set_editable(GTK_EDITABLE(widgets->log_entries[entry_index]), true);
+      break;
 
+    case llog_entry_mode:
+      entry_widget = gtk_label_new(entry_labels[entry_index]);
+
+      widgets->log_entries[entry_index] = gtk_combo_box_new_with_entry();
+      gtk_combo_box_set_entry_text_column(GTK_COMBO_BOX(widgets->log_entries[entry_index]), 0);
+      gtk_combo_box_set_model(GTK_COMBO_BOX(widgets->log_entries[entry_index]), GTK_TREE_MODEL(widgets->mode_list_store));
+      //g_signal_connect(widgets->log_entries[entry_index], "changed", G_CALLBACK(on_window_main_entry_changed), NULL);
       break;
 
     case llog_entry_station_id:
       entry_widget = gtk_label_new(entry_labels[entry_index]);
-      //widgets->log_entries[entry_index] = gtk_drop_down_new(G_LIST_MODEL(widgets->station_list_store), NULL);
-      widgets->log_entries[entry_index] = gtk_entry_new();
+
+      widgets->log_entries[entry_index] = gtk_combo_box_new_with_entry();
+      gtk_combo_box_set_entry_text_column(GTK_COMBO_BOX(widgets->log_entries[entry_index]), 0);
+      gtk_combo_box_set_model(GTK_COMBO_BOX(widgets->log_entries[entry_index]), GTK_TREE_MODEL(widgets->station_list_store));
+      //g_signal_connect(widgets->log_entries[entry_index], "changed", G_CALLBACK(on_window_main_entry_changed), NULL);
       break;
 
     default:
       entry_widget = gtk_label_new(entry_labels[entry_index]);
       widgets->log_entries[entry_index] = gtk_entry_new();
-
+      g_signal_connect(widgets->log_entries[entry_index], "changed", G_CALLBACK(on_window_main_entry_changed), NULL);
+      widgets->log_entry_buffers[entry_index] = gtk_entry_get_buffer(GTK_ENTRY(widgets->log_entries[entry_index]));
+      gtk_editable_set_editable(GTK_EDITABLE(widgets->log_entries[entry_index]), true);
       break;
     }
-    g_signal_connect(widgets->log_entries[entry_index], "changed", G_CALLBACK(on_window_main_entry_changed), NULL);
+
     gtk_widget_set_size_request(widgets->log_entries[entry_index], 200, -1); // Set minimum width to 200 pixels
-    widgets->log_entry_buffers[entry_index] = gtk_entry_get_buffer(GTK_ENTRY(widgets->log_entries[entry_index]));
-    gtk_editable_set_editable(GTK_EDITABLE(widgets->log_entries[entry_index]), true);
+    gtk_widget_set_hexpand(widgets->log_entries[entry_index], FALSE);
 
     gtk_grid_attach(GTK_GRID(entry_grid), entry_widget, 0, entry_index, 1, 1);
     gtk_grid_attach(GTK_GRID(entry_grid), GTK_WIDGET(widgets->log_entries[entry_index]), 1, entry_index, 1, 1);
@@ -265,8 +284,10 @@ static void on_activate(GtkApplication *app, gpointer user_data) {
 
   llog_get_initial_station(&initial_station);
   if (initial_station->name[0] != '\0') {
+    GtkWidget *station_list_entry = gtk_combo_box_get_child(GTK_COMBO_BOX(widgets->log_entries[llog_entry_station_id]));
+    GtkEntryBuffer *buffer = gtk_entry_get_buffer(GTK_ENTRY(station_list_entry));
     sprintf(buff, "%s [%" PRIu64 "]", initial_station->name, initial_station->id);
-    gtk_entry_buffer_insert_text(widgets->log_entry_buffers[llog_entry_station_id], 0, buff, -1); // Some bug here
+    gtk_entry_buffer_insert_text(buffer, 0, buff, -1); // Some bug here
   }
 
   /*Menu*/
@@ -709,12 +730,12 @@ void main_window_clear_log_list(void) {
 
 
 void main_window_clear_station_list(void) {
-  //gtk_list_store_clear(widgets->station_list_store);
+  gtk_list_store_clear(widgets->station_list_store);
 }
 
 
 void main_window_clear_modes_list(void) {
-  //gtk_list_store_clear(widgets->mode_list_store);
+  gtk_list_store_clear(widgets->mode_list_store);
 }
 
 // Delete this function
