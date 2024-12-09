@@ -72,7 +72,8 @@ enum llog_entry_pos {
   llog_entry_rxextra,
   llog_entry_txextra,
   llog_entry_comment,
-  llog_entry_station_id
+  llog_entry_summit_ref,
+  llog_entry_station_id,
 };
 
 /*Main data storage*/

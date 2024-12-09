@@ -56,7 +56,8 @@ char entry_labels[LLOG_ENTRIES][20] = {
   "RX Extra",
   "TX Extra",
   "Comment",
-  "Station ID"
+  "Summit ref",
+  "Station"
 };
 
 typedef struct {
@@ -122,7 +123,7 @@ int main_window_draw(int argc, char *argv[]) {
 
 
 static void on_activate(GtkApplication *app, gpointer user_data) {
-  int i;
+  int entry_index;
   char buff[BUFF_SIZ];
   station_entry_t *initial_station;
 
@@ -130,22 +131,9 @@ static void on_activate(GtkApplication *app, gpointer user_data) {
 
   widgets = g_slice_new(app_widgets_t);
 
-  for (i = 0; i < LLOG_ENTRIES; i++) {
-    widgets->log_entry_buffers[i] = NULL;
+  for (entry_index = 0; entry_index < LLOG_ENTRIES; entry_index++) {
+    widgets->log_entry_buffers[entry_index] = NULL;
   }
-
-
-  //gtk_window_set_transient_for(GTK_WINDOW(widgets->about_dialog), GTK_WINDOW(widgets->main_window));
-
-  //GtkWidget *about_button = gtk_button_new_with_label("About");
-
-  //g_signal_connect(about_button, "clicked", G_CALLBACK(on_about_dialog_response), NULL);
-  //gtk_box_append(GTK_BOX(widgets->vertical_box), about_button);
-
-  //gtk_window_present(GTK_WINDOW(widgets->about_dialog));
-
-  /*Log file chooser*/
-
 
   /*Build main window*/
   widgets->main_window = gtk_application_window_new(app);
@@ -159,9 +147,6 @@ static void on_activate(GtkApplication *app, gpointer user_data) {
 
   GtkWidget *scrolled_window = gtk_scrolled_window_new();
   gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scrolled_window), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
-
-
-  //widgets->logfile_choose = GTK_WIDGET(gtk_builder_get_object(builder, "logfile_choose"));
 
   /*Build the logged list tree view*/
   widgets->logged_list_store = gtk_list_store_new(6,
@@ -187,6 +172,12 @@ static void on_activate(GtkApplication *app, gpointer user_data) {
   gtk_tree_view_column_set_resizable(column, TRUE);
 
   renderer = gtk_cell_renderer_text_new();
+  column = gtk_tree_view_column_new_with_attributes("Call", renderer, "text", llog_list_call, NULL);
+  gtk_tree_view_append_column(GTK_TREE_VIEW(widgets->logged_list_tree_view), column);
+  gtk_tree_view_column_set_sort_column_id(column, llog_list_call);
+  gtk_tree_view_column_set_resizable(column, TRUE);
+
+  renderer = gtk_cell_renderer_text_new();
   column = gtk_tree_view_column_new_with_attributes("Date", renderer, "text", llog_list_date, NULL);
   gtk_tree_view_append_column(GTK_TREE_VIEW(widgets->logged_list_tree_view), column);
   gtk_tree_view_column_set_sort_column_id(column, llog_list_date);
@@ -195,12 +186,6 @@ static void on_activate(GtkApplication *app, gpointer user_data) {
   renderer = gtk_cell_renderer_text_new();
   column = gtk_tree_view_column_new_with_attributes("UTC", renderer, "text", llog_list_utc, NULL);
   gtk_tree_view_append_column(GTK_TREE_VIEW(widgets->logged_list_tree_view), column);
-  gtk_tree_view_column_set_resizable(column, TRUE);
-
-  renderer = gtk_cell_renderer_text_new();
-  column = gtk_tree_view_column_new_with_attributes("Call", renderer, "text", llog_list_call, NULL);
-  gtk_tree_view_append_column(GTK_TREE_VIEW(widgets->logged_list_tree_view), column);
-  gtk_tree_view_column_set_sort_column_id(column, llog_list_call);
   gtk_tree_view_column_set_resizable(column, TRUE);
 
   renderer = gtk_cell_renderer_text_new();
@@ -219,21 +204,9 @@ static void on_activate(GtkApplication *app, gpointer user_data) {
 
   // Build the station list store
   widgets->station_list_store = gtk_list_store_new(1, G_TYPE_STRING);
-  renderer = gtk_cell_renderer_text_new();
-  column = gtk_tree_view_column_new_with_attributes("Id", renderer, "text", 0, NULL);
-  gtk_tree_view_append_column(GTK_TREE_VIEW(widgets->station_list_store), column);
-  gtk_tree_view_column_set_sort_column_id(column, llog_list_id);
-
-  renderer = gtk_cell_renderer_text_new();
-  column = gtk_tree_view_column_new_with_attributes("Name", renderer, "text", 1, NULL);
-  gtk_tree_view_append_column(GTK_TREE_VIEW(widgets->station_list_store), column);
-  gtk_tree_view_column_set_sort_column_id(column, llog_list_id);
 
   // Build the mode list store
   widgets->mode_list_store = gtk_list_store_new(1, G_TYPE_STRING);
-  renderer = gtk_cell_renderer_text_new();
-  column = gtk_tree_view_column_new_with_attributes("Edit this!!!", renderer, "text", 0, NULL);
-  gtk_tree_view_append_column(GTK_TREE_VIEW(widgets->mode_list_store), column);
 
   /*Log button*/
   widgets->log_button = gtk_button_new_with_label("Log");
@@ -243,46 +216,52 @@ static void on_activate(GtkApplication *app, gpointer user_data) {
 
   /*Build the log entry boxes*/
   GtkWidget *entry_grid = gtk_grid_new();
+  GtkWidget *entry_widget;
 
-  for (i = llog_entry_call; i <= llog_entry_station_id; i++) {
-    GtkWidget *label;
-    widgets->log_entries[i] = gtk_entry_new();
-    gtk_widget_set_size_request(widgets->log_entries[i], 200, -1); // Set minimum width to 200 pixels
-    widgets->log_entry_buffers[i] = gtk_entry_get_buffer(GTK_ENTRY(widgets->log_entries[i]));
-    gtk_editable_set_editable(GTK_EDITABLE(widgets->log_entries[i]), true);
-    if (i != llog_entry_date && i != llog_entry_utc) {
-      //gtk_editable_set_editable(GTK_EDITABLE(widgets->log_entries[i]), false);
-      g_signal_connect(widgets->log_entries[i], "changed", G_CALLBACK(on_window_main_entry_changed), NULL);
+  for (entry_index = llog_entry_call; entry_index <= llog_entry_station_id; entry_index++) {
+    switch (entry_index) {
+    case llog_entry_call:
+      entry_widget = gtk_label_new(entry_labels[entry_index]);
+      widgets->log_entries[entry_index] = gtk_entry_new();
+      widgets->call_label = entry_widget;
+
+      break;
+
+    case llog_entry_date:
+      entry_widget = gtk_label_new(entry_labels[entry_index]);
+      widgets->log_entries[entry_index] = gtk_entry_new();
+
+      break;
+
+    case llog_entry_utc:
+      entry_widget = gtk_button_new_with_label(entry_labels[entry_index]);
+      g_signal_connect(entry_widget, "clicked", G_CALLBACK(on_utc_btn_clicked), NULL);
+      widgets->log_entries[entry_index] = gtk_entry_new();
+
+      break;
+
+    case llog_entry_station_id:
+      entry_widget = gtk_label_new(entry_labels[entry_index]);
+      //widgets->log_entries[entry_index] = gtk_drop_down_new(G_LIST_MODEL(widgets->station_list_store), NULL);
+      widgets->log_entries[entry_index] = gtk_entry_new();
+      break;
+
+    default:
+      entry_widget = gtk_label_new(entry_labels[entry_index]);
+      widgets->log_entries[entry_index] = gtk_entry_new();
+
+      break;
     }
-    label = gtk_label_new(entry_labels[i]);
-    if (i == llog_entry_call) {
-      widgets->call_label = label;
-    }
-    gtk_grid_attach(GTK_GRID(entry_grid), label, 0, i, 1, 1);
-    gtk_grid_attach(GTK_GRID(entry_grid), GTK_WIDGET(widgets->log_entries[i]), 1, i, 1, 1);
+    g_signal_connect(widgets->log_entries[entry_index], "changed", G_CALLBACK(on_window_main_entry_changed), NULL);
+    gtk_widget_set_size_request(widgets->log_entries[entry_index], 200, -1); // Set minimum width to 200 pixels
+    widgets->log_entry_buffers[entry_index] = gtk_entry_get_buffer(GTK_ENTRY(widgets->log_entries[entry_index]));
+    gtk_editable_set_editable(GTK_EDITABLE(widgets->log_entries[entry_index]), true);
+
+    gtk_grid_attach(GTK_GRID(entry_grid), entry_widget, 0, entry_index, 1, 1);
+    gtk_grid_attach(GTK_GRID(entry_grid), GTK_WIDGET(widgets->log_entries[entry_index]), 1, entry_index, 1, 1);
   }
   gtk_grid_attach(GTK_GRID(entry_grid), GTK_WIDGET(widgets->log_button), 0, llog_entry_station_id + 1, 2, 1);
   gtk_box_append(GTK_BOX(widgets->vertical_box), GTK_WIDGET(entry_grid));
-
-
-  for (i = llog_entry_call; i <= llog_entry_station_id; i++) {
-    //widgets->log_entry_buffers[i] = gtk_entry_get_buffer(GTK_ENTRY(widgets->log_entries[i]));
-    //gtk_editable_set_editable(GTK_EDITABLE(widgets->log_entries[i]), TRUE);
-    //g_signal_connect(widgets->log_entry_buffers[i], "changed", G_CALLBACK(on_window_main_entry_changed), NULL);
-  }
-
-  /*Get the station ID. This is not really a log entry.*/
-  //widgets->log_entry_buffers[llog_entry_station_id] = GTK_ENTRY_BUFFER(gtk_builder_get_object(builder, "station_select_entry"));
-
-  /*Buttons*/
-
-//  widgets. = GTK_BUTTON(gtk_builder_get_object(builder, "utc_btn"));
-
-
-//  /*Set default user data*/
-//  gtk_builder_connect_signals(builder, widgets);
-
-  //g_object_unref(builder);
 
   llog_get_initial_station(&initial_station);
   if (initial_station->name[0] != '\0') {
@@ -398,6 +377,7 @@ void set_static_data(void) {
 
   /*Set txnr*/
   snprintf(buff, BUFF_SIZ, "%04" PRIu64, log_entry_data.txnr);
+  gtk_entry_buffer_delete_text(widgets->log_entry_buffers[llog_entry_txnr], 0, -1);
   gtk_entry_buffer_insert_text(widgets->log_entry_buffers[llog_entry_txnr], 0, buff, -1);
 }
 
@@ -420,7 +400,7 @@ static void on_menuitm_open_activate(app_widgets_t *app_wdgts) {
 /*Add last loaded filename to the chooser*/
   if (current_log_file_name != NULL && current_log_file_name[0] != '\0') {
     GFile *file = g_file_new_for_path(current_log_file_name);
-      gtk_file_chooser_set_file(GTK_FILE_CHOOSER(app_wdgts->logfile_choose), file, NULL);
+    gtk_file_chooser_set_file(GTK_FILE_CHOOSER(app_wdgts->logfile_choose), file, NULL);
   }
 
   g_signal_connect(app_wdgts->logfile_choose, "response", G_CALLBACK(on_open_file_response), app_wdgts);
@@ -624,7 +604,7 @@ static void on_log_btn_clicked(void) {
 }
 
 
-void on_utc_btn_clicked(void) {
+static void on_utc_btn_clicked(void) {
   llog_get_time(&log_entry_data);
   gtk_entry_buffer_delete_text(widgets->log_entry_buffers[llog_entry_date], 0, -1);
   gtk_entry_buffer_insert_text(widgets->log_entry_buffers[llog_entry_date], 0, log_entry_data.date, -1);
@@ -657,6 +637,7 @@ static void on_reload_activate(GMenuItem *menuitem, app_widgets_t *app_wdgts) {
 static void on_about_menu_activate(app_widgets_t *app_wdgts) {
   /*About window*/
   widgets->about_dialog = gtk_about_dialog_new();
+  gtk_window_set_transient_for(GTK_WINDOW(app_wdgts->about_dialog), GTK_WINDOW(app_wdgts->main_window));
   gtk_about_dialog_set_program_name(GTK_ABOUT_DIALOG(app_wdgts->about_dialog), "Llog");
   gtk_about_dialog_set_version(GTK_ABOUT_DIALOG(app_wdgts->about_dialog), "1.0");
   gtk_about_dialog_set_comments(GTK_ABOUT_DIALOG(app_wdgts->about_dialog), "A simple logging application.");
@@ -674,7 +655,7 @@ int main_window_add_log_entry_to_list(log_entry_t *entry) {
   static GtkTreeIter iter;
   char buff[BUFF_SIZ];
 
-  gtk_list_store_append(widgets->logged_list_store, &iter);
+  gtk_list_store_prepend(widgets->logged_list_store, &iter);
 
   /*Create the text*/
   snprintf(buff, BUFF_SIZ, "%" PRIu64, entry->id);
@@ -700,7 +681,6 @@ int main_window_add_station_entry_to_list(station_entry_t *station) {
   static GtkTreeIter iter;
 
   snprintf(buff, BUFF_SIZ, "%s [%" PRIu64 "]", station->name, station->id);
-
   gtk_list_store_prepend(widgets->station_list_store, &iter);
   gtk_list_store_set(widgets->station_list_store, &iter, 0, buff, -1);
 
@@ -737,8 +717,8 @@ void main_window_clear_modes_list(void) {
   //gtk_list_store_clear(widgets->mode_list_store);
 }
 
-static void
-color_activated(GSimpleAction *action, GVariant *parameter) {
+// Delete this function
+static void color_activated(GSimpleAction *action, GVariant *parameter) {
   char *color = g_strdup_printf("label.lb {background-color: %s;}", g_variant_get_string(parameter, NULL));
 
   /* Change the CSS data in the provider. */
