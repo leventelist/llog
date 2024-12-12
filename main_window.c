@@ -464,8 +464,6 @@ static void on_activate(GtkApplication *app, gpointer user_data) {
   gtk_column_view_set_show_column_separators(GTK_COLUMN_VIEW(widgets->logged_column_view), TRUE);
   gtk_column_view_set_show_row_separators(GTK_COLUMN_VIEW(widgets->logged_column_view), TRUE);
 
-//  gtk_tree_view_set_search_column(GTK_TREE_VIEW(widgets->logged_list_tree_view), llog_list_call);
-
   // Build the station list store
   widgets->station_list_store = g_list_store_new(G_TYPE_OBJECT);
 
@@ -512,7 +510,6 @@ static void on_activate(GtkApplication *app, gpointer user_data) {
 
     case llog_entry_mode:
       entry_widget = gtk_label_new(entry_labels[entry_index]);
-
       widgets->log_entries[entry_index] = gtk_drop_down_new(G_LIST_MODEL(widgets->mode_list_store), NULL);
       GtkListItemFactory *factory = gtk_signal_list_item_factory_new();
       gtk_drop_down_set_factory(GTK_DROP_DOWN(widgets->log_entries[entry_index]), factory);
@@ -739,8 +736,6 @@ void on_window_main_entry_changed(GtkEditable *editable, gpointer user_data) {
 
   entry_changed = true;
 
-  printf("Entry changed\n");
-
   entry_id = 0xFFFFFFFF;
 
   GtkWidget *entry = GTK_WIDGET(editable);
@@ -806,9 +801,11 @@ void on_mode_entry_change(GtkEditable *entry, gpointer user_data) {
   if (selected_item != NULL) {
     ModeEntry *mode_entry = MODEENTRY_ITEM(selected_item);
     g_print("Selected mode: %s\n", mode_entry->name);
-    //llog_get_default_rst(log_entry_data.txrst, atoll(mode_entry->id));
-    //gtk_entry_buffer_insert_text(widgets->log_entry_buffers[llog_entry_txrst], 0, log_entry_data.txrst, -1);
-    //gtk_entry_buffer_insert_text(widgets->log_entry_buffers[llog_entry_rxrst], 0, log_entry_data.txrst, -1);
+    llog_get_default_rst(log_entry_data.txrst, atoll(mode_entry->id));
+    gtk_entry_buffer_delete_text(widgets->log_entry_buffers[llog_entry_txrst], 0, -1);
+    gtk_entry_buffer_delete_text(widgets->log_entry_buffers[llog_entry_rxrst], 0, -1);
+    gtk_entry_buffer_insert_text(widgets->log_entry_buffers[llog_entry_txrst], 0, log_entry_data.txrst, -1);
+    gtk_entry_buffer_insert_text(widgets->log_entry_buffers[llog_entry_rxrst], 0, log_entry_data.txrst, -1);
   }
 }
 
@@ -953,30 +950,23 @@ void main_window_add_log_entry_to_list(log_entry_t *entry) {
 }
 
 
-int main_window_add_station_entry_to_list(station_entry_t *station) {
-  int ret_val = OK;
+void main_window_add_station_entry_to_list(station_entry_t *station) {
   char buff[BUFF_SIZ];
 
   snprintf(buff, BUFF_SIZ, "%s [%" PRIu64 "]", station->name, station->id);
 
   g_list_store_append(widgets->station_list_store, string_object_new(buff));
 
-
-  return ret_val;
 }
 
 
-int main_window_add_mode_entry_to_list(mode_entry_t *mode) {
-  int ret_val = OK;
+void main_window_add_mode_entry_to_list(mode_entry_t *mode) {
   char buff[BUFF_SIZ];
 
   snprintf(buff, BUFF_SIZ, "%s [%" PRIu64 "]", mode->name, mode->id);
 
   g_list_store_append(widgets->mode_list_store, G_OBJECT(mode_entry_new(mode)));
 
-  printf("Mode added to list\n");
-
-  return ret_val;
 }
 
 

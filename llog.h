@@ -95,6 +95,7 @@ typedef struct {
   char default_rst[MODE_LEN];
   char comment[COMMENT_LEN];
   uint32_t data_stat;
+  sqlite3_stmt *sq3_stmt;
 } mode_entry_t;
 
 
@@ -118,6 +119,7 @@ typedef struct {
   char date[NAME_LEN];
   char utc[NAME_LEN];
   uint32_t data_stat;
+  sqlite3_stmt *sq3_stmt;
 } log_entry_t;
 
 
@@ -132,6 +134,7 @@ typedef struct {
   char rig[RIG_LEN];
   char ant[ANT_LEN];
   uint32_t data_stat;
+  sqlite3_stmt *sq3_stmt;
 } station_entry_t;
 
 
