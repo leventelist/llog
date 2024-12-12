@@ -91,36 +91,106 @@ typedef struct {
 /*String objects*/
 
 typedef struct {
-    GObject parent_instance;
-    gchar *value;
+  GObject parent_instance;
+  gchar *value;
 } StringObject;
 
 typedef struct {
-    GObjectClass parent_class;
+  GObjectClass parent_class;
 } StringObjectClass;
 
 G_DEFINE_TYPE(StringObject, string_object, G_TYPE_OBJECT)
 
 static void string_object_init(StringObject *self) {
-    self->value = NULL;
+  self->value = NULL;
 }
 
 static void string_object_finalize(GObject *object) {
-    StringObject *self = (StringObject *)object;
-    g_free(self->value);
-    G_OBJECT_CLASS(string_object_parent_class)->finalize(object);
+  StringObject *self = (StringObject *)object;
+
+  g_free(self->value);
+  G_OBJECT_CLASS(string_object_parent_class)->finalize(object);
 }
 
 static void string_object_class_init(StringObjectClass *klass) {
-    GObjectClass *object_class = G_OBJECT_CLASS(klass);
-    object_class->finalize = string_object_finalize;
+  GObjectClass *object_class = G_OBJECT_CLASS(klass);
+
+  object_class->finalize = string_object_finalize;
 }
 
 StringObject *string_object_new(const gchar *str) {
-    StringObject *self = g_object_new(string_object_get_type(), NULL);
-    self->value = g_strdup(str);
-    return self;
+  StringObject *self = g_object_new(string_object_get_type(), NULL);
+
+  self->value = g_strdup(str);
+  return self;
 }
+
+
+/*Mode entry*/
+
+#define MODE_ENTRY_TYPE (mode_entry_get_type())
+G_DECLARE_FINAL_TYPE(ModeEntry, mode_entry, MODEENTRY, ITEM, GObject)
+
+struct _ModeEntry {
+  GObject parent_instance;
+  char *id;
+  char *name;
+  char *default_rst;
+  char *comment;
+};
+
+struct _ModeEntryClass {
+  GObjectClass parent_class;
+};
+
+G_DEFINE_TYPE(ModeEntry, mode_entry, G_TYPE_OBJECT)
+
+static void mode_entry_init(ModeEntry *self) {
+  self->id = NULL;
+  self->name = NULL;
+  self->default_rst = NULL;
+  self->comment = NULL;
+}
+
+static void mode_entry_finalize(GObject *object) {
+  ModeEntry *self = (ModeEntry *)object;
+
+  g_free(self->name);   // Free the dynamically allocated name
+  g_free(self->default_rst);   // Free the dynamically allocated name
+  g_free(self->comment);   // Free the dynamically allocated name
+  g_free(self->id);   // Free the dynamically allocated name
+  G_OBJECT_CLASS(mode_entry_parent_class)->finalize(object);   // Chain up
+}
+
+static void mode_entry_class_init(ModeEntryClass *klass) {
+  GObjectClass *object_class = G_OBJECT_CLASS(klass);
+
+  object_class->finalize = mode_entry_finalize;   // Override finalize
+}
+
+static ModeEntry *mode_entry_new(mode_entry_t *entry) {
+  ModeEntry *self = g_object_new(MODE_ENTRY_TYPE, NULL);
+
+  self->id = g_strdup_printf("%" PRIu64, entry->id);
+  self->name = g_strdup(entry->name);
+  self->default_rst = g_strdup(entry->default_rst);
+  self->comment = g_strdup(entry->comment);
+  return self;
+}
+
+static char *mode_entry_get_name(ModeEntry *item) {
+  return item->name;
+}
+
+static void bind_mode_dropdown_cb(GtkSignalListItemFactory *factory, GtkListItem *listitem) {
+  (void)factory;
+  GtkWidget *label = gtk_list_item_get_child(listitem);
+  GObject *item = gtk_list_item_get_item(GTK_LIST_ITEM(listitem));
+  const char *string = mode_entry_get_name(MODEENTRY_ITEM(item));
+
+  gtk_label_set_text(GTK_LABEL(label), string);
+}
+
 
 
 /*Log entry display item*/
@@ -220,6 +290,7 @@ static void bind_call_cb(GtkSignalListItemFactory *factory, GtkListItem *listite
   GtkWidget *label = gtk_list_item_get_child(listitem);
   GObject *item = gtk_list_item_get_item(GTK_LIST_ITEM(listitem));
   const char *string = logentry_item_get_call(LOGENTRYDISPLAY_ITEM(item));
+
   gtk_label_set_text(GTK_LABEL(label), string);
 }
 
@@ -228,6 +299,7 @@ static void bind_id_cb(GtkSignalListItemFactory *factory, GtkListItem *listitem)
   GtkWidget *label = gtk_list_item_get_child(listitem);
   GObject *item = gtk_list_item_get_item(GTK_LIST_ITEM(listitem));
   const char *string = logentry_item_get_id(LOGENTRYDISPLAY_ITEM(item));
+
   gtk_label_set_text(GTK_LABEL(label), string);
 }
 
@@ -236,6 +308,7 @@ static void bind_qrg_cb(GtkSignalListItemFactory *factory, GtkListItem *listitem
   GtkWidget *label = gtk_list_item_get_child(listitem);
   GObject *item = gtk_list_item_get_item(GTK_LIST_ITEM(listitem));
   const char *string = logentry_item_get_qrg(LOGENTRYDISPLAY_ITEM(item));
+
   gtk_label_set_text(GTK_LABEL(label), string);
 }
 
@@ -244,6 +317,7 @@ static void bind_date_cb(GtkSignalListItemFactory *factory, GtkListItem *listite
   GtkWidget *label = gtk_list_item_get_child(listitem);
   GObject *item = gtk_list_item_get_item(GTK_LIST_ITEM(listitem));
   const char *string = logentry_item_get_date(LOGENTRYDISPLAY_ITEM(item));
+
   gtk_label_set_text(GTK_LABEL(label), string);
 }
 
@@ -252,6 +326,7 @@ static void bind_utc_cb(GtkSignalListItemFactory *factory, GtkListItem *listitem
   GtkWidget *label = gtk_list_item_get_child(listitem);
   GObject *item = gtk_list_item_get_item(GTK_LIST_ITEM(listitem));
   const char *string = logentry_item_get_utc(LOGENTRYDISPLAY_ITEM(item));
+
   gtk_label_set_text(GTK_LABEL(label), string);
 }
 
@@ -260,6 +335,7 @@ static void bind_mode_cb(GtkSignalListItemFactory *factory, GtkListItem *listite
   GtkWidget *label = gtk_list_item_get_child(listitem);
   GObject *item = gtk_list_item_get_item(GTK_LIST_ITEM(listitem));
   const char *string = logentry_item_get_mode(LOGENTRYDISPLAY_ITEM(item));
+
   gtk_label_set_text(GTK_LABEL(label), string);
 }
 
@@ -271,7 +347,7 @@ static GtkCssProvider *provider;
 /*Callbacks*/
 static void on_window_main_destroy(void);
 static void on_utc_btn_clicked(void);
-static void on_mode_entry_change(GtkEntryBuffer *entry);
+static void on_mode_entry_change(GtkEditable *entry, gpointer user_data);
 static void on_window_main_entry_changed(GtkEditable *editable, gpointer user_data);
 static void set_static_data(void);
 static void on_activate(GtkApplication *app, gpointer user_data);
@@ -294,8 +370,6 @@ int main_window_draw(int argc, char *argv[]) {
 
   return status;
 }
-
-
 
 static void on_activate(GtkApplication *app, gpointer user_data) {
   int entry_index;
@@ -439,18 +513,20 @@ static void on_activate(GtkApplication *app, gpointer user_data) {
     case llog_entry_mode:
       entry_widget = gtk_label_new(entry_labels[entry_index]);
 
-      widgets->log_entries[entry_index] = gtk_combo_box_new_with_entry();
-      gtk_combo_box_set_entry_text_column(GTK_COMBO_BOX(widgets->log_entries[entry_index]), 0);
-      gtk_combo_box_set_model(GTK_COMBO_BOX(widgets->log_entries[entry_index]), GTK_TREE_MODEL(widgets->mode_list_store));
-      //g_signal_connect(widgets->log_entries[entry_index], "changed", G_CALLBACK(on_window_main_entry_changed), NULL);
+      widgets->log_entries[entry_index] = gtk_drop_down_new(G_LIST_MODEL(widgets->mode_list_store), NULL);
+      GtkListItemFactory *factory = gtk_signal_list_item_factory_new();
+      gtk_drop_down_set_factory(GTK_DROP_DOWN(widgets->log_entries[entry_index]), factory);
+      g_signal_connect(factory, "setup", G_CALLBACK(setup_cb), NULL);
+      g_signal_connect(factory, "bind", G_CALLBACK(bind_mode_dropdown_cb), NULL);
+      g_signal_connect(widgets->log_entries[entry_index], "notify::selected", G_CALLBACK(on_mode_entry_change), NULL);
       break;
 
     case llog_entry_station_id:
       entry_widget = gtk_label_new(entry_labels[entry_index]);
 
       widgets->log_entries[entry_index] = gtk_combo_box_new_with_entry();
-      gtk_combo_box_set_entry_text_column(GTK_COMBO_BOX(widgets->log_entries[entry_index]), 0);
-      gtk_combo_box_set_model(GTK_COMBO_BOX(widgets->log_entries[entry_index]), GTK_TREE_MODEL(widgets->station_list_store));
+      //gtk_combo_box_set_entry_text_column(GTK_COMBO_BOX(widgets->log_entries[entry_index]), 0);
+      //gtk_combo_box_set_model(GTK_COMBO_BOX(widgets->log_entries[entry_index]), GTK_TREE_MODEL(widgets->station_list_store));
       //g_signal_connect(widgets->log_entries[entry_index], "changed", G_CALLBACK(on_window_main_entry_changed), NULL);
       break;
 
@@ -721,11 +797,19 @@ void on_window_main_entry_changed(GtkEditable *editable, gpointer user_data) {
 }
 
 
-void on_mode_entry_change(GtkEntryBuffer *entry) {
-  llog_get_default_rst(log_entry_data.txrst, (char *)gtk_entry_buffer_get_text(entry));
+void on_mode_entry_change(GtkEditable *entry, gpointer user_data) {
+  (void)user_data;
 
-  gtk_entry_buffer_insert_text(widgets->log_entry_buffers[llog_entry_txrst], 0, log_entry_data.txrst, -1);
-  gtk_entry_buffer_insert_text(widgets->log_entry_buffers[llog_entry_rxrst], 0, log_entry_data.txrst, -1);
+  GtkDropDown *dropdown = GTK_DROP_DOWN(entry);
+  GObject *selected_item = gtk_drop_down_get_selected_item(dropdown);
+
+  if (selected_item != NULL) {
+    ModeEntry *mode_entry = MODEENTRY_ITEM(selected_item);
+    g_print("Selected mode: %s\n", mode_entry->name);
+    //llog_get_default_rst(log_entry_data.txrst, atoll(mode_entry->id));
+    //gtk_entry_buffer_insert_text(widgets->log_entry_buffers[llog_entry_txrst], 0, log_entry_data.txrst, -1);
+    //gtk_entry_buffer_insert_text(widgets->log_entry_buffers[llog_entry_rxrst], 0, log_entry_data.txrst, -1);
+  }
 }
 
 
@@ -745,7 +829,9 @@ static void on_log_btn_clicked(void) {
   snprintf(log_entry_data.qra, QRA_LEN, gtk_entry_buffer_get_text(widgets->log_entry_buffers[llog_entry_qra]));
   log_entry_data.qrg = atof(gtk_entry_buffer_get_text(widgets->log_entry_buffers[llog_entry_qrg]));
 
-  llog_tokenize(gtk_entry_buffer_get_text(widgets->log_entry_buffers[llog_entry_mode]), log_entry_data.mode.name, NULL);
+
+  //Todo: Get the mode from the dropdown
+
 
   snprintf(log_entry_data.power, NAME_LEN, gtk_entry_buffer_get_text(widgets->log_entry_buffers[llog_entry_power]));
   log_entry_data.rxnr = strtoul(gtk_entry_buffer_get_text(widgets->log_entry_buffers[llog_entry_rxnr]), NULL, 10);
@@ -754,7 +840,8 @@ static void on_log_btn_clicked(void) {
   snprintf(log_entry_data.txextra, X_LEN, gtk_entry_buffer_get_text(widgets->log_entry_buffers[llog_entry_txextra]));
   snprintf(log_entry_data.comment, X_LEN, gtk_entry_buffer_get_text(widgets->log_entry_buffers[llog_entry_comment]));
 
-  llog_tokenize(gtk_entry_buffer_get_text(widgets->log_entry_buffers[llog_entry_station_id]), NULL, &log_entry_data.station_id);
+  //Todo: Get the station id from the combo box
+
 
   /*This is for debug. Print log data to stdout*/
   //llog_print_log_data(&log_entry_data);
@@ -798,7 +885,7 @@ static void on_log_btn_clicked(void) {
   gtk_entry_buffer_insert_text(widgets->log_entry_buffers[llog_entry_date], 0, log_entry_data.date, -1);
   gtk_entry_buffer_insert_text(widgets->log_entry_buffers[llog_entry_utc], 0, log_entry_data.utc, -1);
 
-  on_mode_entry_change(widgets->log_entry_buffers[llog_entry_mode]);
+  //on_mode_entry_change(widgets->log_entry_buffers[llog_entry_mode]);
 
   gtk_entry_buffer_insert_text(widgets->log_entry_buffers[llog_entry_qth], 0, log_entry_data.qth, -1);
   gtk_entry_buffer_insert_text(widgets->log_entry_buffers[llog_entry_name], 0, log_entry_data.name, -1);
@@ -862,9 +949,7 @@ static void on_about_menu_activate(app_widgets_t *app_wdgts) {
 /*Actions*/
 
 void main_window_add_log_entry_to_list(log_entry_t *entry) {
-
   g_list_store_append(widgets->logged_list_store, G_OBJECT(logentrydisplay_new(entry)));
-
 }
 
 
@@ -887,7 +972,9 @@ int main_window_add_mode_entry_to_list(mode_entry_t *mode) {
 
   snprintf(buff, BUFF_SIZ, "%s [%" PRIu64 "]", mode->name, mode->id);
 
-  g_list_store_append(widgets->mode_list_store, string_object_new(buff));
+  g_list_store_append(widgets->mode_list_store, G_OBJECT(mode_entry_new(mode)));
+
+  printf("Mode added to list\n");
 
   return ret_val;
 }

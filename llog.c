@@ -61,15 +61,14 @@ int llog_set_log_file(char *log_file_name) {
   int ret_val;
 
   if (realpath(log_file_name, real_log_file_name) == NULL) {
-      ret_val = ERR;
-    }
-  else {
-      ret_val = OK;
-    }
+    ret_val = ERR;
+  }else {
+    ret_val = OK;
+  }
 
   if (ret_val == OK) {
-      strncpy(llog.log_file_name, real_log_file_name, FILE_LEN);
-    }
+    strncpy(llog.log_file_name, real_log_file_name, FILE_LEN);
+  }
 
   /* Indicate that the database is closed.
    * FIXME!!! We shall check if the database is opened, and close it.
@@ -97,23 +96,23 @@ int llog_parse_config_file(void) {
 
   /*Check if there were log file name supplied at the command line*/
   if (llog.log_file_name[0] == '\0') {     /*It wasn't*/
-      ret_val = config_file_read(llog.config_file_name, llog.ca);
-      if (ret_val == CONF_READ_ERR) {
-          printf("Error reading config file `%s`\n", llog.config_file_name);
-          ret = FILE_ERR;
-        }
+    ret_val = config_file_read(llog.config_file_name, llog.ca);
+    if (ret_val == CONF_READ_ERR) {
+      printf("Error reading config file `%s`\n", llog.config_file_name);
+      ret = FILE_ERR;
     }
+  }
 
   if (ret == OK) {
-      llog_open_db();
-    }
+    llog_open_db();
+  }
 
   initial_station.data_stat = db_data_init;
   ret_val = db_get_station_entry(&llog, &initial_station);
 
   if (ret_val != LLOG_ERR) {
-      db_get_station_entry(&llog, &initial_station);           /*This will finalize the data*/
-    }
+    db_get_station_entry(&llog, &initial_station);             /*This will finalize the data*/
+  }
 
   return ret;
 }
@@ -130,7 +129,7 @@ int llog_open_db(void) {
 }
 
 
-int llog_get_initial_station(station_entry_t **station) {
+int llog_get_initial_station(station_entry_t * *station) {
   *station = &initial_station;
   return OK;
 }
@@ -141,7 +140,7 @@ int llog_save_config_file(void) {
   return OK;
 }
 
-int llog_get_log_file_path(char **path) {
+int llog_get_log_file_path(char * *path) {
   *path = llog.log_file_name;
   return OK;
 }
@@ -155,17 +154,16 @@ int llog_add_log_entries(void) {
   main_window_clear_log_list();
 
   while (entry.data_stat != db_data_last) {
-      ret_val = db_get_log_entries(&llog, &entry);
-      if (ret_val != OK) {
-          break;
-        }
-      if (entry.data_stat == db_data_valid) {
-          main_window_add_log_entry_to_list(&entry);
-        }
-      else {
-          break;
-        }
+    ret_val = db_get_log_entries(&llog, &entry);
+    if (ret_val != OK) {
+      break;
     }
+    if (entry.data_stat == db_data_valid) {
+      main_window_add_log_entry_to_list(&entry);
+    }else {
+      break;
+    }
+  }
 
   return ret_val;
 }
@@ -188,8 +186,8 @@ void llog_reset_entry(log_entry_t *entry) {
   entry->name[0] = '\0';
 
   if (entry->mode.id != 0) {
-      strcpy(entry->txrst, entry->mode.default_rst);
-    }
+    strcpy(entry->txrst, entry->mode.default_rst);
+  }
 
   entry->rxrst[0] = '\0';
   entry->qth[0] = '\0';
@@ -210,15 +208,14 @@ int llog_add_station_entries(void) {
   main_window_clear_station_list();
 
   while (station.data_stat != db_data_last) {
-      station.id = 0;
-      db_get_station_entry(&llog, &station);
-      if (station.data_stat == db_data_valid) {
-          main_window_add_station_entry_to_list(&station);
-        }
-      else {
-          break;
-        }
+    station.id = 0;
+    db_get_station_entry(&llog, &station);
+    if (station.data_stat == db_data_valid) {
+      main_window_add_station_entry_to_list(&station);
+    }else {
+      break;
     }
+  }
 
   return ret_val;
 }
@@ -233,31 +230,28 @@ int llog_add_modes_entries(void) {
   main_window_clear_modes_list();
 
   while (mode.data_stat != db_data_last) {
-      db_get_mode_entry(&llog, &mode, NULL);
-      if (mode.data_stat == db_data_valid) {
-          main_window_add_mode_entry_to_list(&mode);
-        }
-      else {
-          break;
-        }
+    db_get_mode_entry(&llog, &mode, NULL);
+    if (mode.data_stat == db_data_valid) {
+      main_window_add_mode_entry_to_list(&mode);
+    } else {
+      break;
     }
+  }
 
   return ret_val;
 }
 
 
-int llog_get_default_rst(char *default_rst, char *mode_string) {
-  uint64_t mode_id;
+int llog_get_default_rst(char *default_rst, uint64_t mode_id) {
   mode_entry_t mode;
   int ret;
 
   mode.data_stat = db_data_init;
 
-  llog_tokenize(mode_string, NULL, &mode_id);
   ret = db_get_mode_entry(&llog, &mode, &mode_id);
   if (ret == OK) {
-      strncpy(default_rst, mode.default_rst, MODE_LEN);
-    }
+    strncpy(default_rst, mode.default_rst, MODE_LEN);
+  }
 
   return ret;
 }
@@ -298,23 +292,23 @@ int llog_load_static_data(log_entry_t *entry) {
   int ret;
 
   do {
-      ret = llog_add_log_entries();
-      if (ret != OK) {
-          break;
-        }
-      ret = llog_add_station_entries();
-      if (ret != OK) {
-          break;
-        }
-      ret = llog_add_modes_entries();
-      if (ret != OK) {
-          break;
-        }
-      ret = llog_get_max_nr(entry);
-      if (ret != OK) {
-          break;
-        }
-    } while (0);
+    ret = llog_add_log_entries();
+    if (ret != OK) {
+      break;
+    }
+    ret = llog_add_station_entries();
+    if (ret != OK) {
+      break;
+    }
+    ret = llog_add_modes_entries();
+    if (ret != OK) {
+      break;
+    }
+    ret = llog_get_max_nr(entry);
+    if (ret != OK) {
+      break;
+    }
+  } while (0);
 
   return ret;
 }
@@ -334,27 +328,11 @@ void llog_print_log_data(log_entry_t *entry) {
 
 void llog_strupper(char *s) {
   while (*s) {
-      if ((*s >= 'a') && (*s <= 'z')) {
-          *s -= ('a' - 'A');
-        }
-      s++;
+    if ((*s >= 'a') && (*s <= 'z')) {
+      *s -= ('a' - 'A');
     }
-}
-
-
-void llog_tokenize(const char *in, char *out, uint64_t *id) {
-  uint64_t fake_id;
-  char buff[BUF_SIZ];
-
-  if (out == NULL) {
-      out = buff;
-    }
-
-  if (id == NULL) {
-      id = &fake_id;
-    }
-
-  sscanf(in, "%s [%" PRIu64 "]", out, id);
+    s++;
+  }
 }
 
 
