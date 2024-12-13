@@ -9,8 +9,9 @@ your computer with you, and nothing else. Not even a smartphone.
 ## Prerequisites
 
 * libsqlite3-dev
-* libgtk-3-dev
+* libgtk-4-dev
 * libgps-dev
+* libhamlib-dev
 * python3
     - SQLite3
     - csv
