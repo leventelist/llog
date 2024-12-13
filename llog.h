@@ -85,6 +85,8 @@ typedef struct {
   sqlite3 *db;
   uint32_t stat;
   config_attribute_t *ca;
+  char gpsd_host[FILE_LEN];
+  uint64_t gpsd_port;
 } llog_t;
 
 

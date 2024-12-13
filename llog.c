@@ -39,6 +39,8 @@ static station_entry_t initial_station;
 static config_attribute_t llog_ca[] = {
   { "log_filename", CONFIG_String, llog.log_file_name },
   { "station", CONFIG_ULLInteger, &initial_station.id },
+  { "gpsd_host", CONFIG_String, llog.gpsd_host },
+  { "gpsd_port", CONFIG_ULLInteger, &llog.gpsd_port },
   { NULL, CONFIG_Unused, NULL }
 };
 

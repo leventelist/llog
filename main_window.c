@@ -24,6 +24,8 @@
 #include "llog.h"
 #include "llog_Config.h"
 
+#include "preferences_window.h"
+
 #define LLOG_COLUMNS 16
 #define LLOG_ENTRIES 32
 #define BUFF_SIZ 1024
@@ -352,7 +354,7 @@ static void on_window_main_entry_changed(GtkEditable *editable, gpointer user_da
 static void set_static_data(void);
 static void on_activate(GtkApplication *app, gpointer user_data);
 static void on_log_btn_clicked(void);
-static void color_activated(GSimpleAction *action, GVariant *parameter);
+static void on_edit_preferences_activate(app_widgets_t *app_wdgts);
 static void on_qrt_activate(void);
 static void on_about_menu_activate(app_widgets_t *app_wdgts);
 static void on_reload_activate(GMenuItem *menuitem, app_widgets_t *app_wdgts);
@@ -554,19 +556,13 @@ static void on_activate(GtkApplication *app, gpointer user_data) {
   }
 
   /*Menu*/
-  GVariantType *vtype = g_variant_type_new("s");
-  GSimpleAction *act_color = g_simple_action_new_stateful("color", vtype, g_variant_new_string("red"));
-
-  g_variant_type_free(vtype);
   GSimpleAction *act_quit = g_simple_action_new("quit", NULL);
   GSimpleAction *act_reload = g_simple_action_new("reload", NULL);
   GSimpleAction *act_open = g_simple_action_new("open", NULL);
 
-  g_signal_connect(act_color, "activate", G_CALLBACK(color_activated), NULL);
   g_signal_connect(act_reload, "activate", G_CALLBACK(on_reload_activate), widgets);
   g_signal_connect_swapped(act_open, "activate", G_CALLBACK(on_menuitm_open_activate), widgets);
   g_signal_connect_swapped(act_quit, "activate", G_CALLBACK(g_application_quit), app); //Modify this to the QRT function
-  g_action_map_add_action(G_ACTION_MAP(app), G_ACTION(act_color));
   g_action_map_add_action(G_ACTION_MAP(app), G_ACTION(act_quit));
   g_action_map_add_action(G_ACTION_MAP(app), G_ACTION(act_reload));
   g_action_map_add_action(G_ACTION_MAP(app), G_ACTION(act_open));
@@ -574,37 +570,44 @@ static void on_activate(GtkApplication *app, gpointer user_data) {
   GMenu *menubar = g_menu_new();
   GMenu *file_menu = g_menu_new();
   GMenu *section1 = g_menu_new();
-  GMenu *section2 = g_menu_new();
   GMenu *section3 = g_menu_new();
 
-  GMenuItem *menu_item_red = g_menu_item_new("Red", "app.color::red");
-  GMenuItem *menu_item_green = g_menu_item_new("Green", "app.color::green");
-  GMenuItem *menu_item_blue = g_menu_item_new("Blue", "app.color::blue");
   GMenuItem *menu_item_open = g_menu_item_new("Open", "app.open");
   GMenuItem *menu_item_reload = g_menu_item_new("Reload", "app.reload");
   GMenuItem *menu_item_quit = g_menu_item_new("QRT", "app.quit");
 
   g_menu_append_item(section1, menu_item_open);
   g_menu_append_item(section1, menu_item_reload);
-  g_menu_append_item(section2, menu_item_red);
-  g_menu_append_item(section2, menu_item_green);
-  g_menu_append_item(section2, menu_item_blue);
   g_menu_append_item(section3, menu_item_quit);
-  g_object_unref(menu_item_red);
-  g_object_unref(menu_item_green);
-  g_object_unref(menu_item_blue);
   g_object_unref(menu_item_open);
   g_object_unref(menu_item_reload);
   g_object_unref(menu_item_quit);
 
   g_menu_append_section(file_menu, NULL, G_MENU_MODEL(section1));
-  g_menu_append_section(file_menu, "Color", G_MENU_MODEL(section2));
   g_menu_append_section(file_menu, NULL, G_MENU_MODEL(section3));
   g_menu_append_submenu(menubar, "File", G_MENU_MODEL(file_menu));
+
   g_object_unref(section1);
-  g_object_unref(section2);
   g_object_unref(section3);
   g_object_unref(file_menu);
+
+  /*Edit menu*/
+
+  GMenu *edit_menu = g_menu_new();
+  GMenu *edit_section = g_menu_new();
+  GMenuItem *menu_item_edit_preferences = g_menu_item_new("Preferences", "app.preferences");
+  GSimpleAction *act_preferences = g_simple_action_new("preferences", NULL);
+
+  g_menu_append_item(edit_section, menu_item_edit_preferences);
+  g_object_unref(menu_item_edit_preferences);
+  g_menu_append_section(edit_menu, NULL, G_MENU_MODEL(edit_section));
+  g_menu_append_submenu(menubar, "Edit", G_MENU_MODEL(edit_menu));
+  g_object_unref(edit_section);
+  g_object_unref(edit_menu);
+
+  g_signal_connect_swapped(act_preferences, "activate", G_CALLBACK(on_edit_preferences_activate), widgets);
+  g_action_map_add_action(G_ACTION_MAP(app), G_ACTION(act_preferences));
+
 
   /*Help menu*/
   GSimpleAction *act_about = g_simple_action_new("about", NULL);
@@ -943,6 +946,12 @@ static void on_about_menu_activate(app_widgets_t *app_wdgts) {
   gtk_window_present(GTK_WINDOW(app_wdgts->about_dialog));
 }
 
+static void on_edit_preferences_activate(app_widgets_t *app_wdgts) {
+  (void)app_wdgts;
+  printf("Preferences activated\n");
+  on_preferences_window_activate(app_wdgts, NULL);
+}
+
 /*Actions*/
 
 void main_window_add_log_entry_to_list(log_entry_t *entry) {
@@ -956,7 +965,6 @@ void main_window_add_station_entry_to_list(station_entry_t *station) {
   snprintf(buff, BUFF_SIZ, "%s [%" PRIu64 "]", station->name, station->id);
 
   g_list_store_append(widgets->station_list_store, string_object_new(buff));
-
 }
 
 
@@ -966,7 +974,6 @@ void main_window_add_mode_entry_to_list(mode_entry_t *mode) {
   snprintf(buff, BUFF_SIZ, "%s [%" PRIu64 "]", mode->name, mode->id);
 
   g_list_store_append(widgets->mode_list_store, G_OBJECT(mode_entry_new(mode)));
-
 }
 
 
@@ -982,16 +989,4 @@ void main_window_clear_station_list(void) {
 
 void main_window_clear_modes_list(void) {
   g_list_store_remove_all(widgets->mode_list_store);
-}
-
-// Delete this function
-static void color_activated(GSimpleAction *action, GVariant *parameter) {
-  char *color = g_strdup_printf("label.lb {background-color: %s;}", g_variant_get_string(parameter, NULL));
-
-  /* Change the CSS data in the provider. */
-  /* Previous data is thrown away. */
-  gtk_css_provider_load_from_data(provider, color, -1);
-  g_free(color);
-  g_action_change_state(G_ACTION(action), parameter);
-  printf("Color activated\n");
 }

@@ -22,7 +22,7 @@ pkg_check_modules(GTK REQUIRED IMPORTED_TARGET gtk4)
 pkg_check_modules(GPS REQUIRED IMPORTED_TARGET libgps)
 
 add_executable(${PROJECT_NAME} main.c db_sqlite.c main_window.c llog.c conf.c
-																position.c)
+																preferences_window.c position.c)
 
 #set up include directories
 include_directories("${PROJECT_BINARY_DIR}")

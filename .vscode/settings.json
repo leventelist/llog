@@ -1,6 +1,8 @@
 {
   "files.associations": {
     "llog.h": "c",
-    "atomic": "c"
+    "atomic": "c",
+    "typeindex": "c",
+    "typeinfo": "c"
   }
 }
