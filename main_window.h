@@ -26,6 +26,7 @@
 
 
 int main_window_draw(int argc, char *argv[]);
+void main_window_set_llog(llog_t *llog);
 void main_window_add_log_entry_to_list(log_entry_t *entry);
 void main_window_add_station_entry_to_list(station_entry_t *station);
 void main_window_add_mode_entry_to_list(mode_entry_t *mode);

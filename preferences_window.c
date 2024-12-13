@@ -1,4 +1,5 @@
 #include <gtk/gtk.h>
+#include "llog.h"
 
 
 /*Forward declarations for the callbacks*/
@@ -18,13 +19,14 @@ typedef struct {
   GtkWidget *button_ok;
   GtkWidget *button_apply;
   GtkWidget *button_cancel;
+  llog_t *llog;
 } app_widgets_t;
 
 void on_preferences_window_activate(GtkWidget *widget, gpointer data) {
   (void)widget;
-  (void)data;
 
   app_widgets_t *widgets = g_malloc(sizeof(app_widgets_t));
+  widgets->llog = (llog_t *) data;
 
 
   widgets->window = gtk_window_new();
@@ -65,9 +67,9 @@ void on_preferences_window_activate(GtkWidget *widget, gpointer data) {
 
   widgets->button_cancel = gtk_button_new_with_label("Cancel");
   gtk_box_append(GTK_BOX(widgets->button_box), widgets->button_cancel);
-  g_signal_connect(widgets->button_ok, "clicked", G_CALLBACK(on_button_ok_clicked), NULL);
-  g_signal_connect(widgets->button_apply, "clicked", G_CALLBACK(on_button_apply_clicked), NULL);
-  g_signal_connect(widgets->button_cancel, "clicked", G_CALLBACK(on_button_cancel_clicked), NULL);
+  g_signal_connect(widgets->button_ok, "clicked", G_CALLBACK(on_button_ok_clicked), widgets);
+  g_signal_connect(widgets->button_apply, "clicked", G_CALLBACK(on_button_apply_clicked), widgets);
+  g_signal_connect(widgets->button_cancel, "clicked", G_CALLBACK(on_button_cancel_clicked), widgets);
   gtk_widget_show(widgets->window);
 }
 
@@ -87,9 +89,9 @@ static void on_button_apply_clicked(GtkWidget *widget, gpointer data) {
 
 static void on_button_cancel_clicked(GtkWidget *widget, gpointer data) {
   (void)widget;
-  (void)data;
+
   g_print("Cancel button clicked\n");
-  // Add your code to handle Cancel button click
+  gtk_window_close(GTK_WINDOW(((app_widgets_t *)data)->window));
 }
 
 static void on_preferences_window_destroy(GtkWidget *widget, gpointer data) {

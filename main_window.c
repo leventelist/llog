@@ -345,6 +345,7 @@ static void bind_mode_cb(GtkSignalListItemFactory *factory, GtkListItem *listite
 static app_widgets_t *widgets;
 static log_entry_t log_entry_data;
 static GtkCssProvider *provider;
+static llog_t *local_llog;
 
 /*Callbacks*/
 static void on_window_main_destroy(void);
@@ -360,6 +361,10 @@ static void on_about_menu_activate(app_widgets_t *app_wdgts);
 static void on_reload_activate(GMenuItem *menuitem, app_widgets_t *app_wdgts);
 static void on_menuitm_open_activate(app_widgets_t *app_wdgts);
 static void on_open_file_response(GtkDialog *dialog, gint response_id, gpointer user_data);
+
+void main_window_set_llog(llog_t *llog) {
+  local_llog = llog;
+}
 
 int main_window_draw(int argc, char *argv[]) {
   GtkApplication *app;
@@ -937,10 +942,10 @@ static void on_about_menu_activate(app_widgets_t *app_wdgts) {
   widgets->about_dialog = gtk_about_dialog_new();
   gtk_window_set_transient_for(GTK_WINDOW(app_wdgts->about_dialog), GTK_WINDOW(app_wdgts->main_window));
   gtk_about_dialog_set_program_name(GTK_ABOUT_DIALOG(app_wdgts->about_dialog), "Llog");
-  gtk_about_dialog_set_version(GTK_ABOUT_DIALOG(app_wdgts->about_dialog), "1.0");
+  gtk_about_dialog_set_version(GTK_ABOUT_DIALOG(app_wdgts->about_dialog), VERSION);
   gtk_about_dialog_set_comments(GTK_ABOUT_DIALOG(app_wdgts->about_dialog), "A simple logging application.");
   gtk_about_dialog_set_website(GTK_ABOUT_DIALOG(app_wdgts->about_dialog), "https://example.com");
-  gtk_about_dialog_set_authors(GTK_ABOUT_DIALOG(app_wdgts->about_dialog), (const char *[]){ "Author Name", NULL });
+  gtk_about_dialog_set_authors(GTK_ABOUT_DIALOG(app_wdgts->about_dialog), (const char *[]){ "Levente Kovacs", NULL });
   gtk_about_dialog_set_license_type(GTK_ABOUT_DIALOG(app_wdgts->about_dialog), GTK_LICENSE_GPL_3_0);
   gtk_about_dialog_set_logo_icon_name(GTK_ABOUT_DIALOG(app_wdgts->about_dialog), "llog");
   gtk_window_present(GTK_WINDOW(app_wdgts->about_dialog));
@@ -949,7 +954,7 @@ static void on_about_menu_activate(app_widgets_t *app_wdgts) {
 static void on_edit_preferences_activate(app_widgets_t *app_wdgts) {
   (void)app_wdgts;
   printf("Preferences activated\n");
-  on_preferences_window_activate(app_wdgts, NULL);
+  on_preferences_window_activate(NULL, local_llog);
 }
 
 /*Actions*/

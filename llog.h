@@ -141,7 +141,7 @@ typedef struct {
 
 
 /*Function definitions*/
-int llog_init(void);
+llog_t *llog_init(void);
 int llog_set_log_file(char *log_file_name);
 int llog_set_config_file(char *config_file_name);
 int llog_get_log_file_path(char **path);

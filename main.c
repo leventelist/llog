@@ -30,7 +30,7 @@
 static void print_ver(void);
 static void print_help(void);
 
-static void print_ver(void);
+static llog_t *llog;
 
 
 int main(int argc, char *argv[]) {
@@ -38,7 +38,7 @@ int main(int argc, char *argv[]) {
 	int opt;
 
 	/*Initialize main data structures*/
-	llog_init();
+	llog = llog_init();
 
 	/*Parse command line arguments*/
 
@@ -70,6 +70,7 @@ int main(int argc, char *argv[]) {
 	llog_parse_config_file();
 
 	/*Draw main window*/
+	main_window_set_llog(llog);
 	main_window_draw(argc, argv);
 
 	llog_shutdown();

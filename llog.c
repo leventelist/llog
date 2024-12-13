@@ -45,7 +45,7 @@ static config_attribute_t llog_ca[] = {
 };
 
 
-int llog_init(void) {
+llog_t *llog_init(void) {
   char *homedir = getenv("HOME");
 
   sprintf(llog.config_file_name, "%s/llog.cf", homedir);
@@ -55,7 +55,7 @@ int llog_init(void) {
 
   llog.ca = llog_ca;
 
-  return OK;
+  return &llog;
 }
 
 int llog_set_log_file(char *log_file_name) {
