@@ -785,11 +785,11 @@ void on_window_main_entry_changed(GtkEditable *editable, gpointer user_data) {
     /*Check for dup QSO*/
     ret = llog_check_dup_qso(&log_entry_data);
     switch (ret) {
-    case OK:                     /*New QSO*/
+    case llog_stat_ok:                     /*New QSO*/
       gtk_label_set_label(GTK_LABEL(widgets->call_label), "Call");
       break;
 
-    case LLOG_DUP:                     /*DUP QSO*/
+    case llog_stat_dup:                     /*DUP QSO*/
       gtk_label_set_label(GTK_LABEL(widgets->call_label), "Call [DUP]");
       break;
 
@@ -882,12 +882,12 @@ static void on_log_btn_clicked(void) {
   ret = llog_log_entry(&log_entry_data);
 
   switch (ret) {
-  case OK:
+  case llog_stat_ok:
     /* Increment the counter. */
     log_entry_data.txnr++;
     break;
 
-  case LLOG_ERR:
+  case llog_stat_err:
     /*Display some error message.*/
     error_dialog = gtk_message_dialog_new(GTK_WINDOW(widgets->main_window), flags, GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Error logging the QSO!");
     gtk_message_dialog_format_secondary_text(GTK_MESSAGE_DIALOG(error_dialog), "Database is not ready.");

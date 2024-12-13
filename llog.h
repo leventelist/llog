@@ -46,14 +46,17 @@
 #define X_LEN 40
 #define STATION_LEN 256
 
-#define OK 0
-#define FILE_ERR 1
-#define CMD_LINE_ERR 2
-#define NO_DATA 3
-#define ERR 0xffff
 
-#define LLOG_ERR 3
-#define LLOG_DUP 4
+
+typedef enum {
+  llog_stat_ok = 0,
+  llog_stat_err,
+  llog_stat_file_err,
+  llog_cmd_line_err,
+  llog_no_data,
+  llog_stat_dup,
+  llog_stat_mem_err
+} llog_error_t;
 
 enum llog_entry_pos {
   llog_entry_call = 0,

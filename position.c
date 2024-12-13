@@ -14,15 +14,15 @@ int position_init(char *host, uint64_t port, gps_data_real_t *gpsdata) {
 
   switch (ret) {
   case 0:
-    ret_val = OK;
+    ret_val = llog_stat_ok;
     break;
 
   case -1:
-    ret_val = ERR;
+    ret_val = llog_stat_err;
     break;
 
   default:
-    ret_val = ERR;
+    ret_val = llog_stat_err;
     break;
   }
 
@@ -45,7 +45,7 @@ int position_step(gps_data_real_t *gpsdata, position_t *pos) {
     switch (ret) {
     case 0:
       if ((gpsdata->set & MODE_SET) != MODE_SET) {
-        ret_val = NO_DATA;
+        ret_val = llog_no_data;
         break;
       }
       switch (gpsdata->fix.mode) {
@@ -70,28 +70,28 @@ int position_step(gps_data_real_t *gpsdata, position_t *pos) {
         break;
       }
       if (!progress) {
-        ret_val = NO_DATA;
+        ret_val = llog_no_data;
         break;
       } else {
-        ret_val = OK;
+        ret_val = llog_stat_ok;
         pos->lat = gpsdata->fix.latitude;
         pos->lon = gpsdata->fix.longitude;
         pos->alt = gpsdata->fix.altitude;
         pos->speed = gpsdata->fix.speed;
       }
 
-      ret_val = OK;
+      ret_val = llog_stat_ok;
       break;
 
     case -1:
-      ret_val = ERR;
+      ret_val = llog_stat_err;
       break;
 
     default:
       break;
     }
   } else {
-    ret_val = NO_DATA;
+    ret_val = llog_no_data;
   }
 
 
@@ -108,15 +108,15 @@ int position_close(gps_data_real_t *gpsdata) {
 
   switch (ret) {
   case 0:
-    ret_val = OK;
+    ret_val = llog_stat_ok;
     break;
 
   case -1:
-    ret_val = ERR;
+    ret_val = llog_stat_err;
     break;
 
   default:
-    ret_val = ERR;
+    ret_val = llog_stat_err;
     break;
   }
 

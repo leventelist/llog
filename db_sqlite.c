@@ -40,7 +40,7 @@
 
 int db_sqlite_init(llog_t *llog) {
   int ret;
-  int ret_val = OK;
+  int ret_val = llog_stat_ok;
 
   if (llog->stat == db_opened) {
     db_close(llog);
@@ -52,7 +52,7 @@ int db_sqlite_init(llog_t *llog) {
   do{
     if (ret != SQLITE_OK) {
       printf("Error opening the log database '%s'.\n", llog->log_file_name);
-      ret_val = FILE_ERR;
+      ret_val = llog_stat_err;
       break;
     }
     sqlite3_busy_timeout(llog->db, DATABASE_TIMEOUT);
@@ -66,12 +66,12 @@ int db_sqlite_init(llog_t *llog) {
 int db_close(llog_t *llog) {
   sqlite3_close(llog->db);
 
-  return OK;
+  return llog_stat_ok;
 }
 
 
 int db_check_dup_qso(llog_t *log, log_entry_t *entry) {
-  int ret, ret_val = OK;
+  int ret, ret_val = llog_stat_ok;
   char buff[BUF_SIZ];
   bool have_work = true;
 
@@ -86,22 +86,22 @@ int db_check_dup_qso(llog_t *log, log_entry_t *entry) {
       strncpy(entry->date, (char *)sqlite3_column_text(entry->sq3_stmt, 0), NAME_LEN);
       strncpy(entry->utc, (char *)sqlite3_column_text(entry->sq3_stmt, 1), NAME_LEN);
       printf("\nDUP QSO on %s at %sUTC.\n", entry->date, entry->utc);
-      ret_val = LLOG_DUP;
+      ret_val = llog_stat_dup;
       have_work = false;
       break;
 
     case SQLITE_DONE:
       have_work = false;
-      ret_val = OK;
+      ret_val = llog_stat_ok;
       break;
 
     case SQLITE_BUSY:
-      ret_val = LLOG_ERR;
+      ret_val = llog_stat_err;
       have_work = false;
       break;
 
     default:
-      ret_val = LLOG_ERR;
+      ret_val = llog_stat_err;
       have_work = false;
       printf("Error looking up DUP QSOs: %s\n", sqlite3_errmsg(log->db));
       break;
@@ -120,7 +120,7 @@ int db_check_dup_qso(llog_t *log, log_entry_t *entry) {
  * or a db_data_last in the status of the entry pointer, even if you don't want more.
  * */
 int db_get_log_entries(llog_t *log, log_entry_t *entry) {
-  int ret, ret_val = OK;
+  int ret, ret_val = llog_stat_ok;
   bool finalize = true;
   char buff[BUF_SIZ];
 
@@ -143,21 +143,21 @@ int db_get_log_entries(llog_t *log, log_entry_t *entry) {
     entry->qrg = sqlite3_column_double(entry->sq3_stmt, 6);
     strncpy(entry->mode.name, (char *)sqlite3_column_text(entry->sq3_stmt, 7), MODE_LEN);
     finalize = false;
-    ret_val = OK;
+    ret_val = llog_stat_ok;
     entry->data_stat = db_data_valid;
     break;
 
   case SQLITE_DONE:
-    ret_val = OK;
+    ret_val = llog_stat_ok;
     entry->data_stat = db_data_last;
     break;
 
   case SQLITE_BUSY:
-    ret_val = LLOG_ERR;
+    ret_val = llog_stat_err;
     break;
 
   default:
-    ret_val = LLOG_ERR;
+    ret_val = llog_stat_err;
     printf("Error looking up log entry: %s\n", sqlite3_errmsg(log->db));
     break;
   }
@@ -171,7 +171,7 @@ int db_get_log_entries(llog_t *log, log_entry_t *entry) {
 
 
 int db_get_max_nr(llog_t *log, log_entry_t *entry) {
-  int ret, ret_val = OK;
+  int ret, ret_val = llog_stat_ok;
   char buff[BUF_SIZ];
   bool have_work = true;
 
@@ -185,21 +185,21 @@ int db_get_max_nr(llog_t *log, log_entry_t *entry) {
     switch (ret) {
     case SQLITE_ROW:
       entry->txnr = sqlite3_column_int64(entry->sq3_stmt, 0) + 1;
-      ret_val = OK;
+      ret_val = llog_stat_ok;
       break;
 
     case SQLITE_DONE:
       have_work = false;
-      ret_val = OK;
+      ret_val = llog_stat_ok;
       break;
 
     case SQLITE_BUSY:
-      ret_val = LLOG_ERR;
+      ret_val = llog_stat_err;
       have_work = false;
       break;
 
     default:
-      ret_val = LLOG_ERR;
+      ret_val = llog_stat_err;
       have_work = false;
       printf("Error looking up serial number: %s\n", sqlite3_errmsg(log->db));
       break;
@@ -213,7 +213,7 @@ int db_get_max_nr(llog_t *log, log_entry_t *entry) {
 
 
 int db_set_log_entry(llog_t *log, log_entry_t *entry) {
-  int ret, ret_val = OK;
+  int ret, ret_val = llog_stat_ok;
   char buff[BUF_SIZ];
 
   snprintf(buff, BUF_SIZ, "INSERT INTO log (date, UTC, call, rxrst, txrst, rxnr, txnr, rxextra, txextra, QTH, name, QRA, QRG, mode, pwr, rxQSL, txQSL, comment, station) VALUES ('%s', '%s', '%s', '%s', '%s', %" PRIu64 ", %" PRIu64 ", '%s', '%s', '%s', '%s', '%s', %f, '%s', '%s', %" PRIu64 ", %" PRIu64 ", '%s', %" PRIu64 ");", entry->date, entry->utc, entry->call, entry->rxrst, entry->txrst, entry->rxnr, entry->txnr, entry->rxextra, entry->txextra, entry->qth, entry->name, entry->qra, entry->qrg, entry->mode.name, entry->power, (uint64_t)0U, (uint64_t)0U, entry->comment, entry->station_id);
@@ -227,15 +227,15 @@ int db_set_log_entry(llog_t *log, log_entry_t *entry) {
     break;
 
   case SQLITE_DONE:
-    ret_val = OK;
+    ret_val = llog_stat_ok;
     break;
 
   case SQLITE_BUSY:
-    ret_val = LLOG_ERR;
+    ret_val = llog_stat_err;
     break;
 
   default:
-    ret_val = LLOG_ERR;
+    ret_val = llog_stat_err;
     printf("Error inserting log entry: %s\n", sqlite3_errmsg(log->db));
     break;
   }
@@ -249,7 +249,7 @@ int db_set_log_entry(llog_t *log, log_entry_t *entry) {
 
 int db_get_station_entry(llog_t *log, station_entry_t *station) {
   char buff[BUF_SIZ];
-  int ret, ret_val = LLOG_ERR;
+  int ret, ret_val = llog_stat_err;
   bool finalize = true;
   char *cell;
 
@@ -304,7 +304,7 @@ int db_get_station_entry(llog_t *log, station_entry_t *station) {
       cell = EMPTY_STRING;
     }
     strncpy(station->ant, cell, ANT_LEN);
-    ret_val = OK;
+    ret_val = llog_stat_ok;
     finalize = false;
     station->data_stat = db_data_valid;
     break;
@@ -314,11 +314,11 @@ int db_get_station_entry(llog_t *log, station_entry_t *station) {
     break;
 
   case SQLITE_BUSY:
-    ret_val = LLOG_ERR;
+    ret_val = llog_stat_err;
     break;
 
   default:
-    ret_val = LLOG_ERR;
+    ret_val = llog_stat_err;
     printf("Error looking up stations: %s\n", sqlite3_errmsg(log->db));
     break;
   }
@@ -334,7 +334,7 @@ int db_get_station_entry(llog_t *log, station_entry_t *station) {
 
 int db_get_mode_entry(llog_t *log, mode_entry_t *mode, uint64_t *id) {
   char buff[BUF_SIZ];
-  int ret, ret_val = LLOG_ERR;
+  int ret, ret_val = llog_stat_err;
   bool finalize = true;
   char *cell;
 
@@ -369,7 +369,7 @@ int db_get_mode_entry(llog_t *log, mode_entry_t *mode, uint64_t *id) {
       cell = EMPTY_STRING;
     }
     strncpy(mode->comment, cell, NAME_LEN);
-    ret_val = OK;
+    ret_val = llog_stat_ok;
     finalize = false;
     mode->data_stat = db_data_valid;
     break;
@@ -379,11 +379,11 @@ int db_get_mode_entry(llog_t *log, mode_entry_t *mode, uint64_t *id) {
     break;
 
   case SQLITE_BUSY:
-    ret_val = LLOG_ERR;
+    ret_val = llog_stat_err;
     break;
 
   default:
-    ret_val = LLOG_ERR;
+    ret_val = llog_stat_err;
     printf("Error looking up mode: %s\n", sqlite3_errmsg(log->db));
     break;
   }
@@ -399,13 +399,13 @@ int db_create_from_schema(llog_t *llog, const char *schema_file) {
   FILE *file;
   char *schema;
   long length;
-  int ret_val = OK;
+  int ret_val = llog_stat_ok;
   char *err_msg = NULL;
 
   file = fopen(schema_file, "rb");
   if (!file) {
     printf("Error opening schema file '%s'.\n", schema_file);
-    return FILE_ERR;
+    return llog_stat_file_err;
   }
 
   fseek(file, 0, SEEK_END);
@@ -416,7 +416,7 @@ int db_create_from_schema(llog_t *llog, const char *schema_file) {
   if (!schema) {
     fclose(file);
     printf("Memory allocation error.\n");
-    return MEM_ERR;
+    return llog_stat_mem_err;
   }
 
   fread(schema, 1, length, file);
@@ -427,7 +427,7 @@ int db_create_from_schema(llog_t *llog, const char *schema_file) {
   if (ret_val != SQLITE_OK) {
     printf("Error creating database schema: %s\n", err_msg);
     sqlite3_free(err_msg);
-    ret_val = DB_ERR;
+    ret_val = llog_stat_err;
   }
 
   free(schema);

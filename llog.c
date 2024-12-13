@@ -63,12 +63,12 @@ int llog_set_log_file(char *log_file_name) {
   int ret_val;
 
   if (realpath(log_file_name, real_log_file_name) == NULL) {
-    ret_val = ERR;
+    ret_val = llog_stat_err;
   }else {
-    ret_val = OK;
+    ret_val = llog_stat_ok;
   }
 
-  if (ret_val == OK) {
+  if (ret_val == llog_stat_ok) {
     strncpy(llog.log_file_name, real_log_file_name, FILE_LEN);
   }
 
@@ -84,7 +84,7 @@ int llog_set_log_file(char *log_file_name) {
 }
 
 int llog_set_config_file(char *config_file_name) {
-  int ret = OK;
+  int ret = llog_stat_ok;
 
   strncpy(llog.config_file_name, config_file_name, FILE_LEN);
 
@@ -94,25 +94,25 @@ int llog_set_config_file(char *config_file_name) {
 
 int llog_parse_config_file(void) {
   int ret_val;
-  int ret = OK;
+  int ret = llog_stat_ok;
 
   /*Check if there were log file name supplied at the command line*/
   if (llog.log_file_name[0] == '\0') {     /*It wasn't*/
     ret_val = config_file_read(llog.config_file_name, llog.ca);
     if (ret_val == CONF_READ_ERR) {
       printf("Error reading config file `%s`\n", llog.config_file_name);
-      ret = FILE_ERR;
+      ret = llog_stat_err;
     }
   }
 
-  if (ret == OK) {
+  if (ret == llog_stat_ok) {
     llog_open_db();
   }
 
   initial_station.data_stat = db_data_init;
   ret_val = db_get_station_entry(&llog, &initial_station);
 
-  if (ret_val != LLOG_ERR) {
+  if (ret_val != llog_stat_err) {
     db_get_station_entry(&llog, &initial_station);             /*This will finalize the data*/
   }
 
@@ -133,7 +133,7 @@ int llog_open_db(void) {
 
 int llog_get_initial_station(station_entry_t * *station) {
   *station = &initial_station;
-  return OK;
+  return llog_stat_ok;
 }
 
 
@@ -146,11 +146,11 @@ int llog_save_config_file(void) {
 
 int llog_get_log_file_path(char * *path) {
   *path = llog.log_file_name;
-  return OK;
+  return llog_stat_ok;
 }
 
 int llog_add_log_entries(void) {
-  int ret_val = OK;
+  int ret_val = llog_stat_ok;
   log_entry_t entry;
 
   entry.data_stat = db_data_init;
@@ -159,7 +159,7 @@ int llog_add_log_entries(void) {
 
   while (entry.data_stat != db_data_last) {
     ret_val = db_get_log_entries(&llog, &entry);
-    if (ret_val != OK) {
+    if (ret_val != llog_stat_ok) {
       break;
     }
     if (entry.data_stat == db_data_valid) {
@@ -174,7 +174,7 @@ int llog_add_log_entries(void) {
 
 
 int llog_log_entry(log_entry_t *entry) {
-  int ret_val = OK;
+  int ret_val = llog_stat_ok;
 
   ret_val = db_set_log_entry(&llog, entry);
 
@@ -204,7 +204,7 @@ void llog_reset_entry(log_entry_t *entry) {
 
 
 int llog_add_station_entries(void) {
-  int ret_val = OK;
+  int ret_val = llog_stat_ok;
   station_entry_t station;
 
   station.data_stat = db_data_init;
@@ -226,7 +226,7 @@ int llog_add_station_entries(void) {
 
 
 int llog_add_modes_entries(void) {
-  int ret_val = OK;
+  int ret_val = llog_stat_ok;
   mode_entry_t mode;
 
   mode.data_stat = db_data_init;
@@ -253,7 +253,7 @@ int llog_get_default_rst(char *default_rst, uint64_t mode_id) {
   mode.data_stat = db_data_init;
 
   ret = db_get_mode_entry(&llog, &mode, &mode_id);
-  if (ret == OK) {
+  if (ret == llog_stat_ok) {
     strncpy(default_rst, mode.default_rst, MODE_LEN);
   }
 
@@ -297,19 +297,19 @@ int llog_load_static_data(log_entry_t *entry) {
 
   do {
     ret = llog_add_log_entries();
-    if (ret != OK) {
+    if (ret != llog_stat_ok) {
       break;
     }
     ret = llog_add_station_entries();
-    if (ret != OK) {
+    if (ret != llog_stat_ok) {
       break;
     }
     ret = llog_add_modes_entries();
-    if (ret != OK) {
+    if (ret != llog_stat_ok) {
       break;
     }
     ret = llog_get_max_nr(entry);
-    if (ret != OK) {
+    if (ret != llog_stat_ok) {
       break;
     }
   } while (0);

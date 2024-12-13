@@ -46,7 +46,7 @@ int main(int argc, char *argv[]) {
 		switch (opt) {
 		case 'h': /*print help*/
 			print_help();
-			return(OK);
+			return(llog_stat_ok);
 		break;
 		case 'f':
 			llog_set_log_file(optarg);
@@ -54,14 +54,14 @@ int main(int argc, char *argv[]) {
 		break;
 		case 'v':
 			print_ver();
-			return(OK);
+			return(llog_stat_ok);
 		break;
 		case '?':
 		case ':':
 		default:
 			printf("Error parsing the command line arguments\n");
 			print_help();
-			return(CMD_LINE_ERR);
+			return(llog_cmd_line_err);
 			break;
 		}
 	}
