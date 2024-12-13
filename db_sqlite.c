@@ -394,3 +394,42 @@ int db_get_mode_entry(llog_t *log, mode_entry_t *mode, uint64_t *id) {
 
   return ret_val;
 }
+
+int db_create_from_schema(llog_t *llog, const char *schema_file) {
+  FILE *file;
+  char *schema;
+  long length;
+  int ret_val = OK;
+  char *err_msg = NULL;
+
+  file = fopen(schema_file, "rb");
+  if (!file) {
+    printf("Error opening schema file '%s'.\n", schema_file);
+    return FILE_ERR;
+  }
+
+  fseek(file, 0, SEEK_END);
+  length = ftell(file);
+  fseek(file, 0, SEEK_SET);
+
+  schema = malloc(length + 1);
+  if (!schema) {
+    fclose(file);
+    printf("Memory allocation error.\n");
+    return MEM_ERR;
+  }
+
+  fread(schema, 1, length, file);
+  fclose(file);
+  schema[length] = '\0';
+
+  ret_val = sqlite3_exec(llog->db, schema, 0, 0, &err_msg);
+  if (ret_val != SQLITE_OK) {
+    printf("Error creating database schema: %s\n", err_msg);
+    sqlite3_free(err_msg);
+    ret_val = DB_ERR;
+  }
+
+  free(schema);
+  return ret_val;
+}

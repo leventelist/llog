@@ -138,9 +138,11 @@ int llog_get_initial_station(station_entry_t * *station) {
 
 
 int llog_save_config_file(void) {
-  config_print_file(llog.config_file_name, llog.ca);
-  return OK;
+  int ret;
+  ret = config_print_file(llog.config_file_name, llog.ca);
+  return ret;
 }
+
 
 int llog_get_log_file_path(char * *path) {
   *path = llog.log_file_name;

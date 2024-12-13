@@ -56,6 +56,11 @@ void on_preferences_window_activate(GtkWidget *widget, gpointer data) {
   gtk_grid_attach(GTK_GRID(grid), widgets->port_entry, 1, 1, 1, 1);
   gtk_widget_set_hexpand(widgets->port_entry, TRUE);
 
+  gtk_editable_set_text(GTK_EDITABLE(widgets->host_entry), widgets->llog->gpsd_host);
+  char port[16];
+  sprintf(port, "%lu", widgets->llog->gpsd_port);
+  gtk_editable_set_text(GTK_EDITABLE(widgets->port_entry), port);
+
   widgets->button_box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
   gtk_box_append(GTK_BOX(widgets->box), widgets->button_box);
 
@@ -75,9 +80,11 @@ void on_preferences_window_activate(GtkWidget *widget, gpointer data) {
 
 static void on_button_ok_clicked(GtkWidget *widget, gpointer data) {
   (void)widget;
-  (void)data;
+
   g_print("OK button clicked\n");
   // Add your code to handle OK button click
+  on_button_apply_clicked(widget, data);
+  on_button_cancel_clicked(widget, data);
 }
 
 static void on_button_apply_clicked(GtkWidget *widget, gpointer data) {
@@ -85,6 +92,15 @@ static void on_button_apply_clicked(GtkWidget *widget, gpointer data) {
   (void)data;
   g_print("Apply button clicked\n");
   // Add your code to handle Apply button click
+  app_widgets_t *widgets = (app_widgets_t *)data;
+  const gchar *host = gtk_editable_get_text(GTK_EDITABLE(widgets->host_entry));
+  const gchar *port = gtk_editable_get_text(GTK_EDITABLE(widgets->port_entry));
+
+  strcpy(widgets->llog->gpsd_host, host);
+  widgets->llog->gpsd_port = atoi(port);
+
+  llog_save_config_file();
+
 }
 
 static void on_button_cancel_clicked(GtkWidget *widget, gpointer data) {

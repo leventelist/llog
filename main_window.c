@@ -20,6 +20,7 @@
 
 #include <gtk/gtk.h>
 #include <inttypes.h>
+#include <unistd.h>
 #include "main_window.h"
 #include "llog.h"
 #include "llog_Config.h"
@@ -356,6 +357,8 @@ static void set_static_data(void);
 static void on_activate(GtkApplication *app, gpointer user_data);
 static void on_log_btn_clicked(void);
 static void on_edit_preferences_activate(app_widgets_t *app_wdgts);
+static void on_edit_log_db_activate(app_widgets_t *app_wdgts);
+static void on_menuitm_new_activate(app_widgets_t *app_wdgts);
 static void on_qrt_activate(void);
 static void on_about_menu_activate(app_widgets_t *app_wdgts);
 static void on_reload_activate(GMenuItem *menuitem, app_widgets_t *app_wdgts);
@@ -564,13 +567,16 @@ static void on_activate(GtkApplication *app, gpointer user_data) {
   GSimpleAction *act_quit = g_simple_action_new("quit", NULL);
   GSimpleAction *act_reload = g_simple_action_new("reload", NULL);
   GSimpleAction *act_open = g_simple_action_new("open", NULL);
+  GSimpleAction *act_new = g_simple_action_new("new", NULL);
 
   g_signal_connect(act_reload, "activate", G_CALLBACK(on_reload_activate), widgets);
   g_signal_connect_swapped(act_open, "activate", G_CALLBACK(on_menuitm_open_activate), widgets);
+  g_signal_connect_swapped(act_new, "activate", G_CALLBACK(on_menuitm_new_activate), widgets);
   g_signal_connect_swapped(act_quit, "activate", G_CALLBACK(g_application_quit), app); //Modify this to the QRT function
   g_action_map_add_action(G_ACTION_MAP(app), G_ACTION(act_quit));
   g_action_map_add_action(G_ACTION_MAP(app), G_ACTION(act_reload));
   g_action_map_add_action(G_ACTION_MAP(app), G_ACTION(act_open));
+  g_action_map_add_action(G_ACTION_MAP(app), G_ACTION(act_new));
 
   GMenu *menubar = g_menu_new();
   GMenu *file_menu = g_menu_new();
@@ -578,13 +584,16 @@ static void on_activate(GtkApplication *app, gpointer user_data) {
   GMenu *section3 = g_menu_new();
 
   GMenuItem *menu_item_open = g_menu_item_new("Open", "app.open");
+  GMenuItem *menu_item_new = g_menu_item_new("New", "app.new");
   GMenuItem *menu_item_reload = g_menu_item_new("Reload", "app.reload");
   GMenuItem *menu_item_quit = g_menu_item_new("QRT", "app.quit");
 
   g_menu_append_item(section1, menu_item_open);
+  g_menu_append_item(section1, menu_item_new);
   g_menu_append_item(section1, menu_item_reload);
   g_menu_append_item(section3, menu_item_quit);
   g_object_unref(menu_item_open);
+  g_object_unref(menu_item_new);
   g_object_unref(menu_item_reload);
   g_object_unref(menu_item_quit);
 
@@ -613,6 +622,13 @@ static void on_activate(GtkApplication *app, gpointer user_data) {
   g_signal_connect_swapped(act_preferences, "activate", G_CALLBACK(on_edit_preferences_activate), widgets);
   g_action_map_add_action(G_ACTION_MAP(app), G_ACTION(act_preferences));
 
+  GMenuItem *menu_item_edit_log_db = g_menu_item_new("Log database", "app.edit_log_db");
+  GSimpleAction *act_edit_log_db = g_simple_action_new("edit_log_db", NULL);
+
+  g_menu_append_item(edit_section, menu_item_edit_log_db);
+  g_object_unref(menu_item_edit_log_db);
+  g_signal_connect_swapped(act_edit_log_db, "activate", G_CALLBACK(on_edit_log_db_activate), widgets);
+  g_action_map_add_action(G_ACTION_MAP(app), G_ACTION(act_edit_log_db));
 
   /*Help menu*/
   GSimpleAction *act_about = g_simple_action_new("about", NULL);
@@ -925,6 +941,11 @@ static void on_qrt_activate(void) {
   //g_main_loop_quit();
 }
 
+static void on_menuitm_new_activate(app_widgets_t *app_wdgts) {
+  (void)app_wdgts;
+
+  printf("New activated\n");
+}
 
 static void on_reload_activate(GMenuItem *menuitem, app_widgets_t *app_wdgts) {
   (void)menuitem;
@@ -948,6 +969,7 @@ static void on_about_menu_activate(app_widgets_t *app_wdgts) {
   gtk_about_dialog_set_authors(GTK_ABOUT_DIALOG(app_wdgts->about_dialog), (const char *[]){ "Levente Kovacs", NULL });
   gtk_about_dialog_set_license_type(GTK_ABOUT_DIALOG(app_wdgts->about_dialog), GTK_LICENSE_GPL_3_0);
   gtk_about_dialog_set_logo_icon_name(GTK_ABOUT_DIALOG(app_wdgts->about_dialog), "llog");
+  g_signal_connect(app_wdgts->about_dialog, "destroy", G_CALLBACK(gtk_window_destroy), NULL);
   gtk_window_present(GTK_WINDOW(app_wdgts->about_dialog));
 }
 
@@ -955,6 +977,34 @@ static void on_edit_preferences_activate(app_widgets_t *app_wdgts) {
   (void)app_wdgts;
   printf("Preferences activated\n");
   on_preferences_window_activate(NULL, local_llog);
+}
+
+static void on_edit_log_db_activate(app_widgets_t *app_wdgts) {
+  (void)app_wdgts;
+
+  /*It would be nice if the editing were done inside the application,
+     but for now I just launch the sqlitebrowser, and we can edit the
+     database from there. A solution from a lazy programmer.
+   */
+
+  int ret;
+
+  ret = fork();
+
+  switch (ret) {
+  case 0:
+    ret = execlp("sqlitebrowser", "sqlitebrowser", local_llog->log_file_name, (char *)NULL);
+    perror("execlp");
+    break;
+
+  case -1:
+    perror("fork");
+    break;
+
+  default:
+    printf("Forked PID: (%d)\n", ret);
+    break;
+  }
 }
 
 /*Actions*/
