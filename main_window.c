@@ -364,6 +364,7 @@ static void on_about_menu_activate(app_widgets_t *app_wdgts);
 static void on_reload_activate(GMenuItem *menuitem, app_widgets_t *app_wdgts);
 static void on_menuitm_open_activate(app_widgets_t *app_wdgts);
 static void on_open_file_response(GtkDialog *dialog, gint response_id, gpointer user_data);
+static void on_new_file_response(GtkDialog *dialog, gint response_id, gpointer user_data);
 
 void main_window_set_llog(llog_t *llog) {
   local_llog = llog;
@@ -715,7 +716,6 @@ static void on_menuitm_open_activate(app_widgets_t *app_wdgts) {
 
   // Show the "Open Text File" dialog box
   gtk_window_present(GTK_WINDOW(app_wdgts->logfile_choose));
-  return;
 }
 
 static void on_open_file_response(GtkDialog *dialog, gint response_id, gpointer user_data) {
@@ -945,6 +945,46 @@ static void on_menuitm_new_activate(app_widgets_t *app_wdgts) {
   (void)app_wdgts;
 
   printf("New activated\n");
+
+  char *current_log_file_name;
+
+  llog_get_log_file_path(&current_log_file_name);
+
+  app_wdgts->logfile_choose = gtk_file_chooser_dialog_new("Open Log File",
+                                                          GTK_WINDOW(app_wdgts->main_window),
+                                                          GTK_FILE_CHOOSER_ACTION_SAVE, "_Cancel",
+                                                          GTK_RESPONSE_CANCEL,
+                                                          "_Save",
+                                                          GTK_RESPONSE_OK,
+                                                          NULL);
+
+/*Add last loaded filename to the chooser*/
+  if (current_log_file_name != NULL && current_log_file_name[0] != '\0') {
+    GFile *file = g_file_new_for_path(current_log_file_name);
+    gtk_file_chooser_set_file(GTK_FILE_CHOOSER(app_wdgts->logfile_choose), file, NULL);
+  }
+
+  g_signal_connect(app_wdgts->logfile_choose, "response", G_CALLBACK(on_new_file_response), app_wdgts);
+
+  // Show the "Open Text File" dialog box
+  gtk_window_present(GTK_WINDOW(app_wdgts->logfile_choose));
+  //gtk_widget_destroy(dialog);
+}
+
+static void on_new_file_response(GtkDialog *dialog, gint response_id, gpointer user_data) {
+  (void)user_data;
+
+  if (response_id == GTK_RESPONSE_OK) {
+    GtkFileChooser *chooser = GTK_FILE_CHOOSER(dialog);
+    GFile *file = gtk_file_chooser_get_file(chooser);
+    char *filename = g_file_get_path(file);
+    if (filename != NULL) {
+      g_print("File selected: %s\n", filename);
+    }
+    g_free(filename);
+    g_object_unref(file);
+  }
+  gtk_window_destroy(GTK_WINDOW(dialog));
 }
 
 static void on_reload_activate(GMenuItem *menuitem, app_widgets_t *app_wdgts) {
