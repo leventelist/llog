@@ -21,3 +21,4 @@
 /*Configuration for llog*/
 
 #define LLOG_GLADE "@GLADE_FILE_PATH@"
+#define LLOG_DB_PATH "@DB_FILE_PATH@"

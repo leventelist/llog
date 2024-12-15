@@ -24,6 +24,7 @@
 #include <stdint.h>
 #include <inttypes.h>
 #include <limits.h>
+#include <stdbool.h>
 
 #include "llog.h"
 #include "db_sqlite.h"
@@ -58,24 +59,22 @@ llog_t *llog_init(void) {
   return &llog;
 }
 
-int llog_set_log_file(char *log_file_name) {
+int llog_set_log_file(char *log_file_name, bool check) {
   char real_log_file_name[FILE_LEN];
   int ret_val;
 
-  if (realpath(log_file_name, real_log_file_name) == NULL) {
-    ret_val = llog_stat_err;
-  }else {
+  if (check) {
+    if (realpath(log_file_name, real_log_file_name) == NULL) {
+      ret_val = llog_stat_file_err;
+      perror("realpath");
+    } else {
+      ret_val = llog_stat_ok;
+      strncpy(llog.log_file_name, real_log_file_name, FILE_LEN);
+    }
+  } else {
     ret_val = llog_stat_ok;
+    strncpy(llog.log_file_name, log_file_name, FILE_LEN);
   }
-
-  if (ret_val == llog_stat_ok) {
-    strncpy(llog.log_file_name, real_log_file_name, FILE_LEN);
-  }
-
-  /* Indicate that the database is closed.
-   * FIXME!!! We shall check if the database is opened, and close it.
-   * This is kinda memory leak.
-   */
 
   llog.db = NULL;
   llog.stat = db_closed;
@@ -123,15 +122,13 @@ int llog_parse_config_file(void) {
 int llog_open_db(void) {
   int ret;
 
-  printf("Opening log file %s\n", llog.log_file_name);
-
   ret = db_sqlite_init(&llog);
 
   return ret;
 }
 
 
-int llog_get_initial_station(station_entry_t * *station) {
+int llog_get_initial_station(station_entry_t **station) {
   *station = &initial_station;
   return llog_stat_ok;
 }

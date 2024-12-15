@@ -49,7 +49,7 @@ int main(int argc, char *argv[]) {
 			return(llog_stat_ok);
 		break;
 		case 'f':
-			llog_set_log_file(optarg);
+			llog_set_log_file(optarg, true);
 			llog_save_config_file();
 		break;
 		case 'v':

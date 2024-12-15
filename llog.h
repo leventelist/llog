@@ -26,6 +26,7 @@
 #include <sys/time.h>
 #include <time.h>
 #include <sqlite3.h>
+#include <stdbool.h>
 #include "conf.h"
 
 #define DATABASE_TIMEOUT 1000
@@ -145,7 +146,7 @@ typedef struct {
 
 /*Function definitions*/
 llog_t *llog_init(void);
-int llog_set_log_file(char *log_file_name);
+int llog_set_log_file(char *log_file_name, bool check);
 int llog_set_config_file(char *config_file_name);
 int llog_get_log_file_path(char **path);
 int llog_open_db(void);

@@ -36,6 +36,7 @@
 
 #define BUF_SIZ 8192
 #define EMPTY_STRING ""
+#define SQLITE_FLAGS SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE | SQLITE_OPEN_FULLMUTEX
 
 
 int db_sqlite_init(llog_t *llog) {
@@ -47,7 +48,8 @@ int db_sqlite_init(llog_t *llog) {
     llog->stat = db_closed;
   }
 
-  ret = sqlite3_open(llog->log_file_name, &llog->db);
+  printf("Opening log file %s\n", llog->log_file_name);
+  ret = sqlite3_open_v2(llog->log_file_name, &llog->db ,SQLITE_FLAGS, NULL);
 
   do{
     if (ret != SQLITE_OK) {
@@ -59,12 +61,21 @@ int db_sqlite_init(llog_t *llog) {
     llog->stat = db_opened;
   } while (0);
 
+  // Enable WAL mode
+  ret = sqlite3_exec(llog->db, "PRAGMA journal_mode=WAL;", NULL, NULL, NULL);
+  if (ret != SQLITE_OK) {
+    fprintf(stderr, "Failed to enable WAL mode: %s\n", sqlite3_errmsg(llog->db));
+    return llog_stat_err;
+  }
+
   return ret_val;
 }
 
 
 int db_close(llog_t *llog) {
-  sqlite3_close(llog->db);
+  sqlite3_close_v2(llog->db);
+  llog->stat = db_closed;
+  llog->db = NULL;
 
   return llog_stat_ok;
 }
@@ -422,6 +433,13 @@ int db_create_from_schema(llog_t *llog, const char *schema_file) {
   fread(schema, 1, length, file);
   fclose(file);
   schema[length] = '\0';
+
+  ret_val = db_sqlite_init(llog);
+
+  if (ret_val != llog_stat_ok) {
+    printf("Error opening database.\n");
+    return ret_val;
+  }
 
   ret_val = sqlite3_exec(llog->db, schema, 0, 0, &err_msg);
   if (ret_val != SQLITE_OK) {

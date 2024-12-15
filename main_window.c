@@ -24,6 +24,7 @@
 #include "main_window.h"
 #include "llog.h"
 #include "llog_Config.h"
+#include "db_sqlite.h"
 
 #include "preferences_window.h"
 
@@ -75,8 +76,6 @@ typedef struct {
   GtkWidget *logged_column_view;                     // Pointer to the logged elemnt list
   GListStore *logged_list_store;
   GtkTreeSelection *logged_list_selection;
-//  GtkTreeViewColumn *logged_list_column[LLOG_COLUMNS];
-//  GtkCellRenderer *logged_list_renderer[LLOG_COLUMNS];
 
   /*Station list store*/
   GListStore *station_list_store;
@@ -84,8 +83,6 @@ typedef struct {
   GtkWidget *log_entries[LLOG_ENTRIES];
   GtkEntryBuffer *log_entry_buffers[LLOG_ENTRIES];
   GtkWidget *log_button;
-  GtkComboBox *mode_entry;
-  GtkComboBox *station_entry;
   GtkWidget *call_label;
   GtkWidget *about_dialog;
 } app_widgets_t;
@@ -195,6 +192,66 @@ static void bind_mode_dropdown_cb(GtkSignalListItemFactory *factory, GtkListItem
 }
 
 
+/*Station entry*/
+
+#define STATION_ENTRY_TYPE (station_entry_get_type())
+G_DECLARE_FINAL_TYPE(StationEntry, station_entry, STATIONENTRY, ITEM, GObject)
+
+struct _StationEntry {
+  GObject parent_instance;
+  char *id;
+  char *name;
+};
+
+struct _StationEntryClass {
+  GObjectClass parent_class;
+};
+
+G_DEFINE_TYPE(StationEntry, station_entry, G_TYPE_OBJECT)
+
+static void station_entry_init(StationEntry *self) {
+  self->id = NULL;
+  self->name = NULL;
+}
+
+static void station_entry_finalize(GObject *object) {
+  StationEntry *self = (StationEntry *)object;
+
+  g_free(self->name);   // Free the dynamically allocated name
+  g_free(self->id);   // Free the dynamically allocated name
+  G_OBJECT_CLASS(station_entry_parent_class)->finalize(object);   // Chain up
+}
+
+static void station_entry_class_init(StationEntryClass *klass) {
+  GObjectClass *object_class = G_OBJECT_CLASS(klass);
+
+  object_class->finalize = station_entry_finalize;   // Override finalize
+}
+
+static StationEntry *station_entry_new(station_entry_t *entry) {
+  StationEntry *self = g_object_new(STATION_ENTRY_TYPE, NULL);
+
+  self->id = g_strdup_printf("%" PRIu64, entry->id);
+  self->name = g_strdup(entry->name);
+  return self;
+}
+
+static char *station_entry_get_name(StationEntry *item) {
+  return item->name;
+}
+
+static char *station_entry_get_id(StationEntry *item) {
+  return item->id;
+}
+
+static void bind_station_dropdown_cb(GtkSignalListItemFactory *factory, GtkListItem *listitem) {
+  (void)factory;
+  GtkWidget *label = gtk_list_item_get_child(listitem);
+  GObject *item = gtk_list_item_get_item(GTK_LIST_ITEM(listitem));
+  const char *string = station_entry_get_name(STATIONENTRY_ITEM(item));
+
+  gtk_label_set_text(GTK_LABEL(label), string);
+}
 
 /*Log entry display item*/
 
@@ -365,6 +422,7 @@ static void on_reload_activate(GMenuItem *menuitem, app_widgets_t *app_wdgts);
 static void on_menuitm_open_activate(app_widgets_t *app_wdgts);
 static void on_open_file_response(GtkDialog *dialog, gint response_id, gpointer user_data);
 static void on_new_file_response(GtkDialog *dialog, gint response_id, gpointer user_data);
+static void on_station_entry_change(GtkEditable *entry, gpointer user_data);
 
 void main_window_set_llog(llog_t *llog) {
   local_llog = llog;
@@ -384,7 +442,6 @@ int main_window_draw(int argc, char *argv[]) {
 
 static void on_activate(GtkApplication *app, gpointer user_data) {
   int entry_index;
-  char buff[BUFF_SIZ];
   station_entry_t *initial_station;
 
   (void)user_data;
@@ -522,7 +579,7 @@ static void on_activate(GtkApplication *app, gpointer user_data) {
     case llog_entry_mode:
       entry_widget = gtk_label_new(entry_labels[entry_index]);
       widgets->log_entries[entry_index] = gtk_drop_down_new(G_LIST_MODEL(widgets->mode_list_store), NULL);
-      GtkListItemFactory *factory = gtk_signal_list_item_factory_new();
+      factory = gtk_signal_list_item_factory_new();
       gtk_drop_down_set_factory(GTK_DROP_DOWN(widgets->log_entries[entry_index]), factory);
       g_signal_connect(factory, "setup", G_CALLBACK(setup_cb), NULL);
       g_signal_connect(factory, "bind", G_CALLBACK(bind_mode_dropdown_cb), NULL);
@@ -532,10 +589,12 @@ static void on_activate(GtkApplication *app, gpointer user_data) {
     case llog_entry_station_id:
       entry_widget = gtk_label_new(entry_labels[entry_index]);
 
-      widgets->log_entries[entry_index] = gtk_combo_box_new_with_entry();
-      //gtk_combo_box_set_entry_text_column(GTK_COMBO_BOX(widgets->log_entries[entry_index]), 0);
-      //gtk_combo_box_set_model(GTK_COMBO_BOX(widgets->log_entries[entry_index]), GTK_TREE_MODEL(widgets->station_list_store));
-      //g_signal_connect(widgets->log_entries[entry_index], "changed", G_CALLBACK(on_window_main_entry_changed), NULL);
+      widgets->log_entries[entry_index] = gtk_drop_down_new(G_LIST_MODEL(widgets->station_list_store), NULL);
+      factory = gtk_signal_list_item_factory_new();
+      gtk_drop_down_set_factory(GTK_DROP_DOWN(widgets->log_entries[entry_index]), factory);
+      g_signal_connect(factory, "setup", G_CALLBACK(setup_cb), NULL);
+      g_signal_connect(factory, "bind", G_CALLBACK(bind_station_dropdown_cb), NULL);
+      g_signal_connect(widgets->log_entries[entry_index], "notify::selected", G_CALLBACK(on_station_entry_change), NULL);
       break;
 
     default:
@@ -558,10 +617,15 @@ static void on_activate(GtkApplication *app, gpointer user_data) {
 
   llog_get_initial_station(&initial_station);
   if (initial_station->name[0] != '\0') {
-    GtkWidget *station_list_entry = gtk_combo_box_get_child(GTK_COMBO_BOX(widgets->log_entries[llog_entry_station_id]));
-    GtkEntryBuffer *buffer = gtk_entry_get_buffer(GTK_ENTRY(station_list_entry));
-    sprintf(buff, "%s [%" PRIu64 "]", initial_station->name, initial_station->id);
-    gtk_entry_buffer_insert_text(buffer, 0, buff, -1); // Some bug here
+    GListModel *model = G_LIST_MODEL(widgets->station_list_store);
+    for (guint i = 0; i < g_list_model_get_n_items(model); i++) {
+      GObject *item = g_list_model_get_item(model, i);
+      StationEntry *station_entry = STATIONENTRY_ITEM(item);
+      if (station_entry != NULL) {
+        g_print("Station: %s\n", station_entry->name);
+      }
+      g_object_unref(item);
+    }
   }
 
   /*Menu*/
@@ -728,7 +792,7 @@ static void on_open_file_response(GtkDialog *dialog, gint response_id, gpointer 
     GFile *file = gtk_file_chooser_get_file(chooser);
     char *filename = g_file_get_path(file);
     if (filename != NULL) {
-      llog_set_log_file(filename);
+      llog_set_log_file(filename, true);
       file_success = llog_open_db();
       llog_load_static_data(&log_entry_data);
       set_static_data();
@@ -816,7 +880,7 @@ void on_window_main_entry_changed(GtkEditable *editable, gpointer user_data) {
 }
 
 
-void on_mode_entry_change(GtkEditable *entry, gpointer user_data) {
+static void on_mode_entry_change(GtkEditable *entry, gpointer user_data) {
   (void)user_data;
 
   GtkDropDown *dropdown = GTK_DROP_DOWN(entry);
@@ -833,12 +897,25 @@ void on_mode_entry_change(GtkEditable *entry, gpointer user_data) {
   }
 }
 
+static void on_station_entry_change(GtkEditable *entry, gpointer user_data) {
+  (void)user_data;
+
+  GtkDropDown *dropdown = GTK_DROP_DOWN(entry);
+  GObject *selected_item = gtk_drop_down_get_selected_item(dropdown);
+
+  if (selected_item != NULL) {
+    StationEntry *station_entry = STATIONENTRY_ITEM(selected_item);
+    g_print("Selected station: %s\n", station_entry->name);
+  }
+}
+
 
 static void on_log_btn_clicked(void) {
   int ret;
   char buff[BUFF_SIZ];
   GtkDialogFlags flags = GTK_DIALOG_DESTROY_WITH_PARENT; // This might be changed
   GtkWidget *error_dialog;
+  GObject *item;
 
   /*Gather log data*/
   snprintf(log_entry_data.date, NAME_LEN, gtk_entry_buffer_get_text(widgets->log_entry_buffers[llog_entry_date]));
@@ -850,9 +927,9 @@ static void on_log_btn_clicked(void) {
   snprintf(log_entry_data.qra, QRA_LEN, gtk_entry_buffer_get_text(widgets->log_entry_buffers[llog_entry_qra]));
   log_entry_data.qrg = atof(gtk_entry_buffer_get_text(widgets->log_entry_buffers[llog_entry_qrg]));
 
+  item = gtk_drop_down_get_selected_item(GTK_DROP_DOWN(widgets->log_entries[llog_entry_mode]));
 
-  //Todo: Get the mode from the dropdown
-
+  strcpy(log_entry_data.mode.name, mode_entry_get_name(MODEENTRY_ITEM(item)));
 
   snprintf(log_entry_data.power, NAME_LEN, gtk_entry_buffer_get_text(widgets->log_entry_buffers[llog_entry_power]));
   log_entry_data.rxnr = strtoul(gtk_entry_buffer_get_text(widgets->log_entry_buffers[llog_entry_rxnr]), NULL, 10);
@@ -861,8 +938,9 @@ static void on_log_btn_clicked(void) {
   snprintf(log_entry_data.txextra, X_LEN, gtk_entry_buffer_get_text(widgets->log_entry_buffers[llog_entry_txextra]));
   snprintf(log_entry_data.comment, X_LEN, gtk_entry_buffer_get_text(widgets->log_entry_buffers[llog_entry_comment]));
 
-  //Todo: Get the station id from the combo box
-
+  //Todo: Get the station id from the Dropdown
+  item = gtk_drop_down_get_selected_item(GTK_DROP_DOWN(widgets->log_entries[llog_entry_station_id]));
+  log_entry_data.station_id = strtoull(station_entry_get_id(STATIONENTRY_ITEM(item)), NULL, 0);
 
   /*This is for debug. Print log data to stdout*/
   //llog_print_log_data(&log_entry_data);
@@ -979,7 +1057,15 @@ static void on_new_file_response(GtkDialog *dialog, gint response_id, gpointer u
     GFile *file = gtk_file_chooser_get_file(chooser);
     char *filename = g_file_get_path(file);
     if (filename != NULL) {
+      /*Close the old database*/
+      db_close(local_llog);
+      // TODO: Clear logged list, and reset all data.
       g_print("File selected: %s\n", filename);
+      llog_set_log_file(filename, false);
+      db_create_from_schema(local_llog, LLOG_DB_PATH);
+      llog_load_static_data(&log_entry_data);
+      set_static_data();
+      llog_save_config_file();
     }
     g_free(filename);
     g_object_unref(file);
@@ -1055,19 +1141,11 @@ void main_window_add_log_entry_to_list(log_entry_t *entry) {
 
 
 void main_window_add_station_entry_to_list(station_entry_t *station) {
-  char buff[BUFF_SIZ];
-
-  snprintf(buff, BUFF_SIZ, "%s [%" PRIu64 "]", station->name, station->id);
-
-  g_list_store_append(widgets->station_list_store, string_object_new(buff));
+  g_list_store_append(widgets->station_list_store, G_OBJECT(station_entry_new(station)));
 }
 
 
 void main_window_add_mode_entry_to_list(mode_entry_t *mode) {
-  char buff[BUFF_SIZ];
-
-  snprintf(buff, BUFF_SIZ, "%s [%" PRIu64 "]", mode->name, mode->id);
-
   g_list_store_append(widgets->mode_list_store, G_OBJECT(mode_entry_new(mode)));
 }
 
