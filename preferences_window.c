@@ -1,10 +1,30 @@
+/*	This is llog, a minimalist HAM logging software.
+ *	Copyright (C) 2013-2025  Levente Kovacs
+ *
+ *	This program is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ *
+ * http://levente.logonex.eu
+ * ha5ogl.levente@gmail.com
+ */
+
 #include <gtk/gtk.h>
 #include "llog.h"
+#include "position.h"
 
 
 /*Forward declarations for the callbacks*/
 static void on_button_ok_clicked(GtkWidget *widget, gpointer data);
-static void on_button_apply_clicked(GtkWidget *widget, gpointer data);
 static void on_button_cancel_clicked(GtkWidget *widget, gpointer data);
 static void on_preferences_window_destroy(GtkWidget *widget, gpointer data);
 
@@ -26,7 +46,8 @@ void on_preferences_window_activate(GtkWidget *widget, gpointer data) {
   (void)widget;
 
   app_widgets_t *widgets = g_malloc(sizeof(app_widgets_t));
-  widgets->llog = (llog_t *) data;
+
+  widgets->llog = (llog_t *)data;
 
 
   widgets->window = gtk_window_new();
@@ -39,6 +60,7 @@ void on_preferences_window_activate(GtkWidget *widget, gpointer data) {
   gtk_window_set_child(GTK_WINDOW(widgets->window), widgets->box);
 
   GtkWidget *grid;
+
   grid = gtk_grid_new();
   gtk_grid_set_row_spacing(GTK_GRID(grid), 10);
   gtk_grid_set_column_spacing(GTK_GRID(grid), 10);
@@ -58,6 +80,7 @@ void on_preferences_window_activate(GtkWidget *widget, gpointer data) {
 
   gtk_editable_set_text(GTK_EDITABLE(widgets->host_entry), widgets->llog->gpsd_host);
   char port[16];
+
   sprintf(port, "%lu", widgets->llog->gpsd_port);
   gtk_editable_set_text(GTK_EDITABLE(widgets->port_entry), port);
 
@@ -67,31 +90,16 @@ void on_preferences_window_activate(GtkWidget *widget, gpointer data) {
   widgets->button_ok = gtk_button_new_with_label("OK");
   gtk_box_append(GTK_BOX(widgets->button_box), widgets->button_ok);
 
-  widgets->button_apply = gtk_button_new_with_label("Apply");
-  gtk_box_append(GTK_BOX(widgets->button_box), widgets->button_apply);
-
   widgets->button_cancel = gtk_button_new_with_label("Cancel");
   gtk_box_append(GTK_BOX(widgets->button_box), widgets->button_cancel);
   g_signal_connect(widgets->button_ok, "clicked", G_CALLBACK(on_button_ok_clicked), widgets);
-  g_signal_connect(widgets->button_apply, "clicked", G_CALLBACK(on_button_apply_clicked), widgets);
   g_signal_connect(widgets->button_cancel, "clicked", G_CALLBACK(on_button_cancel_clicked), widgets);
   gtk_widget_show(widgets->window);
 }
 
 static void on_button_ok_clicked(GtkWidget *widget, gpointer data) {
   (void)widget;
-
-  g_print("OK button clicked\n");
   // Add your code to handle OK button click
-  on_button_apply_clicked(widget, data);
-  on_button_cancel_clicked(widget, data);
-}
-
-static void on_button_apply_clicked(GtkWidget *widget, gpointer data) {
-  (void)widget;
-  (void)data;
-  g_print("Apply button clicked\n");
-  // Add your code to handle Apply button click
   app_widgets_t *widgets = (app_widgets_t *)data;
   const gchar *host = gtk_editable_get_text(GTK_EDITABLE(widgets->host_entry));
   const gchar *port = gtk_editable_get_text(GTK_EDITABLE(widgets->port_entry));
@@ -100,13 +108,15 @@ static void on_button_apply_clicked(GtkWidget *widget, gpointer data) {
   widgets->llog->gpsd_port = atoi(port);
 
   llog_save_config_file();
+  position_init(widgets->llog->gpsd_host, widgets->llog->gpsd_port);
 
+  on_button_cancel_clicked(widget, data); // Close the window
 }
+
 
 static void on_button_cancel_clicked(GtkWidget *widget, gpointer data) {
   (void)widget;
 
-  g_print("Cancel button clicked\n");
   gtk_window_close(GTK_WINDOW(((app_widgets_t *)data)->window));
 }
 

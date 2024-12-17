@@ -17,6 +17,7 @@ your computer with you, and nothing else. Not even a smartphone.
     - csv
     - requests
 * hamutils python3 package
+* libxmlrpc-core-c3-dev
 * sqlitebrowser
 
 ## Install

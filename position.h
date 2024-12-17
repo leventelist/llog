@@ -1,8 +1,29 @@
+/*	This is llog, a minimalist HAM logging software.
+ *	Copyright (C) 2013-2025  Levente Kovacs
+ *
+ *	This program is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ *
+ * http://levente.logonex.eu
+ * ha5ogl.levente@gmail.com
+ */
+
+#ifndef POSITION_H
+#define POSITION_H
+
 #include <gps.h>
-#include "llog.h"
 
-
-#define POSITION_TIMEOUT_USEC 500000
+#define POSITION_TIMEOUT_USEC 5000000
 
 typedef struct gps_data_t gps_data_real_t;
 
@@ -13,8 +34,11 @@ typedef struct {
     double speed;
     double climb;
     double track;
+    int fix;
 } position_t;
 
-int position_init(char *host, uint64_t port, gps_data_real_t *gpsdata);
-int position_step(gps_data_real_t *gpsdata, position_t *pos);
-int position_close(gps_data_real_t *gpsdata);
+int position_init(char *host, uint64_t port);
+void position_get(position_t *out_pos);
+void position_stop(void);
+
+#endif

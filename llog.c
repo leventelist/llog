@@ -1,5 +1,5 @@
 /*	This is llog, a minimalist HAM logging software.
- *	Copyright (C) 2013-2021  Levente Kovacs
+ *	Copyright (C) 2013-2025  Levente Kovacs
  *
  *	This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -30,6 +30,7 @@
 #include "db_sqlite.h"
 #include "main_window.h"
 #include "conf.h"
+#include "position.h"
 
 #define BUF_SIZ 1024
 
@@ -55,6 +56,10 @@ llog_t *llog_init(void) {
   llog.stat = db_closed;
 
   llog.ca = llog_ca;
+
+  /*Some sensible defaults for GPS configuration*/
+  sprintf(llog.gpsd_host, "localhost");
+  llog.gpsd_port = 2947;
 
   return &llog;
 }
@@ -114,6 +119,10 @@ int llog_parse_config_file(void) {
   if (ret_val != llog_stat_err) {
     db_get_station_entry(&llog, &initial_station);             /*This will finalize the data*/
   }
+
+  /*Initialize GPS*/
+  position_init(llog.gpsd_host, llog.gpsd_port);
+
 
   return ret;
 }
@@ -338,5 +347,7 @@ void llog_strupper(char *s) {
 
 
 void llog_shutdown(void) {
+  printf("Shutting down llog\n");
+  position_stop();
   db_close(&llog);
 }

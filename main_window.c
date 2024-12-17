@@ -25,6 +25,7 @@
 #include "llog.h"
 #include "llog_Config.h"
 #include "db_sqlite.h"
+#include "position.h"
 
 #include "preferences_window.h"
 
@@ -402,11 +403,10 @@ static void bind_mode_cb(GtkSignalListItemFactory *factory, GtkListItem *listite
 /*Module variables*/
 static app_widgets_t *widgets;
 static log_entry_t log_entry_data;
-static GtkCssProvider *provider;
 static llog_t *local_llog;
 
 /*Callbacks*/
-static void on_window_main_destroy(void);
+static void on_window_main_destroy(GtkApplication *app, GtkApplicationWindow window);
 static void on_utc_btn_clicked(void);
 static void on_mode_entry_change(GtkEditable *entry, gpointer user_data);
 static void on_window_main_entry_changed(GtkEditable *editable, gpointer user_data);
@@ -416,7 +416,7 @@ static void on_log_btn_clicked(void);
 static void on_edit_preferences_activate(app_widgets_t *app_wdgts);
 static void on_edit_log_db_activate(app_widgets_t *app_wdgts);
 static void on_menuitm_new_activate(app_widgets_t *app_wdgts);
-static void on_qrt_activate(void);
+static void on_qrt_activate(GtkApplication *app);
 static void on_about_menu_activate(app_widgets_t *app_wdgts);
 static void on_reload_activate(GMenuItem *menuitem, app_widgets_t *app_wdgts);
 static void on_menuitm_open_activate(app_widgets_t *app_wdgts);
@@ -456,7 +456,7 @@ static void on_activate(GtkApplication *app, gpointer user_data) {
   widgets->main_window = gtk_application_window_new(app);
   gtk_window_set_title(GTK_WINDOW(widgets->main_window), "Llog");
   gtk_window_set_default_size(GTK_WINDOW(widgets->main_window), 400, 300);
-  g_signal_connect(widgets->main_window, "destroy", G_CALLBACK(on_window_main_destroy), NULL);
+  g_signal_connect_swapped(widgets->main_window, "destroy", G_CALLBACK(on_window_main_destroy), app);
 
   widgets->vertical_box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 1);
   widgets->horizontal_box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 1);
@@ -637,7 +637,7 @@ static void on_activate(GtkApplication *app, gpointer user_data) {
   g_signal_connect(act_reload, "activate", G_CALLBACK(on_reload_activate), widgets);
   g_signal_connect_swapped(act_open, "activate", G_CALLBACK(on_menuitm_open_activate), widgets);
   g_signal_connect_swapped(act_new, "activate", G_CALLBACK(on_menuitm_new_activate), widgets);
-  g_signal_connect_swapped(act_quit, "activate", G_CALLBACK(g_application_quit), app); //Modify this to the QRT function
+  g_signal_connect_swapped(act_quit, "activate", G_CALLBACK(on_qrt_activate), app); //Modify this to the QRT function
   g_action_map_add_action(G_ACTION_MAP(app), G_ACTION(act_quit));
   g_action_map_add_action(G_ACTION_MAP(app), G_ACTION(act_reload));
   g_action_map_add_action(G_ACTION_MAP(app), G_ACTION(act_open));
@@ -712,16 +712,6 @@ static void on_activate(GtkApplication *app, gpointer user_data) {
   g_action_map_add_action(G_ACTION_MAP(app), G_ACTION(act_about));
 
   gtk_application_set_menubar(GTK_APPLICATION(app), G_MENU_MODEL(menubar));
-
-
-  provider = gtk_css_provider_new();
-  /* Initialize the css data */
-  //gtk_css_provider_load_from_data(provider, "label.lb {background-color: red;}", -1);
-  /* Add CSS to the default GdkDisplay. */
-  gtk_style_context_add_provider_for_display(gdk_display_get_default(),
-                                             GTK_STYLE_PROVIDER(provider), GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
-  g_signal_connect(app, "shutdown", G_CALLBACK(on_qrt_activate), provider);
-  g_object_unref(provider);  /* release provider, but it's still alive because the display owns it */
 
 
   // Build the window
@@ -1010,15 +1000,6 @@ static void on_utc_btn_clicked(void) {
 }
 
 
-static void on_window_main_destroy(void) {
-  //g_main_loop_quit();
-}
-
-
-static void on_qrt_activate(void) {
-  //g_main_loop_quit();
-}
-
 static void on_menuitm_new_activate(app_widgets_t *app_wdgts) {
   (void)app_wdgts;
 
@@ -1059,7 +1040,6 @@ static void on_new_file_response(GtkDialog *dialog, gint response_id, gpointer u
     if (filename != NULL) {
       /*Close the old database*/
       db_close(local_llog);
-      // TODO: Clear logged list, and reset all data.
       g_print("File selected: %s\n", filename);
       llog_set_log_file(filename, false);
       db_create_from_schema(local_llog, LLOG_DB_PATH);
@@ -1081,6 +1061,7 @@ static void on_reload_activate(GMenuItem *menuitem, app_widgets_t *app_wdgts) {
   llog_open_db();
   llog_load_static_data(&log_entry_data);
   set_static_data();
+  position_init(local_llog->gpsd_host, local_llog->gpsd_port);
 }
 
 
@@ -1132,6 +1113,18 @@ static void on_edit_log_db_activate(app_widgets_t *app_wdgts) {
     break;
   }
 }
+
+
+static void on_window_main_destroy( GtkApplication *app, GtkApplicationWindow window) {
+  (void)window;
+  on_qrt_activate(app);
+}
+
+
+static void on_qrt_activate(GtkApplication *app) {
+  g_application_quit(G_APPLICATION(app));
+}
+
 
 /*Actions*/
 

@@ -1,5 +1,5 @@
 /*	This is llog, a minimalist HAM logging software.
- *	Copyright (C) 2013-2021  Levente Kovacs
+ *	Copyright (C) 2013-2024  Levente Kovacs
  *
  *	This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -27,6 +27,7 @@
 #include <time.h>
 #include <sqlite3.h>
 #include <stdbool.h>
+
 #include "conf.h"
 
 #define DATABASE_TIMEOUT 1000
@@ -84,7 +85,6 @@ enum llog_entry_pos {
 typedef struct {
   char log_file_name[FILE_LEN];       /*SQLite database file name*/
   char config_file_name[FILE_LEN];
-//	char station[STATION_LEN];
   uint64_t station_id;
   sqlite3 *db;
   uint32_t stat;
