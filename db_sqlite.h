@@ -26,20 +26,6 @@
 #include <stdint.h>
 
 
-/*data status*/
-
-enum db_data_state {
-  db_data_init,
-  db_data_valid,
-  db_data_last,
-  db_data_err
-};
-
-enum db_state {
-  db_opened,
-  db_closed
-};
-
 /*functions*/
 int db_sqlite_init(llog_t *llog);
 int db_close(llog_t *llog);
@@ -50,5 +36,6 @@ int db_get_station_entry(llog_t *log, station_entry_t *station);
 int db_get_mode_entry(llog_t *log, mode_entry_t *mode, uint64_t *id);
 int db_get_log_entries(llog_t *log, log_entry_t *entry);
 int db_create_from_schema(llog_t *llog, const char *schema_file);
+int db_get_summit_entry(llog_t *llog, summit_entry_t *summit);
 
 #endif

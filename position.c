@@ -171,6 +171,26 @@ static void *position_thread(void *user_data) {
   return NULL;
 }
 
+
+double position_distance(position_t *pos1, position_t *pos2) {
+  double lat1 = pos1->lat * M_PI / 180.0;
+  double lon1 = pos1->lon * M_PI / 180.0;
+  double lat2 = pos2->lat * M_PI / 180.0;
+  double lon2 = pos2->lon * M_PI / 180.0;
+
+  double dlat = lat2 - lat1;
+  double dlon = lon2 - lon1;
+
+  double a = sin(dlat / 2) * sin(dlat / 2) +
+             cos(lat1) * cos(lat2) * sin(dlon / 2) * sin(dlon / 2);
+  double c = 2 * atan2(sqrt(a), sqrt(1 - a));
+
+  double distance = 6371e3 * c; // Earth's radius in meters
+
+  return distance;
+}
+
+
 void position_stop(void) {
   pthread_cancel(thread_id);
   pthread_join(thread_id, NULL);

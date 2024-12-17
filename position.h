@@ -22,23 +22,16 @@
 #define POSITION_H
 
 #include <gps.h>
+#include "llog.h"
 
 #define POSITION_TIMEOUT_USEC 5000000
 
 typedef struct gps_data_t gps_data_real_t;
 
-typedef struct {
-    double lat;
-    double lon;
-    double alt;
-    double speed;
-    double climb;
-    double track;
-    int fix;
-} position_t;
 
 int position_init(char *host, uint64_t port);
 void position_get(position_t *out_pos);
+double position_distance(position_t *pos1, position_t *pos2);
 void position_stop(void);
 
 #endif

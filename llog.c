@@ -25,6 +25,8 @@
 #include <inttypes.h>
 #include <limits.h>
 #include <stdbool.h>
+#include <math.h>
+#include <float.h>
 
 #include "llog.h"
 #include "db_sqlite.h"
@@ -51,7 +53,7 @@ llog_t *llog_init(void) {
   char *homedir = getenv("HOME");
 
   sprintf(llog.config_file_name, "%s/llog.cf", homedir);
-  llog.db = NULL;
+  llog.log_db = NULL;
   llog.log_file_name[0] = '\0';
   llog.stat = db_closed;
 
@@ -81,7 +83,7 @@ int llog_set_log_file(char *log_file_name, bool check) {
     strncpy(llog.log_file_name, log_file_name, FILE_LEN);
   }
 
-  llog.db = NULL;
+  llog.log_db = NULL;
   llog.stat = db_closed;
 
   return ret_val;
@@ -323,6 +325,34 @@ int llog_load_static_data(log_entry_t *entry) {
   return ret;
 }
 
+int llog_get_closest_summit(position_t *pos, summit_entry_t *closest_summit) {
+  int ret_val = llog_no_data;
+  summit_entry_t summit;
+  double minimum_distance = DBL_MAX;
+
+  summit.data_stat = db_data_init;
+
+  while (summit.data_stat != db_data_last) {
+    summit.id = 0;
+    db_get_summit_entry(&llog, &summit);
+    if (summit.data_stat == db_data_valid) {
+      printf("Summit: %s %f %f\n", summit.summit_code, summit.position.lat, summit.position.lon);
+      double distance = position_distance(pos, &summit.position);
+      printf("Distance: %f\n", distance);
+      if (distance < minimum_distance) {
+        minimum_distance = distance;
+        *closest_summit = summit;
+        ret_val = llog_stat_ok;
+      }
+    } else {
+      break;
+    }
+  }
+
+  printf("Minimum distance: %f\n", minimum_distance);
+  return ret_val;
+
+}
 
 void llog_print_log_data(log_entry_t *entry) {
   printf("\nCall [%s]\nOperator's name: [%s]\n", entry->call, entry->name);

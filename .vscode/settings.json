@@ -6,6 +6,9 @@
     "typeinfo": "c",
     "unistd.h": "c",
     "position.h": "c",
-    "pthread.h": "c"
+    "pthread.h": "c",
+    "conf.h": "c",
+    "db_sqlite.h": "c",
+    "stdint.h": "c"
   }
 }

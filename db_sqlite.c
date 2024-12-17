@@ -29,6 +29,7 @@
 #include <stdbool.h>
 #include "db_sqlite.h"
 #include "llog.h"
+#include "llog_Config.h"
 
 #include <inttypes.h>
 #include <string.h>
@@ -49,7 +50,7 @@ int db_sqlite_init(llog_t *llog) {
   }
 
   printf("Opening log file %s\n", llog->log_file_name);
-  ret = sqlite3_open_v2(llog->log_file_name, &llog->db ,SQLITE_FLAGS, NULL);
+  ret = sqlite3_open_v2(llog->log_file_name, &llog->log_db, SQLITE_FLAGS, NULL);
 
   do{
     if (ret != SQLITE_OK) {
@@ -57,25 +58,38 @@ int db_sqlite_init(llog_t *llog) {
       ret_val = llog_stat_err;
       break;
     }
-    sqlite3_busy_timeout(llog->db, DATABASE_TIMEOUT);
+    sqlite3_busy_timeout(llog->log_db, DATABASE_TIMEOUT);
     llog->stat = db_opened;
   } while (0);
 
+
+  printf("Opening summits database %s\n", SUMMITS_DB_PATH);
   // Enable WAL mode
-  ret = sqlite3_exec(llog->db, "PRAGMA journal_mode=WAL;", NULL, NULL, NULL);
+  ret = sqlite3_exec(llog->log_db, "PRAGMA journal_mode=WAL;", NULL, NULL, NULL);
   if (ret != SQLITE_OK) {
-    fprintf(stderr, "Failed to enable WAL mode: %s\n", sqlite3_errmsg(llog->db));
+    fprintf(stderr, "Failed to enable WAL mode: %s\n", sqlite3_errmsg(llog->log_db));
     return llog_stat_err;
   }
+
+  // Open the summits database
+  ret = sqlite3_open_v2(SUMMITS_DB_PATH, &llog->summits_db, SQLITE_FLAGS, NULL);
+  if (ret != SQLITE_OK) {
+    printf("Error opening the summits database '%s'.\n", SUMMITS_DB_PATH);
+    ret_val = llog_stat_err;
+  } else {
+    sqlite3_busy_timeout(llog->summits_db, DATABASE_TIMEOUT);
+  }
+
 
   return ret_val;
 }
 
 
 int db_close(llog_t *llog) {
-  sqlite3_close_v2(llog->db);
+  sqlite3_close_v2(llog->log_db);
   llog->stat = db_closed;
-  llog->db = NULL;
+  llog->log_db = NULL;
+  sqlite3_close_v2(llog->summits_db);
 
   return llog_stat_ok;
 }
@@ -88,7 +102,7 @@ int db_check_dup_qso(llog_t *log, log_entry_t *entry) {
 
 
   sprintf(buff, "SELECT date, UTC FROM log WHERE call='%s';", entry->call);
-  sqlite3_prepare_v2(log->db, buff, -1, &entry->sq3_stmt, NULL);
+  sqlite3_prepare_v2(log->log_db, buff, -1, &entry->sq3_stmt, NULL);
 
   while (have_work) {
     ret = sqlite3_step(entry->sq3_stmt);
@@ -114,7 +128,7 @@ int db_check_dup_qso(llog_t *log, log_entry_t *entry) {
     default:
       ret_val = llog_stat_err;
       have_work = false;
-      printf("Error looking up DUP QSOs: %s\n", sqlite3_errmsg(log->db));
+      printf("Error looking up DUP QSOs: %s\n", sqlite3_errmsg(log->log_db));
       break;
     }
   }
@@ -137,7 +151,7 @@ int db_get_log_entries(llog_t *log, log_entry_t *entry) {
 
   if (entry->data_stat == db_data_init) {
     snprintf(buff, BUF_SIZ, "SELECT rowid, date, UTC, call, rxrst, txrst, QRG, mode FROM log ORDER BY rowid DESC;");
-    sqlite3_prepare_v2(log->db, buff, -1, &entry->sq3_stmt, NULL);
+    sqlite3_prepare_v2(log->log_db, buff, -1, &entry->sq3_stmt, NULL);
   }
 
   entry->data_stat = db_data_err;
@@ -169,7 +183,7 @@ int db_get_log_entries(llog_t *log, log_entry_t *entry) {
 
   default:
     ret_val = llog_stat_err;
-    printf("Error looking up log entry: %s\n", sqlite3_errmsg(log->db));
+    printf("Error looking up log entry: %s\n", sqlite3_errmsg(log->log_db));
     break;
   }
 
@@ -189,7 +203,7 @@ int db_get_max_nr(llog_t *log, log_entry_t *entry) {
   entry->txnr = 1;
 
   sprintf(buff, "SELECT txnr FROM log ORDER BY txnr DESC LIMIT 1;");
-  sqlite3_prepare_v2(log->db, buff, -1, &entry->sq3_stmt, NULL);
+  sqlite3_prepare_v2(log->log_db, buff, -1, &entry->sq3_stmt, NULL);
 
   while (have_work) {
     ret = sqlite3_step(entry->sq3_stmt);
@@ -212,7 +226,7 @@ int db_get_max_nr(llog_t *log, log_entry_t *entry) {
     default:
       ret_val = llog_stat_err;
       have_work = false;
-      printf("Error looking up serial number: %s\n", sqlite3_errmsg(log->db));
+      printf("Error looking up serial number: %s\n", sqlite3_errmsg(log->log_db));
       break;
     }
   }
@@ -228,7 +242,7 @@ int db_set_log_entry(llog_t *log, log_entry_t *entry) {
   char buff[BUF_SIZ];
 
   snprintf(buff, BUF_SIZ, "INSERT INTO log (date, UTC, call, rxrst, txrst, rxnr, txnr, rxextra, txextra, QTH, name, QRA, QRG, mode, pwr, rxQSL, txQSL, comment, station) VALUES ('%s', '%s', '%s', '%s', '%s', %" PRIu64 ", %" PRIu64 ", '%s', '%s', '%s', '%s', '%s', %f, '%s', '%s', %" PRIu64 ", %" PRIu64 ", '%s', %" PRIu64 ");", entry->date, entry->utc, entry->call, entry->rxrst, entry->txrst, entry->rxnr, entry->txnr, entry->rxextra, entry->txextra, entry->qth, entry->name, entry->qra, entry->qrg, entry->mode.name, entry->power, (uint64_t)0U, (uint64_t)0U, entry->comment, entry->station_id);
-  sqlite3_prepare_v2(log->db, buff, -1, &entry->sq3_stmt, NULL);
+  sqlite3_prepare_v2(log->log_db, buff, -1, &entry->sq3_stmt, NULL);
 
 
   ret = sqlite3_step(entry->sq3_stmt);
@@ -247,7 +261,7 @@ int db_set_log_entry(llog_t *log, log_entry_t *entry) {
 
   default:
     ret_val = llog_stat_err;
-    printf("Error inserting log entry: %s\n", sqlite3_errmsg(log->db));
+    printf("Error inserting log entry: %s\n", sqlite3_errmsg(log->log_db));
     break;
   }
 
@@ -268,10 +282,10 @@ int db_get_station_entry(llog_t *log, station_entry_t *station) {
   if (station->data_stat == db_data_init) {
     if (station->id == 0) {
       sprintf(buff, "SELECT rowid, name, CALL, QTH, QRA, ASL, rig, ant FROM station ORDER BY rowid DESC;");
-    }else    {
+    } else {
       sprintf(buff, "SELECT rowid, name, CALL, QTH, QRA, ASL, rig, ant FROM station WHERE rowid=%" PRIu64 " ORDER BY rowid DESC;", station->id);
     }
-    sqlite3_prepare_v2(log->db, buff, -1, &station->sq3_stmt, NULL);
+    sqlite3_prepare_v2(log->log_db, buff, -1, &station->sq3_stmt, NULL);
   }
 
   station->data_stat = db_data_err;
@@ -330,7 +344,7 @@ int db_get_station_entry(llog_t *log, station_entry_t *station) {
 
   default:
     ret_val = llog_stat_err;
-    printf("Error looking up stations: %s\n", sqlite3_errmsg(log->db));
+    printf("Error looking up stations: %s\n", sqlite3_errmsg(log->log_db));
     break;
   }
 
@@ -353,10 +367,10 @@ int db_get_mode_entry(llog_t *log, mode_entry_t *mode, uint64_t *id) {
   if (mode->data_stat == db_data_init) {
     if (id == NULL) {
       sprintf(buff, "SELECT rowid, name, default_rst, comment FROM mode ORDER BY name ASC;");
-    }else    {
+    } else {
       sprintf(buff, "SELECT rowid, name, default_rst, comment FROM mode WHERE rowid=%" PRIu64 ";", *id);
     }
-    sqlite3_prepare_v2(log->db, buff, -1, &mode->sq3_stmt, NULL);
+    sqlite3_prepare_v2(log->log_db, buff, -1, &mode->sq3_stmt, NULL);
   }
 
   mode->data_stat = db_data_err;
@@ -395,7 +409,7 @@ int db_get_mode_entry(llog_t *log, mode_entry_t *mode, uint64_t *id) {
 
   default:
     ret_val = llog_stat_err;
-    printf("Error looking up mode: %s\n", sqlite3_errmsg(log->db));
+    printf("Error looking up mode: %s\n", sqlite3_errmsg(log->log_db));
     break;
   }
 
@@ -441,7 +455,7 @@ int db_create_from_schema(llog_t *llog, const char *schema_file) {
     return ret_val;
   }
 
-  ret_val = sqlite3_exec(llog->db, schema, 0, 0, &err_msg);
+  ret_val = sqlite3_exec(llog->log_db, schema, 0, 0, &err_msg);
   if (ret_val != SQLITE_OK) {
     printf("Error creating database schema: %s\n", err_msg);
     sqlite3_free(err_msg);
@@ -449,5 +463,79 @@ int db_create_from_schema(llog_t *llog, const char *schema_file) {
   }
 
   free(schema);
+  return ret_val;
+}
+
+int db_get_summit_entry(llog_t *llog, summit_entry_t *summit) {
+  char buff[BUF_SIZ];
+  int ret, ret_val = llog_stat_err;
+  bool finalize = true;
+  char *cell;
+
+  if (summit->data_stat == db_data_init) {
+    snprintf(buff, BUF_SIZ, "SELECT rowid, summit_code, summit_name, points, bonus_points, valid_from, valid_to, latitude, longitude, alt_m FROM summit_data;");
+    sqlite3_prepare_v2(llog->summits_db, buff, -1, &summit->sq3_stmt, NULL);
+  }
+
+  summit->data_stat = db_data_err;
+
+  ret = sqlite3_step(summit->sq3_stmt);
+  switch (ret) {
+  case SQLITE_ROW:
+    summit->id = sqlite3_column_int64(summit->sq3_stmt, 0); // rowid
+
+    cell = (char *)sqlite3_column_text(summit->sq3_stmt, 1); // summit_code
+    if (cell == NULL) {
+      cell = EMPTY_STRING;
+    }
+    strncpy(summit->summit_code, cell, MAX_SUMMIT_CODE_LENGTH);
+
+    cell = (char *)sqlite3_column_text(summit->sq3_stmt, 2); // name
+    if (cell == NULL) {
+      cell = EMPTY_STRING;
+    }
+    strncpy(summit->name, cell, NAME_LEN);
+
+    summit->points = sqlite3_column_int(summit->sq3_stmt, 3); // points
+
+    summit->bonus_points = sqlite3_column_int(summit->sq3_stmt, 4); // bonus_points
+
+    cell = (char *)sqlite3_column_text(summit->sq3_stmt, 5); // valid_from
+    if (cell == NULL) {
+      cell = EMPTY_STRING;
+    }
+    strncpy(summit->valid_from, cell, DATE_LEN);
+
+    cell = (char *)sqlite3_column_text(summit->sq3_stmt, 6); // valid_to
+    if (cell == NULL) {
+      cell = EMPTY_STRING;
+    }
+    strncpy(summit->valid_to, cell, DATE_LEN);
+    summit->position.lat = sqlite3_column_double(summit->sq3_stmt, 7);
+    summit->position.lon = sqlite3_column_double(summit->sq3_stmt, 8);
+    summit->position.alt = sqlite3_column_double(summit->sq3_stmt, 9);
+    ret_val = llog_stat_ok;
+    finalize = false;
+    summit->data_stat = db_data_valid;
+    break;
+
+  case SQLITE_DONE:
+    summit->data_stat = db_data_last;
+    break;
+
+  case SQLITE_BUSY:
+    ret_val = llog_stat_err;
+    break;
+
+  default:
+    ret_val = llog_stat_err;
+    printf("Error looking up summit: %s\n", sqlite3_errmsg(llog->summits_db));
+    break;
+  }
+
+  if (finalize) {
+    sqlite3_finalize(summit->sq3_stmt);
+  }
+
   return ret_val;
 }

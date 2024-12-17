@@ -81,12 +81,46 @@ enum llog_entry_pos {
   llog_entry_station_id,
 };
 
+#define MAX_SUMMIT_CODE_LENGTH 256
+#define DATE_LEN 128
+
+typedef struct {
+    double lat;
+    double lon;
+    double alt;
+    double speed;
+    double climb;
+    double track;
+    int fix;
+} position_t;
+
+enum db_data_state {
+  db_data_init,
+  db_data_valid,
+  db_data_last,
+  db_data_err
+};
+
+typedef struct {
+  uint64_t id;
+  char summit_code[MAX_SUMMIT_CODE_LENGTH];
+  char name[MAX_SUMMIT_CODE_LENGTH];
+  char valid_from[DATE_LEN];
+  char valid_to[DATE_LEN];
+  position_t position; // Not all member makse sense for a summit. Only lat/lon/alt are used.
+  int points;
+  int bonus_points;
+  enum db_data_state data_stat;
+  sqlite3_stmt *sq3_stmt;
+} summit_entry_t;
+
 /*Main data storage*/
 typedef struct {
   char log_file_name[FILE_LEN];       /*SQLite database file name*/
   char config_file_name[FILE_LEN];
   uint64_t station_id;
-  sqlite3 *db;
+  sqlite3 *log_db;
+  sqlite3 *summits_db;
   uint32_t stat;
   config_attribute_t *ca;
   char gpsd_host[FILE_LEN];
@@ -129,6 +163,11 @@ typedef struct {
 } log_entry_t;
 
 
+enum db_state {
+  db_opened,
+  db_closed
+};
+
 /*station data*/
 typedef struct {
   uint64_t id;
@@ -166,5 +205,6 @@ int llog_check_dup_qso(log_entry_t *entry);
 int llog_get_default_rst(char *default_rst, uint64_t mode_id);
 int llog_get_max_nr(log_entry_t *entry);
 int llog_load_static_data(log_entry_t *entry);
+int llog_get_closest_summit(position_t *pos, summit_entry_t *closest_summit);
 
 #endif
