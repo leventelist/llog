@@ -334,7 +334,7 @@ int llog_get_closest_summit(position_t *pos, summit_entry_t *closest_summit) {
 
   while (summit.data_stat != db_data_last) {
     summit.id = 0;
-    db_get_summit_entry(&llog, &summit);
+    db_get_summit_entry(&llog, &summit, pos);
     if (summit.data_stat == db_data_valid) {
       printf("Summit: %s %f %f\n", summit.summit_code, summit.position.lat, summit.position.lon);
       double distance = position_distance(pos, &summit.position);

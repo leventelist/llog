@@ -36,6 +36,6 @@ int db_get_station_entry(llog_t *log, station_entry_t *station);
 int db_get_mode_entry(llog_t *log, mode_entry_t *mode, uint64_t *id);
 int db_get_log_entries(llog_t *log, log_entry_t *entry);
 int db_create_from_schema(llog_t *llog, const char *schema_file);
-int db_get_summit_entry(llog_t *llog, summit_entry_t *summit);
+int db_get_summit_entry(llog_t *llog, summit_entry_t *summit, position_t *pos);
 
 #endif

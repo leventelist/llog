@@ -37,6 +37,7 @@
 
 #define BUF_SIZ 8192
 #define EMPTY_STRING ""
+#define R_EARTH 6371e3
 #define SQLITE_FLAGS SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE | SQLITE_OPEN_FULLMUTEX
 
 
@@ -466,14 +467,29 @@ int db_create_from_schema(llog_t *llog, const char *schema_file) {
   return ret_val;
 }
 
-int db_get_summit_entry(llog_t *llog, summit_entry_t *summit) {
+int db_get_summit_entry(llog_t *llog, summit_entry_t *summit, position_t *pos) {
   char buff[BUF_SIZ];
   int ret, ret_val = llog_stat_err;
   bool finalize = true;
   char *cell;
 
+#define SUMMIT_QUERY "SELECT \
+     rowid, summit_code, summit_name, points, bonus_points, valid_from, valid_to, latitude, longitude, alt_m,( \
+        6371 * acos( \
+            cos(radians(%f)) * cos(radians(latitude)) * \
+            cos(radians(longitude) - radians(%f)) + \
+            sin(radians(%f)) * sin(radians(latitude)) \
+        ) \
+    ) AS distance \
+  FROM summit_data \
+  ORDER BY distance ASC;"
+
   if (summit->data_stat == db_data_init) {
-    snprintf(buff, BUF_SIZ, "SELECT rowid, summit_code, summit_name, points, bonus_points, valid_from, valid_to, latitude, longitude, alt_m FROM summit_data;");
+    if (pos == NULL) {
+      snprintf(buff, BUF_SIZ, "SELECT rowid, summit_code, summit_name, points, bonus_points, valid_from, valid_to, latitude, longitude, alt_m FROM summit_data;");
+    } else {
+      snprintf(buff, BUF_SIZ, SUMMIT_QUERY, pos->lat, pos->lon, pos->lat);
+    }
     sqlite3_prepare_v2(llog->summits_db, buff, -1, &summit->sq3_stmt, NULL);
   }
 

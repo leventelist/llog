@@ -72,6 +72,16 @@ typedef struct {
   GtkWidget *w_txtvw_main;              // Pointer to text view object
   GtkWidget *logfile_choose;            // Pointer to file chooser dialog box
   GtkWidget *log_entry_list;            // Pointer to the log entry list
+  GtkWidget *right_box;
+  GtkWidget *status_box;
+
+  GtkWidget *lat_label;
+  GtkWidget *lon_label;
+  GtkWidget *alt_label;
+  GtkWidget *fix_mode_label;
+  GtkWidget *distance_label;
+  GtkWidget *speed_label;
+  GtkWidget *summit_ref_label;
 
   /*Logged list store*/
   GtkWidget *logged_column_view;                     // Pointer to the logged elemnt list
@@ -408,6 +418,7 @@ static llog_t *local_llog;
 /*Callbacks*/
 static void on_window_main_destroy(GtkApplication *app, GtkApplicationWindow window);
 static void on_utc_btn_clicked(void);
+static void on_summit_ref_btn_clicked(void);
 static void on_mode_entry_change(GtkEditable *entry, gpointer user_data);
 static void on_window_main_entry_changed(GtkEditable *editable, gpointer user_data);
 static void set_static_data(void);
@@ -596,6 +607,14 @@ static void on_activate(GtkApplication *app, gpointer user_data) {
       g_signal_connect(factory, "bind", G_CALLBACK(bind_station_dropdown_cb), NULL);
       g_signal_connect(widgets->log_entries[entry_index], "notify::selected", G_CALLBACK(on_station_entry_change), NULL);
       break;
+    case llog_entry_summit_ref:
+      entry_widget = gtk_button_new_with_label(entry_labels[entry_index]);
+      g_signal_connect(entry_widget, "clicked", G_CALLBACK(on_summit_ref_btn_clicked), NULL);
+      widgets->log_entries[entry_index] = gtk_entry_new();
+      g_signal_connect(widgets->log_entries[entry_index], "changed", G_CALLBACK(on_window_main_entry_changed), NULL);
+      widgets->log_entry_buffers[entry_index] = gtk_entry_get_buffer(GTK_ENTRY(widgets->log_entries[entry_index]));
+      gtk_editable_set_editable(GTK_EDITABLE(widgets->log_entries[entry_index]), true);
+      break;
 
     default:
       entry_widget = gtk_label_new(entry_labels[entry_index]);
@@ -716,7 +735,51 @@ static void on_activate(GtkApplication *app, gpointer user_data) {
 
   // Build the window
   gtk_box_append(GTK_BOX(widgets->horizontal_box), GTK_WIDGET(widgets->vertical_box));
-  gtk_box_append(GTK_BOX(widgets->horizontal_box), GTK_WIDGET(scrolled_window));
+
+  widgets->right_box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 1);
+
+  gtk_box_append(GTK_BOX(widgets->right_box), GTK_WIDGET(scrolled_window));
+  gtk_box_append(GTK_BOX(widgets->horizontal_box), GTK_WIDGET(widgets->right_box));
+
+  //gtk_box_append(GTK_BOX(widgets->horizontal_box), GTK_WIDGET(scrolled_window));
+
+  widgets->status_box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 1);
+
+  GtkWidget *label = gtk_label_new("Lat");
+  gtk_box_append(GTK_BOX(widgets->status_box), GTK_WIDGET(label));
+  widgets->lat_label = gtk_label_new("---");
+  gtk_box_append(GTK_BOX(widgets->status_box), GTK_WIDGET(widgets->lat_label));
+  label = gtk_label_new("Lon");
+  gtk_box_append(GTK_BOX(widgets->status_box), GTK_WIDGET(label));
+  widgets->lon_label = gtk_label_new("---");
+  gtk_box_append(GTK_BOX(widgets->status_box), GTK_WIDGET(widgets->lon_label));
+  label = gtk_label_new("Alt");
+  gtk_box_append(GTK_BOX(widgets->status_box), GTK_WIDGET(label));
+  widgets->alt_label = gtk_label_new("---");
+  gtk_box_append(GTK_BOX(widgets->status_box), GTK_WIDGET(widgets->alt_label));
+
+  label = gtk_label_new("Speed");
+  gtk_box_append(GTK_BOX(widgets->status_box), GTK_WIDGET(label));
+  widgets->speed_label = gtk_label_new("---");
+  gtk_box_append(GTK_BOX(widgets->status_box), GTK_WIDGET(widgets->speed_label));
+
+  label = gtk_label_new("Distance");
+  gtk_box_append(GTK_BOX(widgets->status_box), GTK_WIDGET(label));
+  widgets->distance_label = gtk_label_new("---");
+  gtk_box_append(GTK_BOX(widgets->status_box), GTK_WIDGET(widgets->distance_label));
+
+  label = gtk_label_new("Fix mode");
+  gtk_box_append(GTK_BOX(widgets->status_box), GTK_WIDGET(label));
+  widgets->fix_mode_label = gtk_label_new("---");
+  gtk_box_append(GTK_BOX(widgets->status_box), GTK_WIDGET(widgets->fix_mode_label));
+
+  label = gtk_label_new("Summit ref");
+  gtk_box_append(GTK_BOX(widgets->status_box), GTK_WIDGET(label));
+  widgets->summit_ref_label = gtk_label_new("---/---");
+  gtk_box_append(GTK_BOX(widgets->status_box), GTK_WIDGET(widgets->summit_ref_label));
+
+
+  gtk_box_append(GTK_BOX(widgets->right_box), widgets->status_box);
 
   gtk_widget_set_hexpand(widgets->logged_column_view, TRUE);
   gtk_widget_set_vexpand(widgets->logged_column_view, TRUE);
@@ -999,6 +1062,14 @@ static void on_utc_btn_clicked(void) {
   gtk_entry_buffer_insert_text(widgets->log_entry_buffers[llog_entry_utc], 0, log_entry_data.utc, -1);
 }
 
+static void on_summit_ref_btn_clicked(void) {
+  /*Get text from the summit reference label*/
+
+  const char *summit_ref = gtk_label_get_text(GTK_LABEL(widgets->summit_ref_label));
+  gtk_entry_buffer_delete_text(widgets->log_entry_buffers[llog_entry_summit_ref], 0, -1);
+  gtk_entry_buffer_insert_text(widgets->log_entry_buffers[llog_entry_summit_ref], 0, summit_ref, -1);
+
+}
 
 static void on_menuitm_new_activate(app_widgets_t *app_wdgts) {
   (void)app_wdgts;

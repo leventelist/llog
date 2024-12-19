@@ -113,12 +113,6 @@ int position_step(void) {
     if (ret == -1) {
       ret_val = llog_stat_err;
     } else {
-      if ((gpsdata.set & MODE_SET) != MODE_SET) {
-        progress = true;
-      } else {
-        ret_val = llog_no_data;
-        goto exit_point;
-      }
       if (gpsdata.set & LATLON_SET) {
         new_pos.lat = gpsdata.fix.latitude;
         new_pos.lon = gpsdata.fix.longitude;
@@ -147,7 +141,6 @@ int position_step(void) {
   }
 
 
-exit_point:
   return ret_val;
 }
 
