@@ -78,7 +78,8 @@ enum llog_entry_pos {
   llog_entry_txextra,
   llog_entry_comment,
   llog_entry_summit_ref,
-  llog_entry_station_id,
+  llog_entry_s2s_ref,
+  llog_entry_station_id
 };
 
 #define MAX_SUMMIT_CODE_LENGTH 256
@@ -158,6 +159,8 @@ typedef struct {
   uint64_t station_id;
   char date[NAME_LEN];
   char utc[NAME_LEN];
+  char summit_ref[MAX_SUMMIT_CODE_LENGTH];
+  char s2s_ref[MAX_SUMMIT_CODE_LENGTH];
   uint32_t data_stat;
   sqlite3_stmt *sq3_stmt;
 } log_entry_t;
@@ -205,6 +208,5 @@ int llog_check_dup_qso(log_entry_t *entry);
 int llog_get_default_rst(char *default_rst, uint64_t mode_id);
 int llog_get_max_nr(log_entry_t *entry);
 int llog_load_static_data(log_entry_t *entry);
-int llog_get_closest_summit(position_t *pos, summit_entry_t *closest_summit);
 
 #endif

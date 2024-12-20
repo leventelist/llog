@@ -33,5 +33,7 @@ void main_window_add_mode_entry_to_list(mode_entry_t *mode);
 void main_window_clear_log_list(void);
 void main_window_clear_station_list(void);
 void main_window_clear_modes_list(void);
+void main_window_update_position_labels(position_t *position);
+void main_window_clear_position_labels(void);
 
 #endif

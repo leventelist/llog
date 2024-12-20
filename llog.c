@@ -116,15 +116,16 @@ int llog_parse_config_file(void) {
   }
 
   initial_station.data_stat = db_data_init;
-  ret_val = db_get_station_entry(&llog, &initial_station);
-
-  if (ret_val != llog_stat_err) {
-    db_get_station_entry(&llog, &initial_station);             /*This will finalize the data*/
+  while (initial_station.data_stat != db_data_last)
+  {
+    ret_val = db_get_station_entry(&llog, &initial_station);
+    if (ret_val != llog_stat_ok) {
+      break;
+    }
   }
 
   /*Initialize GPS*/
-  position_init(llog.gpsd_host, llog.gpsd_port);
-
+  position_init(llog.gpsd_host, llog.gpsd_port, main_window_update_position_labels);
 
   return ret;
 }
@@ -182,7 +183,7 @@ int llog_add_log_entries(void) {
 
 
 int llog_log_entry(log_entry_t *entry) {
-  int ret_val = llog_stat_ok;
+  int ret_val;
 
   ret_val = db_set_log_entry(&llog, entry);
 
@@ -325,34 +326,6 @@ int llog_load_static_data(log_entry_t *entry) {
   return ret;
 }
 
-int llog_get_closest_summit(position_t *pos, summit_entry_t *closest_summit) {
-  int ret_val = llog_no_data;
-  summit_entry_t summit;
-  double minimum_distance = DBL_MAX;
-
-  summit.data_stat = db_data_init;
-
-  while (summit.data_stat != db_data_last) {
-    summit.id = 0;
-    db_get_summit_entry(&llog, &summit, pos);
-    if (summit.data_stat == db_data_valid) {
-      printf("Summit: %s %f %f\n", summit.summit_code, summit.position.lat, summit.position.lon);
-      double distance = position_distance(pos, &summit.position);
-      printf("Distance: %f\n", distance);
-      if (distance < minimum_distance) {
-        minimum_distance = distance;
-        *closest_summit = summit;
-        ret_val = llog_stat_ok;
-      }
-    } else {
-      break;
-    }
-  }
-
-  printf("Minimum distance: %f\n", minimum_distance);
-  return ret_val;
-
-}
 
 void llog_print_log_data(log_entry_t *entry) {
   printf("\nCall [%s]\nOperator's name: [%s]\n", entry->call, entry->name);

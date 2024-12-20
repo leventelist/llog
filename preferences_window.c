@@ -21,6 +21,7 @@
 #include <gtk/gtk.h>
 #include "llog.h"
 #include "position.h"
+#include "main_window.h"
 
 
 /*Forward declarations for the callbacks*/
@@ -108,7 +109,8 @@ static void on_button_ok_clicked(GtkWidget *widget, gpointer data) {
   widgets->llog->gpsd_port = atoi(port);
 
   llog_save_config_file();
-  position_init(widgets->llog->gpsd_host, widgets->llog->gpsd_port);
+  position_init(widgets->llog->gpsd_host, widgets->llog->gpsd_port, main_window_update_position_labels);
+  main_window_clear_position_labels();
 
   on_button_cancel_clicked(widget, data); // Close the window
 }

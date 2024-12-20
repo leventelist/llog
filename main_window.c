@@ -26,6 +26,7 @@
 #include "llog_Config.h"
 #include "db_sqlite.h"
 #include "position.h"
+#include <gps.h>
 
 #include "preferences_window.h"
 
@@ -62,6 +63,7 @@ char entry_labels[LLOG_ENTRIES][20] = {
   "TX Extra",
   "Comment",
   "Summit ref",
+  "S2S ref",
   "Station"
 };
 
@@ -75,13 +77,15 @@ typedef struct {
   GtkWidget *right_box;
   GtkWidget *status_box;
 
-  GtkWidget *lat_label;
-  GtkWidget *lon_label;
+  /*Position data*/
+  GtkWidget *qra_label;
   GtkWidget *alt_label;
   GtkWidget *fix_mode_label;
   GtkWidget *distance_label;
+  GtkWidget *heading_label;
   GtkWidget *speed_label;
   GtkWidget *summit_ref_label;
+  GtkWidget *summit_qra_label;
 
   /*Logged list store*/
   GtkWidget *logged_column_view;                     // Pointer to the logged elemnt list
@@ -190,6 +194,9 @@ static ModeEntry *mode_entry_new(mode_entry_t *entry) {
 }
 
 static char *mode_entry_get_name(ModeEntry *item) {
+  if (item == NULL) {
+    return "NULL";
+  }
   return item->name;
 }
 
@@ -248,10 +255,16 @@ static StationEntry *station_entry_new(station_entry_t *entry) {
 }
 
 static char *station_entry_get_name(StationEntry *item) {
+  if (item == NULL) {
+    return "NULL";
+  }
   return item->name;
 }
 
 static char *station_entry_get_id(StationEntry *item) {
+  if (item == NULL) {
+    return "NULL";
+  }
   return item->id;
 }
 
@@ -607,6 +620,7 @@ static void on_activate(GtkApplication *app, gpointer user_data) {
       g_signal_connect(factory, "bind", G_CALLBACK(bind_station_dropdown_cb), NULL);
       g_signal_connect(widgets->log_entries[entry_index], "notify::selected", G_CALLBACK(on_station_entry_change), NULL);
       break;
+
     case llog_entry_summit_ref:
       entry_widget = gtk_button_new_with_label(entry_labels[entry_index]);
       g_signal_connect(entry_widget, "clicked", G_CALLBACK(on_summit_ref_btn_clicked), NULL);
@@ -741,43 +755,45 @@ static void on_activate(GtkApplication *app, gpointer user_data) {
   gtk_box_append(GTK_BOX(widgets->right_box), GTK_WIDGET(scrolled_window));
   gtk_box_append(GTK_BOX(widgets->horizontal_box), GTK_WIDGET(widgets->right_box));
 
-  //gtk_box_append(GTK_BOX(widgets->horizontal_box), GTK_WIDGET(scrolled_window));
+  widgets->status_box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 10);
 
-  widgets->status_box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 1);
+  widgets->qra_label = gtk_label_new("------");
+  gtk_box_append(GTK_BOX(widgets->status_box), GTK_WIDGET(widgets->qra_label));
 
-  GtkWidget *label = gtk_label_new("Lat");
-  gtk_box_append(GTK_BOX(widgets->status_box), GTK_WIDGET(label));
-  widgets->lat_label = gtk_label_new("---");
-  gtk_box_append(GTK_BOX(widgets->status_box), GTK_WIDGET(widgets->lat_label));
-  label = gtk_label_new("Lon");
-  gtk_box_append(GTK_BOX(widgets->status_box), GTK_WIDGET(label));
-  widgets->lon_label = gtk_label_new("---");
-  gtk_box_append(GTK_BOX(widgets->status_box), GTK_WIDGET(widgets->lon_label));
-  label = gtk_label_new("Alt");
+  GtkWidget *label;
+
+  label = gtk_label_new("ASL:");
   gtk_box_append(GTK_BOX(widgets->status_box), GTK_WIDGET(label));
   widgets->alt_label = gtk_label_new("---");
   gtk_box_append(GTK_BOX(widgets->status_box), GTK_WIDGET(widgets->alt_label));
 
-  label = gtk_label_new("Speed");
+  label = gtk_label_new("Speed:");
   gtk_box_append(GTK_BOX(widgets->status_box), GTK_WIDGET(label));
   widgets->speed_label = gtk_label_new("---");
   gtk_box_append(GTK_BOX(widgets->status_box), GTK_WIDGET(widgets->speed_label));
 
-  label = gtk_label_new("Distance");
+  label = gtk_label_new("Distance:");
   gtk_box_append(GTK_BOX(widgets->status_box), GTK_WIDGET(label));
   widgets->distance_label = gtk_label_new("---");
   gtk_box_append(GTK_BOX(widgets->status_box), GTK_WIDGET(widgets->distance_label));
 
-  label = gtk_label_new("Fix mode");
+  label = gtk_label_new("Heading:");
   gtk_box_append(GTK_BOX(widgets->status_box), GTK_WIDGET(label));
-  widgets->fix_mode_label = gtk_label_new("---");
+  widgets->heading_label = gtk_label_new("---");
+  gtk_box_append(GTK_BOX(widgets->status_box), GTK_WIDGET(widgets->heading_label));
+
+  widgets->fix_mode_label = gtk_label_new("No fix");
   gtk_box_append(GTK_BOX(widgets->status_box), GTK_WIDGET(widgets->fix_mode_label));
 
-  label = gtk_label_new("Summit ref");
+  label = gtk_label_new("Summit:");
   gtk_box_append(GTK_BOX(widgets->status_box), GTK_WIDGET(label));
-  widgets->summit_ref_label = gtk_label_new("---/---");
+  widgets->summit_ref_label = gtk_label_new("---");
   gtk_box_append(GTK_BOX(widgets->status_box), GTK_WIDGET(widgets->summit_ref_label));
 
+  label = gtk_label_new("@");
+  gtk_box_append(GTK_BOX(widgets->status_box), GTK_WIDGET(label));
+  widgets->summit_qra_label = gtk_label_new("---");
+  gtk_box_append(GTK_BOX(widgets->status_box), GTK_WIDGET(widgets->summit_qra_label));
 
   gtk_box_append(GTK_BOX(widgets->right_box), widgets->status_box);
 
@@ -791,12 +807,95 @@ static void on_activate(GtkApplication *app, gpointer user_data) {
   llog_load_static_data(&log_entry_data);
   set_static_data();
 
-
-//  g_slice_free(app_widgets_t, widgets);
-
   return;
 }
 
+void main_window_update_position_labels(position_t *position) {
+  char buffer[BUFF_SIZ];
+  summit_entry_t summit_entry;
+  double distance;
+  double heading;
+
+  if (position == NULL || widgets == NULL) {
+    return;
+  }
+
+  position_to_qra(position, buffer);
+  gtk_label_set_text(GTK_LABEL(widgets->qra_label), buffer);
+
+  snprintf(buffer, BUFF_SIZ, "%.2fm", position->alt);
+  gtk_label_set_text(GTK_LABEL(widgets->alt_label), buffer);
+
+  snprintf(buffer, BUFF_SIZ, "%.2fkm/h", 3.6 * position->speed);
+  gtk_label_set_text(GTK_LABEL(widgets->speed_label), buffer);
+
+  summit_entry.data_stat = db_data_init;
+  while (summit_entry.data_stat != db_data_last) {
+    int ret;
+    ret = db_get_summit_entry(local_llog, &summit_entry, position);
+    if (ret == llog_stat_err) {
+      return;
+    }
+  }
+
+  switch (position->fix) { // Fix mode
+    {
+    case MODE_NOT_SEEN:
+      gtk_label_set_text(GTK_LABEL(widgets->fix_mode_label), "Not seen");
+      break;
+
+    case MODE_NO_FIX:
+      gtk_label_set_text(GTK_LABEL(widgets->fix_mode_label), "No fix");
+      break;
+
+    case MODE_2D:
+      gtk_label_set_text(GTK_LABEL(widgets->fix_mode_label), "2D fix");
+      break;
+
+    case MODE_3D:
+      gtk_label_set_text(GTK_LABEL(widgets->fix_mode_label), "3D fix");
+      break;
+
+    default:
+      gtk_label_set_text(GTK_LABEL(widgets->fix_mode_label), "Unknown");
+      break;
+    }
+  }
+
+  position_distance_and_heading(position, &summit_entry.position, &distance, &heading);
+
+  snprintf(buffer, BUFF_SIZ, "%.2fkm", distance / 1000);
+  gtk_label_set_text(GTK_LABEL(widgets->distance_label), buffer);
+
+  snprintf(buffer, BUFF_SIZ, "%.0f°", heading);
+  gtk_label_set_text(GTK_LABEL(widgets->heading_label), buffer);
+
+  if (summit_entry.id != 0) {
+    snprintf(buffer, BUFF_SIZ, "%s", summit_entry.summit_code);
+    gtk_label_set_text(GTK_LABEL(widgets->summit_ref_label), buffer);
+    position_to_qra(&summit_entry.position, buffer);
+    gtk_label_set_text(GTK_LABEL(widgets->summit_qra_label), buffer);
+  } else {
+    gtk_label_set_text(GTK_LABEL(widgets->summit_ref_label), "---");
+    gtk_label_set_text(GTK_LABEL(widgets->summit_qra_label), "------");
+  }
+}
+
+
+void main_window_clear_position_labels(void) {
+  if (widgets == NULL) {
+    return;
+  }
+
+  gtk_label_set_text(GTK_LABEL(widgets->alt_label), "---");
+  gtk_label_set_text(GTK_LABEL(widgets->speed_label), "---");
+  gtk_label_set_text(GTK_LABEL(widgets->distance_label), "---");
+  gtk_label_set_text(GTK_LABEL(widgets->heading_label), "---");
+  gtk_label_set_text(GTK_LABEL(widgets->fix_mode_label), "No fix");
+  gtk_label_set_text(GTK_LABEL(widgets->summit_ref_label), "---");
+  gtk_label_set_text(GTK_LABEL(widgets->qra_label), "------");
+  gtk_label_set_text(GTK_LABEL(widgets->summit_qra_label), "---");
+}
 
 void set_static_data(void) {
   char buff[BUFF_SIZ];
@@ -915,7 +1014,13 @@ void on_window_main_entry_changed(GtkEditable *editable, gpointer user_data) {
     }
     break;
 
-  case llog_entry_mode:
+  case llog_entry_s2s_ref:
+    snprintf(log_entry_data.s2s_ref, MAX_SUMMIT_CODE_LENGTH, gtk_entry_buffer_get_text(buffer));
+    llog_strupper(log_entry_data.s2s_ref);
+    cursor_position = gtk_editable_get_position(GTK_EDITABLE(entry));
+    gtk_entry_buffer_delete_text(buffer, 0, -1);
+    gtk_entry_buffer_insert_text(buffer, 0, log_entry_data.s2s_ref, -1);
+    gtk_editable_set_position(GTK_EDITABLE(entry), cursor_position);
     break;
 
   case llog_entry_qra:
@@ -966,7 +1071,7 @@ static void on_station_entry_change(GtkEditable *entry, gpointer user_data) {
 static void on_log_btn_clicked(void) {
   int ret;
   char buff[BUFF_SIZ];
-  GtkDialogFlags flags = GTK_DIALOG_DESTROY_WITH_PARENT; // This might be changed
+  GtkDialogFlags flags = GTK_DIALOG_DESTROY_WITH_PARENT;   // This might be changed
   GtkWidget *error_dialog;
   GObject *item;
 
@@ -991,9 +1096,11 @@ static void on_log_btn_clicked(void) {
   snprintf(log_entry_data.txextra, X_LEN, gtk_entry_buffer_get_text(widgets->log_entry_buffers[llog_entry_txextra]));
   snprintf(log_entry_data.comment, X_LEN, gtk_entry_buffer_get_text(widgets->log_entry_buffers[llog_entry_comment]));
 
-  //Todo: Get the station id from the Dropdown
   item = gtk_drop_down_get_selected_item(GTK_DROP_DOWN(widgets->log_entries[llog_entry_station_id]));
   log_entry_data.station_id = strtoull(station_entry_get_id(STATIONENTRY_ITEM(item)), NULL, 0);
+
+  snprintf(log_entry_data.summit_ref, MAX_SUMMIT_CODE_LENGTH, gtk_entry_buffer_get_text(widgets->log_entry_buffers[llog_entry_summit_ref]));
+  snprintf(log_entry_data.s2s_ref, MAX_SUMMIT_CODE_LENGTH, gtk_entry_buffer_get_text(widgets->log_entry_buffers[llog_entry_s2s_ref]));
 
   /*This is for debug. Print log data to stdout*/
   //llog_print_log_data(&log_entry_data);
@@ -1005,7 +1112,6 @@ static void on_log_btn_clicked(void) {
     error_dialog = gtk_message_dialog_new(GTK_WINDOW(widgets->main_window), flags, GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Call must be longer then 2 characters.");
     g_signal_connect(error_dialog, "response", G_CALLBACK(gtk_window_destroy), NULL);
     gtk_widget_show(error_dialog);
-    //gtk_widget_destroy(error_dialog);
     return;
   }
 
@@ -1034,19 +1140,23 @@ static void on_log_btn_clicked(void) {
   llog_reset_entry(&log_entry_data);
 
   gtk_entry_buffer_insert_text(widgets->log_entry_buffers[llog_entry_call], 0, log_entry_data.call, -1);
-  gtk_entry_buffer_insert_text(widgets->log_entry_buffers[llog_entry_date], 0, log_entry_data.date, -1);
-  gtk_entry_buffer_insert_text(widgets->log_entry_buffers[llog_entry_utc], 0, log_entry_data.utc, -1);
 
-  //on_mode_entry_change(widgets->log_entry_buffers[llog_entry_mode]);
-
-  gtk_entry_buffer_insert_text(widgets->log_entry_buffers[llog_entry_qth], 0, log_entry_data.qth, -1);
-  gtk_entry_buffer_insert_text(widgets->log_entry_buffers[llog_entry_name], 0, log_entry_data.name, -1);
-  gtk_entry_buffer_insert_text(widgets->log_entry_buffers[llog_entry_qra], 0, log_entry_data.qra, -1);
-  gtk_entry_buffer_insert_text(widgets->log_entry_buffers[llog_entry_power], 0, log_entry_data.power, -1);
-  gtk_entry_buffer_insert_text(widgets->log_entry_buffers[llog_entry_rxextra], 0, log_entry_data.rxextra, -1);
-  gtk_entry_buffer_insert_text(widgets->log_entry_buffers[llog_entry_comment], 0, log_entry_data.comment, -1);
+  for (int i = llog_entry_call; i <= llog_entry_station_id; i++) {
+    switch (i) {
+    case llog_entry_station_id:
+      break;
+    case llog_entry_mode:
+      break;
+    case llog_entry_summit_ref:
+      break;
+    default:
+      gtk_entry_buffer_delete_text(widgets->log_entry_buffers[i], 0, -1);
+      break;
+    }
+  }
 
   snprintf(buff, BUFF_SIZ, "%04" PRIu64, log_entry_data.txnr);
+  gtk_entry_buffer_delete_text(widgets->log_entry_buffers[llog_entry_txnr], 0, -1);
   gtk_entry_buffer_insert_text(widgets->log_entry_buffers[llog_entry_txnr], 0, buff, -1);
 
   /*Refresh the log list*/
@@ -1066,9 +1176,9 @@ static void on_summit_ref_btn_clicked(void) {
   /*Get text from the summit reference label*/
 
   const char *summit_ref = gtk_label_get_text(GTK_LABEL(widgets->summit_ref_label));
+
   gtk_entry_buffer_delete_text(widgets->log_entry_buffers[llog_entry_summit_ref], 0, -1);
   gtk_entry_buffer_insert_text(widgets->log_entry_buffers[llog_entry_summit_ref], 0, summit_ref, -1);
-
 }
 
 static void on_menuitm_new_activate(app_widgets_t *app_wdgts) {
@@ -1132,7 +1242,7 @@ static void on_reload_activate(GMenuItem *menuitem, app_widgets_t *app_wdgts) {
   llog_open_db();
   llog_load_static_data(&log_entry_data);
   set_static_data();
-  position_init(local_llog->gpsd_host, local_llog->gpsd_port);
+  position_init(local_llog->gpsd_host, local_llog->gpsd_port, main_window_update_position_labels);
 }
 
 
@@ -1186,7 +1296,7 @@ static void on_edit_log_db_activate(app_widgets_t *app_wdgts) {
 }
 
 
-static void on_window_main_destroy( GtkApplication *app, GtkApplicationWindow window) {
+static void on_window_main_destroy(GtkApplication *app, GtkApplicationWindow window) {
   (void)window;
   on_qrt_activate(app);
 }

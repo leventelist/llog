@@ -9,6 +9,8 @@
     "pthread.h": "c",
     "conf.h": "c",
     "db_sqlite.h": "c",
-    "stdint.h": "c"
+    "stdint.h": "c",
+    "cmath": "c",
+    "complex": "c"
   }
 }

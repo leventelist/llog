@@ -23,6 +23,9 @@
 #include <unistd.h>
 #include <pthread.h>
 #include <math.h>
+#include <stdbool.h>
+#include <float.h>
+#include <string.h>
 
 #include "position.h"
 #include "llog.h"
@@ -34,6 +37,10 @@ typedef enum {
   position_stat_running
 } position_status_t;
 
+/*Module Constants*/
+
+#define R_EARTH 6371e3F
+
 /*Module variables*/
 static pthread_t thread_id;
 static position_status_t position_status = position_stat_uninit;
@@ -42,17 +49,20 @@ static gps_data_real_t gpsdata;
 static position_t pos;
 static pthread_mutex_t pos_mutex = PTHREAD_MUTEX_INITIALIZER;
 
+static position_callback_t position_callback = NULL;
 
 /*Module functions*/
+static void position_register_callback(position_callback_t callback);
 static void position_start_thread(void);
 static void position_set(position_t *new_pos);
 
 /*Interface functions*/
-int position_init(char *host, uint64_t port) {
+int position_init(char *host, uint64_t port, position_callback_t callback) {
   char port_str[16];
   int ret;
   int ret_val;
 
+  printf("Initializing GPSd interface %s, %ld\n", host, port);
 
   if (position_status != position_stat_uninit) {
     position_stop();
@@ -68,6 +78,7 @@ int position_init(char *host, uint64_t port) {
   case 0:
     ret_val = llog_stat_ok;
     position_status = position_stat_init;
+    position_register_callback(callback);
     position_start_thread();
     break;
 
@@ -83,6 +94,10 @@ int position_init(char *host, uint64_t port) {
   gps_stream(&gpsdata, WATCH_ENABLE | WATCH_JSON, NULL);
 
   return ret_val;
+}
+
+static void position_register_callback(position_callback_t callback) {
+  position_callback = callback;
 }
 
 void position_get(position_t *out_pos) {
@@ -148,15 +163,23 @@ int position_step(void) {
 static void *position_thread(void *user_data) {
   (void)user_data;
   position_t local_pos;
-  //int ret;
+
   int ret_val;
 
+  pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, NULL);
+  pthread_setcanceltype(PTHREAD_CANCEL_DEFERRED, NULL);
+
   while (1) {
+    pthread_testcancel();
     position_status = position_stat_running;
     ret_val = position_step();
     if (ret_val == llog_stat_ok) {
       position_get(&local_pos);
-      printf("Lat: %f, Lon: %f, Alt: %f, Speed: %f\n", local_pos.lat, local_pos.lon, local_pos.alt, local_pos.speed);
+      if (position_callback) {
+        pthread_setcancelstate(PTHREAD_CANCEL_DISABLE, NULL);
+        position_callback(&local_pos);
+        pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, NULL);
+      }
     }
   }
 
@@ -165,7 +188,7 @@ static void *position_thread(void *user_data) {
 }
 
 
-double position_distance(position_t *pos1, position_t *pos2) {
+void position_distance_and_heading(position_t *pos1, position_t *pos2, double *distance, double *heading) {
   double lat1 = pos1->lat * M_PI / 180.0;
   double lon1 = pos1->lon * M_PI / 180.0;
   double lat2 = pos2->lat * M_PI / 180.0;
@@ -178,15 +201,61 @@ double position_distance(position_t *pos1, position_t *pos2) {
              cos(lat1) * cos(lat2) * sin(dlon / 2) * sin(dlon / 2);
   double c = 2 * atan2(sqrt(a), sqrt(1 - a));
 
-  double distance = 6371e3 * c; // Earth's radius in meters
+  if (distance != NULL) {
+    *distance = R_EARTH * c; // Earth's radius in meters
+  }
+  // Calculate heading
+  double y = sin(dlon) * cos(lat2);
+  double x = cos(lat1) * sin(lat2) - sin(lat1) * cos(lat2) * cos(dlon);
 
-  return distance;
+  if (heading != NULL) {
+    *heading = atan2(y, x) * 180.0 / M_PI; // Convert to degrees
+
+    // Normalize heading to [0, 360] degrees
+    if (*heading < 0) {
+      *heading += 360.0;
+    }
+  }
 }
 
+void position_to_qra(position_t *pos, char *qra_locator) {
+  if (pos->lat < -90.0 || pos->lat > 90.0 || pos->lon < -180.0 || pos->lon > 180.0) {
+    strcpy(qra_locator, "Invalid");
+    return;
+  }
+
+  double lat = pos->lat + 90.0;
+  double lon = pos->lon + 180.0;
+
+  // First pair: Field (A-R)
+  int lon_field = (int)(lon / 20.0);
+  int lat_field = (int)(lat / 10.0);
+
+  // Second pair: Square (0-9)
+  int lon_square = (int)((lon - (lon_field * 20.0)) / 2.0);
+  int lat_square = (int)((lat - (lat_field * 10.0)) / 1.0);
+
+  // Third pair: Subsquare (a-x)
+  int lon_subsquare = (int)((lon - (lon_field * 20.0) - (lon_square * 2.0)) * 12.0);
+  int lat_subsquare = (int)((lat - (lat_field * 10.0) - (lat_square * 1.0)) * 24.0);
+
+
+  qra_locator[0] = 'A' + lon_field;
+  qra_locator[1] = 'A' + lat_field;
+  qra_locator[2] = '0' + lon_square;
+  qra_locator[3] = '0' + lat_square;
+  qra_locator[4] = 'A' + lon_subsquare;
+  qra_locator[5] = 'A' + lat_subsquare;
+  qra_locator[6] = '\0';
+}
 
 void position_stop(void) {
-  pthread_cancel(thread_id);
-  pthread_join(thread_id, NULL);
+  printf("Stopping GPS\n");
+  position_register_callback(NULL);
+  if (position_status == position_stat_running) {
+    pthread_cancel(thread_id);
+    pthread_join(thread_id, NULL);
+  }
   gps_stream(&gpsdata, WATCH_DISABLE, NULL);
   gps_close(&gpsdata);
   position_status = position_stat_uninit;

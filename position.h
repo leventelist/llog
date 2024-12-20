@@ -28,17 +28,19 @@
 
 typedef struct gps_data_t gps_data_real_t;
 
+typedef void (*position_callback_t)(position_t *);
+
 /*Init the GPSd interface*/
-int position_init(char *host, uint64_t port);
+int position_init(char *host, uint64_t port, position_callback_t callback);
 
 /*Get the current position*/
 void position_get(position_t *out_pos);
 
 /*Calculate the distance between two positions*/
-double position_distance(position_t *pos1, position_t *pos2);
+void position_distance_and_heading(position_t *pos1, position_t *pos2, double *distance, double *heading);
 
-/*Calculate the offset position from a given position*/
-void position_calculate_offset(position_t *current_pos, double distance, double *dlat, double *dlon);
+/*Convert a position to a QRA locator*/
+void position_to_qra(position_t *pos, char *qra_locator);
 
 /*Stop the GPSd interface*/
 void position_stop(void);
