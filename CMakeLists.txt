@@ -9,7 +9,14 @@ set(DB_FILE_NAME llog.sql)
 set(DB_FILE_PATH ${SHARE_DIR}/${DB_FILE_NAME})
 
 set(SUMMITS_DB_FILE_NAME summitslist.sqlite)
-set(SUMMITS_DB_FILE_PATH ${SHARE_DIR}/${SUMMITS_DB_FILE_NAME})
+set(SOTA_DB_PATH ${CMAKE_SOURCE_DIR}/sota_db)
+
+add_custom_command(
+	OUTPUT ${PROJECT_BINARY_DIR}/${SUMMITS_DB_FILE_NAME}
+	COMMAND python3 ${SOTA_DB_PATH}/summits_to_db.py
+)
+
+add_custom_target(generate_summits_db ALL DEPENDS ${PROJECT_BINARY_DIR}/${SUMMITS_DB_FILE_NAME})
 
 configure_file(llog_Config.h.in llog_Config.h)
 
@@ -51,7 +58,13 @@ install (FILES db/create_llog.sh
 			GROUP_EXECUTE GROUP_READ
 			WORLD_READ WORLD_EXECUTE)
 
-install (FILES gui/llog.png db/${DB_FILE_NAME} sota_db/${SUMMITS_DB_FILE_NAME}
+install (FILES gui/llog.png db/${DB_FILE_NAME}
+			DESTINATION ${SHARE_DIR}
+			COMPONENT config
+			PERMISSIONS OWNER_WRITE OWNER_READ
+			GROUP_READ WORLD_READ)
+
+install(FILES ${PROJECT_BINARY_DIR}/${SUMMITS_DB_FILE_NAME}
 			DESTINATION ${SHARE_DIR}
 			COMPONENT config
 			PERMISSIONS OWNER_WRITE OWNER_READ
