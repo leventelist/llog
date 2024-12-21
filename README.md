@@ -8,6 +8,8 @@ your computer with you, and nothing else. Not even a smartphone. You have your G
 The program connects to gpsd, and knows where you are. The closest SOTA summit is selected, and you can save your location
 just by one click.
 
+There is an SQLite database where all logged information is saved.
+
 ## Prerequisites
 
 * libsqlite3-dev
@@ -43,6 +45,10 @@ just by one click.
 * Edit your station by clicking Edit->Log database. This will fire up sqlitebrowser.
 * Once you are happy with your changes, reload the database by clicking
 File->Reload
+* CLick on the UTC button to get current UTC
+* Click on the 'Summit ref' button the get the closest SOTA reference
+* Fill out all the info you have
+* Click the Log button. All data will be saved to the database
 * Enjoy!
 
 
