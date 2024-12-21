@@ -29,7 +29,7 @@
 #include <stdbool.h>
 #include "db_sqlite.h"
 #include "llog.h"
-#include "llog_Config.h"
+#include "llog_config.h"
 
 #include <inttypes.h>
 #include <string.h>

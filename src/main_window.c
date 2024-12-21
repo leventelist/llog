@@ -23,7 +23,7 @@
 #include <unistd.h>
 #include "main_window.h"
 #include "llog.h"
-#include "llog_Config.h"
+#include "llog_config.h"
 #include "db_sqlite.h"
 #include "position.h"
 #include <gps.h>
