@@ -1,6 +1,6 @@
 /*	This is llog, logger for Amateur Radio operations.
  *
- *	Copyright (C) 2017-2021 Levente Kovacs
+ *	Copyright (C) 2017-2024 Levente Kovacs
  *
  *	This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
