@@ -126,6 +126,4 @@ static void on_preferences_window_destroy(GtkWidget *widget, gpointer data) {
   (void)widget;
 
   g_free(data);
-
-  g_print("Preferences window destroyed\n");
 }

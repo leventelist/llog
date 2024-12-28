@@ -1290,7 +1290,7 @@ static void on_about_menu_activate(app_widgets_t *app_wdgts) {
 
 static void on_edit_preferences_activate(app_widgets_t *app_wdgts) {
   (void)app_wdgts;
-  printf("Preferences activated\n");
+
   on_preferences_window_activate(NULL, local_llog);
 }
 
