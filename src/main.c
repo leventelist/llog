@@ -61,11 +61,14 @@ int main(int argc, char *argv[]) {
 
 	/*Parse command line arguments*/
 
-	while ((opt = getopt(argc, argv, "f:hv")) !=-1) {
+	while ((opt = getopt(argc, argv, "c:f:hv")) !=-1) {
 		switch (opt) {
 		case 'h': /*print help*/
 			print_help();
 			return(llog_stat_ok);
+		break;
+		case 'c':
+			llog_set_config_file(optarg);
 		break;
 		case 'f':
 			llog_set_log_file(optarg, true);
@@ -111,7 +114,8 @@ static void print_help(void) {
 
 	print_ver();
 	printf("\nCommand line options\n\n");
-	printf("\t-f FILE\t\tWrite output to logfile FILE.\n");
+	printf("\t-c FILE\t\tRead configuration from FILE.\n");
+	printf("\t-f FILE\t\tSet logfile to FILE.\n");
 	printf("\t-h\t\tGet help.\n");
 	printf("\t-v\t\tPrint version information.\n\n");
 }

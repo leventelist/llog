@@ -6,7 +6,7 @@
           "name": "Debug GTK4 App",
           "type": "cppdbg",
           "request": "launch",
-          "program": "${workspaceFolder}/build/llog", // Adjust path to your executable
+          "program": "${workspaceFolder}/build/src/llog", // Adjust path to your executable
           "args": [],
           "stopAtEntry": false,
           "cwd": "${workspaceFolder}",

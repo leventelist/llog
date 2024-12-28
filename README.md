@@ -49,6 +49,7 @@ File->Reload
 * Click on the 'Summit ref' button the get the closest SOTA reference
 * Fill out all the info you have
 * Click the Log button. All data will be saved to the database
+* Click on the Call button, and the default browser will be launched with a QRZ query
 * Enjoy!
 
 

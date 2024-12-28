@@ -11,6 +11,7 @@
     "db_sqlite.h": "c",
     "stdint.h": "c",
     "cmath": "c",
-    "complex": "c"
+    "complex": "c",
+    "math.h": "c"
   }
 }

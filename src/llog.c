@@ -27,6 +27,7 @@
 #include <stdbool.h>
 #include <math.h>
 #include <float.h>
+#include <gio/gio.h>
 
 #include "llog.h"
 #include "db_sqlite.h"
@@ -116,8 +117,7 @@ int llog_parse_config_file(void) {
   }
 
   initial_station.data_stat = db_data_init;
-  while (initial_station.data_stat != db_data_last)
-  {
+  while (initial_station.data_stat != db_data_last) {
     ret_val = db_get_station_entry(&llog, &initial_station);
     if (ret_val != llog_stat_ok) {
       break;
@@ -148,6 +148,7 @@ int llog_get_initial_station(station_entry_t **station) {
 
 int llog_save_config_file(void) {
   int ret;
+
   ret = config_print_file(llog.config_file_name, llog.ca);
   return ret;
 }
@@ -336,6 +337,23 @@ void llog_print_log_data(log_entry_t *entry) {
   printf("RX_EXTRA [%s]\nTX_EXTRA [%s]\n", entry->rxextra, entry->txextra);
   printf("Comment [%s]\n\n", entry->comment);
   return;
+}
+
+
+void llog_open_qrz_url(const char *call) {
+  char url[BUF_SIZ];
+  GError *error = NULL;
+
+  if (call == NULL || call[0] == '\0') {
+    return;
+  }
+
+  snprintf(url, BUF_SIZ, "https://www.qrz.com/db/%s", call);
+
+  if (!g_app_info_launch_default_for_uri(url, NULL, &error)) {
+    g_printerr("Error launching browser: %s\n", error->message);
+    g_error_free(error);
+  }
 }
 
 

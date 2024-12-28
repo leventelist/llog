@@ -208,5 +208,6 @@ int llog_check_dup_qso(log_entry_t *entry);
 int llog_get_default_rst(char *default_rst, uint64_t mode_id);
 int llog_get_max_nr(log_entry_t *entry);
 int llog_load_static_data(log_entry_t *entry);
+void llog_open_qrz_url(const char *url);
 
 #endif
