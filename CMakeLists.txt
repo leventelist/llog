@@ -9,6 +9,7 @@ set(DB_FILE_NAME llog.sql)
 set(DB_FILE_PATH ${SHARE_DIR}/${DB_FILE_NAME})
 
 set(SUMMITS_DB_FILE_NAME summitslist.sqlite)
+set(SUMMITS_DB_FILE_PATH ${SHARE_DIR}/${SUMMITS_DB_FILE_NAME})
 set(SOTA_DB_PATH ${CMAKE_SOURCE_DIR}/sota_db)
 
 add_custom_command(
