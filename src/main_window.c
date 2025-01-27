@@ -1153,6 +1153,9 @@ static void on_log_btn_clicked(void) {
     case llog_entry_mode:
       break;
 
+    case llog_entry_power:
+      break;
+
     case llog_entry_summit_ref:
       break;
 
