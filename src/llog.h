@@ -119,6 +119,7 @@ typedef struct {
 typedef struct {
   char log_file_name[FILE_LEN];       /*SQLite database file name*/
   char config_file_name[FILE_LEN];
+  char export_file_name[FILE_LEN];
   uint64_t station_id;
   sqlite3 *log_db;
   sqlite3 *summits_db;

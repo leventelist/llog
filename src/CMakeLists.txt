@@ -12,6 +12,8 @@ set(SOURCES
   position.c
   preferences_window.c
   conf.c
+	exporter_writer.c
+	export_window.c
 )
 
 # Add the executable
@@ -32,12 +34,15 @@ set(CMAKE_C_FLAGS_RELEASE "-O2")
 pkg_check_modules(SQLITE REQUIRED IMPORTED_TARGET sqlite3)
 pkg_check_modules(GTK REQUIRED IMPORTED_TARGET gtk4)
 pkg_check_modules(GPS REQUIRED IMPORTED_TARGET libgps)
+pkg_check_modules(XML REQUIRED IMPORTED_TARGET libxml-2.0)
+
 find_library(MATH_LIBRARY m REQUIRED)
 
 target_link_libraries(${PROJECT_NAME} PUBLIC
 				PkgConfig::SQLITE
 				PkgConfig::GTK
 				PkgConfig::GPS
+				PkgConfig::XML
 				${MATH_LIBRARY})
 
 install (TARGETS ${PROJECT_NAME}

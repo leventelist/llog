@@ -46,6 +46,7 @@ static config_attribute_t llog_ca[] = {
   { "station", CONFIG_ULLInteger, &initial_station.id },
   { "gpsd_host", CONFIG_String, llog.gpsd_host },
   { "gpsd_port", CONFIG_ULLInteger, &llog.gpsd_port },
+  { "export_filename", CONFIG_String, llog.export_file_name },
   { NULL, CONFIG_Unused, NULL }
 };
 
@@ -63,6 +64,8 @@ llog_t *llog_init(void) {
   /*Some sensible defaults for GPS configuration*/
   sprintf(llog.gpsd_host, "localhost");
   llog.gpsd_port = 2947;
+
+  llog.export_file_name[0] = '\0';
 
   return &llog;
 }

@@ -36,7 +36,7 @@ CREATE TABLE log (
 	SOTA_REF TEXT,
 	S2S_REF TEXT,
 	comment TEXT,
-	station INTEGER
+	station INTEGER default 1
 );
 
 
@@ -47,6 +47,8 @@ CREATE TABLE mode (
 	comment TEXT default ""
 );
 
+/*Insert some (non)sensible data to the station*/
+INSERT INTO station(CALL) VALUES ("NOCALL");
 
 /* INSERT QUERY NO: 1 */
 INSERT INTO mode(name, super_mode, default_rst)

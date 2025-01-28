@@ -10,17 +10,22 @@ just by one click.
 
 There is an SQLite database where all logged information is saved.
 
+## Features
+* Automatic location detection via GPSd
+* Closest SOTA summit identification
+* One-click location logging
+* SQLite database for storing logs
+* Integration with QRZ for call sign lookup
+* User-friendly interface with GTK4
+* ADI, ADX, CSV export
+
 ## Prerequisites
 
 * libsqlite3-dev
 * libgtk-4-dev
 * libgps-dev
 * libhamlib-dev
-* python3
-    - SQLite3
-    - csv
-    - requests
-* hamutils python3 package
+* libxml2-dev
 * libxmlrpc-core-c3-dev
 * sqlitebrowser
 * gpsd

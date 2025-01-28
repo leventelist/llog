@@ -26,6 +26,7 @@
 #include "llog_config.h"
 #include "db_sqlite.h"
 #include "position.h"
+#include "export_window.h"
 #include <gps.h>
 
 #include "preferences_window.h"
@@ -448,6 +449,7 @@ static void on_menuitm_open_activate(app_widgets_t *app_wdgts);
 static void on_open_file_response(GtkDialog *dialog, gint response_id, gpointer user_data);
 static void on_new_file_response(GtkDialog *dialog, gint response_id, gpointer user_data);
 static void on_station_entry_change(GtkEditable *entry, gpointer user_data);
+static void on_export_activate(app_widgets_t *app_wdgts);
 
 void main_window_set_llog(llog_t *llog) {
   local_llog = llog;
@@ -668,15 +670,19 @@ static void on_activate(GtkApplication *app, gpointer user_data) {
   GSimpleAction *act_reload = g_simple_action_new("reload", NULL);
   GSimpleAction *act_open = g_simple_action_new("open", NULL);
   GSimpleAction *act_new = g_simple_action_new("new", NULL);
+  GSimpleAction *act_adif_export = g_simple_action_new("adif_export", NULL);
 
   g_signal_connect(act_reload, "activate", G_CALLBACK(on_reload_activate), widgets);
   g_signal_connect_swapped(act_open, "activate", G_CALLBACK(on_menuitm_open_activate), widgets);
   g_signal_connect_swapped(act_new, "activate", G_CALLBACK(on_menuitm_new_activate), widgets);
-  g_signal_connect_swapped(act_quit, "activate", G_CALLBACK(on_qrt_activate), app); //Modify this to the QRT function
+  g_signal_connect_swapped(act_quit, "activate", G_CALLBACK(on_qrt_activate), app);
+  g_signal_connect_swapped(act_adif_export, "activate", G_CALLBACK(on_export_activate), widgets);
+
   g_action_map_add_action(G_ACTION_MAP(app), G_ACTION(act_quit));
   g_action_map_add_action(G_ACTION_MAP(app), G_ACTION(act_reload));
   g_action_map_add_action(G_ACTION_MAP(app), G_ACTION(act_open));
   g_action_map_add_action(G_ACTION_MAP(app), G_ACTION(act_new));
+  g_action_map_add_action(G_ACTION_MAP(app), G_ACTION(act_adif_export));
 
   GMenu *menubar = g_menu_new();
   GMenu *file_menu = g_menu_new();
@@ -686,15 +692,18 @@ static void on_activate(GtkApplication *app, gpointer user_data) {
   GMenuItem *menu_item_open = g_menu_item_new("Open", "app.open");
   GMenuItem *menu_item_new = g_menu_item_new("New", "app.new");
   GMenuItem *menu_item_reload = g_menu_item_new("Reload", "app.reload");
+  GMenuItem *menu_item_adif_export = g_menu_item_new("Export ADIF", "app.adif_export");
   GMenuItem *menu_item_quit = g_menu_item_new("QRT", "app.quit");
 
   g_menu_append_item(section1, menu_item_open);
   g_menu_append_item(section1, menu_item_new);
   g_menu_append_item(section1, menu_item_reload);
+  g_menu_append_item(section1, menu_item_adif_export);
   g_menu_append_item(section3, menu_item_quit);
   g_object_unref(menu_item_open);
   g_object_unref(menu_item_new);
   g_object_unref(menu_item_reload);
+  g_object_unref(menu_item_adif_export);
   g_object_unref(menu_item_quit);
 
   g_menu_append_section(file_menu, NULL, G_MENU_MODEL(section1));
@@ -1211,8 +1220,6 @@ static void on_summit_ref_btn_clicked(void) {
 static void on_menuitm_new_activate(app_widgets_t *app_wdgts) {
   (void)app_wdgts;
 
-  printf("New activated\n");
-
   char *current_log_file_name;
 
   llog_get_log_file_path(&current_log_file_name);
@@ -1238,6 +1245,11 @@ static void on_menuitm_new_activate(app_widgets_t *app_wdgts) {
   //gtk_widget_destroy(dialog);
 }
 
+static void on_export_activate(app_widgets_t *app_wdgts) {
+  (void)app_wdgts;
+
+  on_exporter_window_activate(NULL, local_llog);
+}
 
 static void on_new_file_response(GtkDialog *dialog, gint response_id, gpointer user_data) {
   (void)user_data;
