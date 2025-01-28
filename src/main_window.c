@@ -670,7 +670,7 @@ static void on_activate(GtkApplication *app, gpointer user_data) {
   GSimpleAction *act_reload = g_simple_action_new("reload", NULL);
   GSimpleAction *act_open = g_simple_action_new("open", NULL);
   GSimpleAction *act_new = g_simple_action_new("new", NULL);
-  GSimpleAction *act_adif_export = g_simple_action_new("adif_export", NULL);
+  GSimpleAction *act_adif_export = g_simple_action_new("export", NULL);
 
   g_signal_connect(act_reload, "activate", G_CALLBACK(on_reload_activate), widgets);
   g_signal_connect_swapped(act_open, "activate", G_CALLBACK(on_menuitm_open_activate), widgets);
@@ -692,7 +692,7 @@ static void on_activate(GtkApplication *app, gpointer user_data) {
   GMenuItem *menu_item_open = g_menu_item_new("Open", "app.open");
   GMenuItem *menu_item_new = g_menu_item_new("New", "app.new");
   GMenuItem *menu_item_reload = g_menu_item_new("Reload", "app.reload");
-  GMenuItem *menu_item_adif_export = g_menu_item_new("Export ADIF", "app.adif_export");
+  GMenuItem *menu_item_adif_export = g_menu_item_new("Export", "app.export");
   GMenuItem *menu_item_quit = g_menu_item_new("QRT", "app.quit");
 
   g_menu_append_item(section1, menu_item_open);

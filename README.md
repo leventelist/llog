@@ -31,6 +31,8 @@ There is an SQLite database where all logged information is saved.
 * gpsd
 * gpsd-tools
 * gpsd-clients
+* python3
+    - sqlite3
 
 ## Install
 

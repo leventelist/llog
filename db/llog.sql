@@ -47,8 +47,8 @@ CREATE TABLE mode (
 	comment TEXT default ""
 );
 
-/*Insert some (non)sensible data to the station*/
-INSERT INTO station(CALL) VALUES ("NOCALL");
+/*Insert some (non)sensible data to the station table*/
+INSERT INTO station(name, CALL) VALUES ("default", "NOCALL");
 
 /* INSERT QUERY NO: 1 */
 INSERT INTO mode(name, super_mode, default_rst)
