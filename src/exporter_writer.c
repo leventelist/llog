@@ -492,7 +492,7 @@ static int exporter_write_csv_header(const char *filename) {
     return export_status_file_err;
   }
 
-  fprintf(output_txt_file, "Date,Time,Band,Mode,Call,SOTA Ref,My SOTA Ref,Notes\n");
+  //fprintf(output_txt_file, "Date,Time,Band,Mode,Call,SOTA Ref,My SOTA Ref,Notes\n");
 
   return export_status_ok;
 }
