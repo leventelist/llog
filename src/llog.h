@@ -22,6 +22,7 @@
 #define LLOG_H
 
 #define VERSION "v2.0.2"
+#define PROGRAM_NAME "llog"
 #include <stdint.h>
 #include <sys/time.h>
 #include <time.h>
@@ -120,6 +121,8 @@ typedef struct {
   char log_file_name[FILE_LEN];       /*SQLite database file name*/
   char config_file_name[FILE_LEN];
   char export_file_name[FILE_LEN];
+  char xmlrpc_host[FILE_LEN];
+  uint64_t xmlrpc_port;
   uint64_t station_id;
   sqlite3 *log_db;
   sqlite3 *summits_db;

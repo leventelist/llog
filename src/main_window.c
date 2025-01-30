@@ -21,15 +21,16 @@
 #include <gtk/gtk.h>
 #include <inttypes.h>
 #include <unistd.h>
+#include <gps.h>
+
 #include "main_window.h"
 #include "llog.h"
 #include "llog_config.h"
 #include "db_sqlite.h"
 #include "position.h"
 #include "export_window.h"
-#include <gps.h>
-
 #include "preferences_window.h"
+#include "xml_client.h"
 
 #define LLOG_COLUMNS 16
 #define LLOG_ENTRIES 32
@@ -101,6 +102,7 @@ typedef struct {
   GtkWidget *log_button;
   GtkWidget *call_label;
   GtkWidget *about_dialog;
+  GtkWidget *get_button;
 } app_widgets_t;
 
 
@@ -439,6 +441,7 @@ static void on_window_main_entry_changed(GtkEditable *editable, gpointer user_da
 static void set_static_data(void);
 static void on_activate(GtkApplication *app, gpointer user_data);
 static void on_log_btn_clicked(void);
+static void on_get_btn_clicked(void);
 static void on_edit_preferences_activate(app_widgets_t *app_wdgts);
 static void on_edit_log_db_activate(app_widgets_t *app_wdgts);
 static void on_menuitm_new_activate(app_widgets_t *app_wdgts);
@@ -481,7 +484,7 @@ static void on_activate(GtkApplication *app, gpointer user_data) {
 
   /*Build main window*/
   widgets->main_window = gtk_application_window_new(app);
-  gtk_window_set_title(GTK_WINDOW(widgets->main_window), "Llog");
+  gtk_window_set_title(GTK_WINDOW(widgets->main_window), PROGRAM_NAME);
   gtk_window_set_default_size(GTK_WINDOW(widgets->main_window), 400, 300);
   g_signal_connect_swapped(widgets->main_window, "destroy", G_CALLBACK(on_window_main_destroy), app);
 
@@ -649,7 +652,12 @@ static void on_activate(GtkApplication *app, gpointer user_data) {
     gtk_grid_attach(GTK_GRID(entry_grid), entry_widget, 0, entry_index, 1, 1);
     gtk_grid_attach(GTK_GRID(entry_grid), GTK_WIDGET(widgets->log_entries[entry_index]), 1, entry_index, 1, 1);
   }
-  gtk_grid_attach(GTK_GRID(entry_grid), GTK_WIDGET(widgets->log_button), 0, llog_entry_station_id + 1, 2, 1);
+  gtk_grid_attach(GTK_GRID(entry_grid), GTK_WIDGET(widgets->log_button), 1, llog_entry_station_id + 1, 1, 1);
+
+  widgets->get_button = gtk_button_new_with_label("Get");
+  g_signal_connect(widgets->get_button, "clicked", G_CALLBACK(on_get_btn_clicked), NULL);
+  gtk_grid_attach(GTK_GRID(entry_grid), widgets->get_button, 0, llog_entry_station_id + 1, 1, 1);
+
   gtk_box_append(GTK_BOX(widgets->vertical_box), GTK_WIDGET(entry_grid));
 
   llog_get_initial_station(&initial_station);
@@ -1080,6 +1088,34 @@ static void on_station_entry_change(GtkEditable *entry, gpointer user_data) {
 }
 
 
+static void on_get_btn_clicked(void) {
+
+  int ret;
+
+  printf("Get button clicked\n");
+  //double qrg;
+  xml_client_result_t result;
+
+  ret = xml_cli_get_call(FLDIGI_XML_METHOD_LOG_GET_FREQUENCY, "",  &result);
+
+  if (ret == xml_client_stat_ok ) {
+    switch (result.result_type)
+    {
+    case xml_client_result_type_string:
+      printf("Frequency: %s\n", result.result.result_s);
+      break;
+    case xml_client_result_type_double:
+      printf("Frequency: %f\n", result.result.result_d);
+    default:
+      break;
+    }
+  }
+  else {
+    printf("Error getting frequency\n");
+  }
+
+}
+
 static void on_log_btn_clicked(void) {
   int ret;
   char buff[BUFF_SIZ];
@@ -1291,13 +1327,13 @@ static void on_about_menu_activate(app_widgets_t *app_wdgts) {
   /*About window*/
   widgets->about_dialog = gtk_about_dialog_new();
   gtk_window_set_transient_for(GTK_WINDOW(app_wdgts->about_dialog), GTK_WINDOW(app_wdgts->main_window));
-  gtk_about_dialog_set_program_name(GTK_ABOUT_DIALOG(app_wdgts->about_dialog), "Llog");
+  gtk_about_dialog_set_program_name(GTK_ABOUT_DIALOG(app_wdgts->about_dialog), PROGRAM_NAME);
   gtk_about_dialog_set_version(GTK_ABOUT_DIALOG(app_wdgts->about_dialog), VERSION);
-  gtk_about_dialog_set_comments(GTK_ABOUT_DIALOG(app_wdgts->about_dialog), "A simple logging application.");
+  gtk_about_dialog_set_comments(GTK_ABOUT_DIALOG(app_wdgts->about_dialog), "Logging program for SOTA.");
   gtk_about_dialog_set_website(GTK_ABOUT_DIALOG(app_wdgts->about_dialog), "https://github.com/leventelist/llog");
   gtk_about_dialog_set_authors(GTK_ABOUT_DIALOG(app_wdgts->about_dialog), (const char *[]){ "Levente Kovacs", NULL });
   gtk_about_dialog_set_license_type(GTK_ABOUT_DIALOG(app_wdgts->about_dialog), GTK_LICENSE_GPL_3_0);
-  gtk_about_dialog_set_logo_icon_name(GTK_ABOUT_DIALOG(app_wdgts->about_dialog), "llog");
+  gtk_about_dialog_set_logo_icon_name(GTK_ABOUT_DIALOG(app_wdgts->about_dialog), PROGRAM_NAME);
   g_signal_connect(app_wdgts->about_dialog, "destroy", G_CALLBACK(gtk_window_destroy), NULL);
   gtk_window_present(GTK_WINDOW(app_wdgts->about_dialog));
 }

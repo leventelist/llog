@@ -34,6 +34,7 @@
 #include "main_window.h"
 #include "conf.h"
 #include "position.h"
+#include "xml_client.h"
 
 #define BUF_SIZ 1024
 
@@ -66,6 +67,9 @@ llog_t *llog_init(void) {
   llog.gpsd_port = 2947;
 
   llog.export_file_name[0] = '\0';
+
+  sprintf(llog.xmlrpc_host, "localhost");
+  llog.xmlrpc_port = 7362;
 
   return &llog;
 }
@@ -374,4 +378,5 @@ void llog_shutdown(void) {
   printf("Shutting down llog\n");
   position_stop();
   db_close(&llog);
+  xml_cli_close();
 }

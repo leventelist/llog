@@ -39,12 +39,19 @@ pkg_check_modules(XML REQUIRED IMPORTED_TARGET libxml-2.0)
 
 find_library(MATH_LIBRARY m REQUIRED)
 
+execute_process(COMMAND xmlrpc-c-config client --libs OUTPUT_VARIABLE XMLRPC_LIBS)
+execute_process(COMMAND xmlrpc-c-config client --cflags OUTPUT_VARIABLE XMLRPC_CFLAGS)
+
+string(STRIP ${XMLRPC_LIBS} XMLRPC_LIBS)
+string(STRIP ${XMLRPC_CFLAGS} XMLRPC_CFLAGS)
+
 target_link_libraries(${PROJECT_NAME} PUBLIC
 				PkgConfig::SQLITE
 				PkgConfig::GTK
 				PkgConfig::GPS
 				PkgConfig::XML
-				${MATH_LIBRARY})
+				${MATH_LIBRARY}
+				${XMLRPC_LIBS}) #Manually add the xmlrpc_client and xmlrpc_util libraries
 
 install (TARGETS ${PROJECT_NAME}
 			DESTINATION bin

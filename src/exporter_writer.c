@@ -215,7 +215,7 @@ static int exporter_write_adx_header(const char *filename) {
     ret = export_status_err;
     goto out;
   }
-  ret_val = xmlTextWriterWriteElement(writer, BAD_CAST "PROGRAMID", BAD_CAST "llog");
+  ret_val = xmlTextWriterWriteElement(writer, BAD_CAST "PROGRAMID", BAD_CAST PROGRAM_NAME);
   if (ret_val < 0) {
     fprintf(stderr, "Error writing XML element\n");
     ret = export_status_err;
@@ -363,7 +363,7 @@ static int exporter_write_adi_header(const char *filename) {
     ret = export_status_ok;
   }
 
-  sprintf(buffer, "<programid:%lu>%s\n", strlen("llog"), "llog");
+  sprintf(buffer, "<programid:%lu>%s\n", strlen(PROGRAM_NAME), PROGRAM_NAME);
   num_bytes = fprintf(output_txt_file, buffer);
 
   if (num_bytes < 0) {

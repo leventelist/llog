@@ -28,6 +28,7 @@
 #include <signal.h>
 
 #include "main_window.h"
+#include "xml_client.h"
 
 static void print_ver(void);
 static void print_help(void);
@@ -90,6 +91,8 @@ int main(int argc, char *argv[]) {
 
 	/*This will also open the database for us.*/
 	llog_parse_config_file();
+
+	xml_cli_init("localhost", 7362);
 
 	/*Draw main window*/
 	main_window_set_llog(llog);
