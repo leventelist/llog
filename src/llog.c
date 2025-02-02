@@ -364,19 +364,9 @@ void llog_open_qrz_url(const char *call) {
 }
 
 
-void llog_strupper(char *s) {
-  while (*s) {
-    if ((*s >= 'a') && (*s <= 'z')) {
-      *s -= ('a' - 'A');
-    }
-    s++;
-  }
-}
-
-
 void llog_shutdown(void) {
   printf("Shutting down llog\n");
   position_stop();
   db_close(&llog);
-  xml_cli_close();
+  xml_client_shutdown();
 }

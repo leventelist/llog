@@ -593,7 +593,6 @@ static void on_activate(GtkApplication *app, gpointer user_data) {
     case llog_entry_date:
       entry_widget = gtk_label_new(entry_labels[entry_index]);
       widgets->log_entries[entry_index] = gtk_entry_new();
-      g_signal_connect(widgets->log_entries[entry_index], "changed", G_CALLBACK(on_window_main_entry_changed), NULL);
       widgets->log_entry_buffers[entry_index] = gtk_entry_get_buffer(GTK_ENTRY(widgets->log_entries[entry_index]));
       gtk_editable_set_editable(GTK_EDITABLE(widgets->log_entries[entry_index]), true);
       break;
@@ -602,7 +601,6 @@ static void on_activate(GtkApplication *app, gpointer user_data) {
       entry_widget = gtk_button_new_with_label(entry_labels[entry_index]);
       g_signal_connect(entry_widget, "clicked", G_CALLBACK(on_utc_btn_clicked), NULL);
       widgets->log_entries[entry_index] = gtk_entry_new();
-      g_signal_connect(widgets->log_entries[entry_index], "changed", G_CALLBACK(on_window_main_entry_changed), NULL);
       widgets->log_entry_buffers[entry_index] = gtk_entry_get_buffer(GTK_ENTRY(widgets->log_entries[entry_index]));
       gtk_editable_set_editable(GTK_EDITABLE(widgets->log_entries[entry_index]), true);
       break;
@@ -637,10 +635,19 @@ static void on_activate(GtkApplication *app, gpointer user_data) {
       gtk_editable_set_editable(GTK_EDITABLE(widgets->log_entries[entry_index]), true);
       break;
 
-    default:
+    case llog_entry_qra:
+    case llog_entry_s2s_ref:
       entry_widget = gtk_label_new(entry_labels[entry_index]);
       widgets->log_entries[entry_index] = gtk_entry_new();
       g_signal_connect(widgets->log_entries[entry_index], "changed", G_CALLBACK(on_window_main_entry_changed), NULL);
+      widgets->log_entry_buffers[entry_index] = gtk_entry_get_buffer(GTK_ENTRY(widgets->log_entries[entry_index]));
+      gtk_editable_set_editable(GTK_EDITABLE(widgets->log_entries[entry_index]), true);
+      break;
+
+    default:
+      entry_widget = gtk_label_new(entry_labels[entry_index]);
+      widgets->log_entries[entry_index] = gtk_entry_new();
+      //g_signal_connect(widgets->log_entries[entry_index], "changed", G_CALLBACK(on_window_main_entry_changed), NULL);
       widgets->log_entry_buffers[entry_index] = gtk_entry_get_buffer(GTK_ENTRY(widgets->log_entries[entry_index]));
       gtk_editable_set_editable(GTK_EDITABLE(widgets->log_entries[entry_index]), true);
       break;
@@ -986,21 +993,17 @@ static void on_open_file_response(GtkDialog *dialog, gint response_id, gpointer 
 void on_window_main_entry_changed(GtkEditable *editable, gpointer user_data) {
   uint64_t entry_id;
   int ret;
-  static bool entry_changed = false;
+  gssize len;
+  char *buff;
   int cursor_position;
 
   (void)user_data;
 
-  if (entry_changed) {
-    return;
-  }
-
-  entry_changed = true;
-
-  entry_id = 0xFFFFFFFF;
 
   GtkWidget *entry = GTK_WIDGET(editable);
   GtkEntryBuffer *buffer = gtk_entry_get_buffer(GTK_ENTRY(entry));
+
+  g_signal_handlers_block_by_func(entry, on_window_main_entry_changed, NULL);
 
   /*See which entry box has changed*/
   for (entry_id = 0; entry_id < LLOG_ENTRIES; entry_id++) {
@@ -1012,18 +1015,20 @@ void on_window_main_entry_changed(GtkEditable *editable, gpointer user_data) {
   switch (entry_id) {
   case llog_entry_call:
     snprintf(log_entry_data.call, CALL_LEN, gtk_entry_buffer_get_text(buffer));
-    llog_strupper(log_entry_data.call);
+    len = strlen(log_entry_data.call);
+    buff = g_utf8_strup(log_entry_data.call, len);
     cursor_position = gtk_editable_get_position(GTK_EDITABLE(entry));
     gtk_entry_buffer_delete_text(buffer, 0, -1);
-    gtk_entry_buffer_insert_text(buffer, 0, log_entry_data.call, -1);
+    gtk_entry_buffer_insert_text(buffer, 0, buff, -1);
     gtk_editable_set_position(GTK_EDITABLE(entry), cursor_position);
+    free(buff);
     /*Get time*/
     on_utc_btn_clicked();
     /*Check for dup QSO*/
     ret = llog_check_dup_qso(&log_entry_data);
     switch (ret) {
     case llog_stat_ok:                     /*New QSO*/
-      gtk_button_set_label(GTK_BUTTON(widgets->call_label), "Call");
+      gtk_button_set_label(GTK_BUTTON(widgets->call_label), entry_labels[llog_entry_call]);
       break;
 
     case llog_stat_dup:                     /*DUP QSO*/
@@ -1035,27 +1040,44 @@ void on_window_main_entry_changed(GtkEditable *editable, gpointer user_data) {
     }
     break;
 
-  case llog_entry_s2s_ref:
-    snprintf(log_entry_data.s2s_ref, MAX_SUMMIT_CODE_LENGTH, gtk_entry_buffer_get_text(buffer));
-    llog_strupper(log_entry_data.s2s_ref);
+  case llog_entry_summit_ref:
+    snprintf(log_entry_data.summit_ref, MAX_SUMMIT_CODE_LENGTH, gtk_entry_buffer_get_text(buffer));
+    len = strlen(log_entry_data.summit_ref);
+    buff = g_ascii_strup(log_entry_data.summit_ref, len);
     cursor_position = gtk_editable_get_position(GTK_EDITABLE(entry));
     gtk_entry_buffer_delete_text(buffer, 0, -1);
-    gtk_entry_buffer_insert_text(buffer, 0, log_entry_data.s2s_ref, -1);
+    gtk_entry_buffer_insert_text(buffer, 0, buff, -1);
+
     gtk_editable_set_position(GTK_EDITABLE(entry), cursor_position);
+    free(buff);
+    break;
+
+  case llog_entry_s2s_ref:
+    snprintf(log_entry_data.s2s_ref, MAX_SUMMIT_CODE_LENGTH, gtk_entry_buffer_get_text(buffer));
+    len = strlen(log_entry_data.s2s_ref);
+    buff = g_utf8_strup(log_entry_data.s2s_ref, len);
+    cursor_position = gtk_editable_get_position(GTK_EDITABLE(entry));
+    gtk_entry_buffer_delete_text(buffer, 0, -1);
+    gtk_entry_buffer_insert_text(buffer, 0, buff, -1);
+    gtk_editable_set_position(GTK_EDITABLE(entry), cursor_position);
+    free(buff);
     break;
 
   case llog_entry_qra:
     snprintf(log_entry_data.qra, QRA_LEN, gtk_entry_buffer_get_text(buffer));
-    llog_strupper(log_entry_data.qra);
+    len = strlen(log_entry_data.qra);
+    buff = g_utf8_strup(log_entry_data.qra, len);
     cursor_position = gtk_editable_get_position(GTK_EDITABLE(entry));
     gtk_entry_buffer_delete_text(buffer, 0, -1);
-    gtk_entry_buffer_insert_text(buffer, 0, log_entry_data.qra, -1);
+    gtk_entry_buffer_insert_text(buffer, 0, buff, -1);
     gtk_editable_set_position(GTK_EDITABLE(entry), cursor_position);
+    free(buff);
 
   default:
     break;
   }
-  entry_changed = false;
+
+  g_signal_handlers_unblock_by_func(entry, on_window_main_entry_changed, NULL);
 }
 
 
@@ -1089,32 +1111,70 @@ static void on_station_entry_change(GtkEditable *entry, gpointer user_data) {
 
 
 static void on_get_btn_clicked(void) {
-
   int ret;
 
-  printf("Get button clicked\n");
-  //double qrg;
-  xml_client_result_t result;
+  double qrg;
+  char *buff;
 
-  ret = xml_cli_get_call(FLDIGI_XML_METHOD_LOG_GET_FREQUENCY, "",  &result);
+  buff = malloc(BUFF_SIZ);
 
-  if (ret == xml_client_stat_ok ) {
-    switch (result.result_type)
-    {
-    case xml_client_result_type_string:
-      printf("Frequency: %s\n", result.result.result_s);
-      break;
-    case xml_client_result_type_double:
-      printf("Frequency: %f\n", result.result.result_d);
-    default:
-      break;
-    }
-  }
-  else {
+  ret = xml_client_fldigi_get_frequency(&qrg);
+
+  if (ret == xml_client_stat_ok) {
+    g_signal_handlers_block_by_func(widgets->log_entries[llog_entry_qrg], on_window_main_entry_changed, NULL);
+    gtk_entry_buffer_delete_text(widgets->log_entry_buffers[llog_entry_qrg], 0, -1);
+    gtk_entry_buffer_insert_text(widgets->log_entry_buffers[llog_entry_qrg], 0, g_strdup_printf("%.3f", qrg), -1);
+    g_signal_handlers_unblock_by_func(widgets->log_entries[llog_entry_qrg], on_window_main_entry_changed, NULL);
+  } else {
     printf("Error getting frequency\n");
   }
 
+  ret = xml_client_fldigi_get_call(buff);
+  if (ret == xml_client_stat_ok) {
+    g_signal_handlers_block_by_func(widgets->log_entries[llog_entry_call], on_window_main_entry_changed, NULL);
+    gtk_entry_buffer_delete_text(widgets->log_entry_buffers[llog_entry_call], 0, -1);
+    gtk_entry_buffer_insert_text(widgets->log_entry_buffers[llog_entry_call], 0, buff, -1);
+    strcpy(log_entry_data.call, buff);
+    int ret = llog_check_dup_qso(&log_entry_data);
+    switch (ret) {
+    case llog_stat_dup:
+      gtk_button_set_label(GTK_BUTTON(widgets->call_label), "Call [DUP]");
+      break;
+
+    default:
+      gtk_button_set_label(GTK_BUTTON(widgets->call_label), entry_labels[llog_entry_call]);
+      break;
+    }
+    on_utc_btn_clicked();
+
+    g_signal_handlers_unblock_by_func(widgets->log_entries[llog_entry_call], on_window_main_entry_changed, NULL);
+  } else {
+    printf("Error getting call\n");
+  }
+
+  ret = xml_client_fldigi_get_name(buff);
+  if (ret == xml_client_stat_ok) {
+    g_signal_handlers_block_by_func(widgets->log_entries[llog_entry_name], on_window_main_entry_changed, NULL);
+    gtk_entry_buffer_delete_text(widgets->log_entry_buffers[llog_entry_name], 0, -1);
+    gtk_entry_buffer_insert_text(widgets->log_entry_buffers[llog_entry_name], 0, buff, -1);
+    g_signal_handlers_unblock_by_func(widgets->log_entries[llog_entry_name], on_window_main_entry_changed, NULL);
+  } else {
+    printf("Error getting name\n");
+  }
+
+  ret = xml_client_fldigi_get_rxrxt(buff);
+  if (ret == xml_client_stat_ok) {
+    g_signal_handlers_block_by_func(widgets->log_entries[llog_entry_rxrst], on_window_main_entry_changed, NULL);
+    gtk_entry_buffer_delete_text(widgets->log_entry_buffers[llog_entry_rxrst], 0, -1);
+    gtk_entry_buffer_insert_text(widgets->log_entry_buffers[llog_entry_rxrst], 0, buff, -1);
+    g_signal_handlers_unblock_by_func(widgets->log_entries[llog_entry_rxrst], on_window_main_entry_changed, NULL);
+  } else {
+    printf("Error getting rst\n");
+  }
+
+  free(buff);
 }
+
 
 static void on_log_btn_clicked(void) {
   int ret;
@@ -1246,10 +1306,14 @@ static void on_utc_btn_clicked(void) {
 static void on_summit_ref_btn_clicked(void) {
   /*Get text from the summit reference label*/
 
+  g_signal_handlers_block_by_func(widgets->log_entries[llog_entry_summit_ref], on_window_main_entry_changed, NULL);
+
   const char *summit_ref = gtk_label_get_text(GTK_LABEL(widgets->summit_ref_label));
 
   gtk_entry_buffer_delete_text(widgets->log_entry_buffers[llog_entry_summit_ref], 0, -1);
   gtk_entry_buffer_insert_text(widgets->log_entry_buffers[llog_entry_summit_ref], 0, summit_ref, -1);
+
+  g_signal_handlers_unblock_by_func(widgets->log_entries[llog_entry_summit_ref], on_window_main_entry_changed, NULL);
 }
 
 
@@ -1286,6 +1350,7 @@ static void on_export_activate(app_widgets_t *app_wdgts) {
 
   on_exporter_window_activate(NULL, local_llog);
 }
+
 
 static void on_new_file_response(GtkDialog *dialog, gint response_id, gpointer user_data) {
   (void)user_data;

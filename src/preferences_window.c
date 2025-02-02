@@ -22,6 +22,7 @@
 #include "llog.h"
 #include "position.h"
 #include "main_window.h"
+#include "xml_client.h"
 
 
 /*Forward declarations for the callbacks*/
@@ -32,10 +33,14 @@ static void on_preferences_window_destroy(GtkWidget *widget, gpointer data);
 typedef struct {
   GtkWidget *window;
   GtkWidget *box;
-  GtkWidget *host_label;
-  GtkWidget *host_entry;
-  GtkWidget *port_label;
-  GtkWidget *port_entry;
+  GtkWidget *gpsd_host_label;
+  GtkWidget *gpsd_host_entry;
+  GtkWidget *gpsd_port_label;
+  GtkWidget *gpsd_port_entry;
+  GtkWidget *xml_rpc_host_label;
+  GtkWidget *xml_rpc_host_entry;
+  GtkWidget *xml_rpc_port_label;
+  GtkWidget *xml_rpc_port_entry;
   GtkWidget *button_box;
   GtkWidget *button_ok;
   GtkWidget *button_apply;
@@ -67,23 +72,37 @@ void on_preferences_window_activate(GtkWidget *widget, gpointer data) {
   gtk_grid_set_column_spacing(GTK_GRID(grid), 10);
   gtk_box_append(GTK_BOX(widgets->box), grid);
 
-  widgets->host_label = gtk_label_new("GPSD Host:");
-  widgets->host_entry = gtk_entry_new();
-  gtk_grid_attach(GTK_GRID(grid), widgets->host_label, 0, 0, 1, 1);
-  gtk_grid_attach(GTK_GRID(grid), widgets->host_entry, 1, 0, 1, 1);
-  gtk_widget_set_hexpand(widgets->host_entry, TRUE);
+  widgets->gpsd_host_label = gtk_label_new("GPSD Host:");
+  widgets->gpsd_host_entry = gtk_entry_new();
+  gtk_grid_attach(GTK_GRID(grid), widgets->gpsd_host_label, 0, 0, 1, 1);
+  gtk_grid_attach(GTK_GRID(grid), widgets->gpsd_host_entry, 1, 0, 1, 1);
+  gtk_widget_set_hexpand(widgets->gpsd_host_entry, TRUE);
 
-  widgets->port_label = gtk_label_new("GPSD Port:");
-  widgets->port_entry = gtk_entry_new();
-  gtk_grid_attach(GTK_GRID(grid), widgets->port_label, 0, 1, 1, 1);
-  gtk_grid_attach(GTK_GRID(grid), widgets->port_entry, 1, 1, 1, 1);
-  gtk_widget_set_hexpand(widgets->port_entry, TRUE);
+  widgets->gpsd_port_label = gtk_label_new("GPSD Port:");
+  widgets->gpsd_port_entry = gtk_entry_new();
+  gtk_grid_attach(GTK_GRID(grid), widgets->gpsd_port_label, 0, 1, 1, 1);
+  gtk_grid_attach(GTK_GRID(grid), widgets->gpsd_port_entry, 1, 1, 1, 1);
+  gtk_widget_set_hexpand(widgets->gpsd_port_entry, TRUE);
 
-  gtk_editable_set_text(GTK_EDITABLE(widgets->host_entry), widgets->llog->gpsd_host);
+  gtk_editable_set_text(GTK_EDITABLE(widgets->gpsd_host_entry), widgets->llog->gpsd_host);
   char port[16];
 
   sprintf(port, "%lu", widgets->llog->gpsd_port);
-  gtk_editable_set_text(GTK_EDITABLE(widgets->port_entry), port);
+  gtk_editable_set_text(GTK_EDITABLE(widgets->gpsd_port_entry), port);
+
+  widgets->xml_rpc_host_label = gtk_label_new("XML-RPC Host:");
+  widgets->xml_rpc_host_entry = gtk_entry_new();
+  gtk_grid_attach(GTK_GRID(grid), widgets->xml_rpc_host_label, 0, 2, 1, 1);
+  gtk_grid_attach(GTK_GRID(grid), widgets->xml_rpc_host_entry, 1, 2, 1, 1);
+  gtk_editable_set_text(GTK_EDITABLE(widgets->xml_rpc_host_entry), widgets->llog->xmlrpc_host);
+
+  widgets->xml_rpc_port_label = gtk_label_new("XML-RPC Port:");
+  widgets->xml_rpc_port_entry = gtk_entry_new();
+  gtk_grid_attach(GTK_GRID(grid), widgets->xml_rpc_port_label, 0, 3, 1, 1);
+  gtk_grid_attach(GTK_GRID(grid), widgets->xml_rpc_port_entry, 1, 3, 1, 1);
+  sprintf(port, "%lu", widgets->llog->xmlrpc_port);
+  gtk_editable_set_text(GTK_EDITABLE(widgets->xml_rpc_port_entry), port);
+
 
   widgets->button_box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
   gtk_box_append(GTK_BOX(widgets->box), widgets->button_box);
@@ -102,15 +121,25 @@ static void on_button_ok_clicked(GtkWidget *widget, gpointer data) {
   (void)widget;
   // Add your code to handle OK button click
   app_widgets_t *widgets = (app_widgets_t *)data;
-  const gchar *host = gtk_editable_get_text(GTK_EDITABLE(widgets->host_entry));
-  const gchar *port = gtk_editable_get_text(GTK_EDITABLE(widgets->port_entry));
+  const gchar *host = gtk_editable_get_text(GTK_EDITABLE(widgets->gpsd_host_entry));
+  const gchar *port = gtk_editable_get_text(GTK_EDITABLE(widgets->gpsd_port_entry));
 
   strcpy(widgets->llog->gpsd_host, host);
   widgets->llog->gpsd_port = atoi(port);
 
+  host = gtk_editable_get_text(GTK_EDITABLE(widgets->xml_rpc_host_entry));
+  port = gtk_editable_get_text(GTK_EDITABLE(widgets->xml_rpc_port_entry));
+
+  strcpy(widgets->llog->xmlrpc_host, host);
+  widgets->llog->xmlrpc_port = atoi(port);
+
   llog_save_config_file();
+
   position_init(widgets->llog->gpsd_host, widgets->llog->gpsd_port, main_window_update_position_labels);
   main_window_clear_position_labels();
+
+  xml_client_shutdown();
+  xml_client_init(widgets->llog->xmlrpc_host, widgets->llog->xmlrpc_port);
 
   on_button_cancel_clicked(widget, data); // Close the window
 }

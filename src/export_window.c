@@ -32,8 +32,6 @@ typedef struct {
   GtkWidget *adif_fn_entry;
   GtkWidget *adif_fn_button;
   GtkWidget *adif_fn_chooser;
-  GtkWidget *port_label;
-  GtkWidget *port_entry;
   GtkWidget *button_box;
   GtkWidget *button_export;
   GtkWidget *button_cancel;
