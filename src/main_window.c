@@ -1162,7 +1162,7 @@ static void on_get_btn_clicked(void) {
     printf("Error getting name\n");
   }
 
-  ret = xml_client_fldigi_get_rxrxt(buff);
+  ret = xml_client_fldigi_get_rxrst(buff);
   if (ret == xml_client_stat_ok) {
     g_signal_handlers_block_by_func(widgets->log_entries[llog_entry_rxrst], on_window_main_entry_changed, NULL);
     gtk_entry_buffer_delete_text(widgets->log_entry_buffers[llog_entry_rxrst], 0, -1);
@@ -1170,6 +1170,46 @@ static void on_get_btn_clicked(void) {
     g_signal_handlers_unblock_by_func(widgets->log_entries[llog_entry_rxrst], on_window_main_entry_changed, NULL);
   } else {
     printf("Error getting rst\n");
+  }
+
+  ret = xml_client_fldigi_get_txrst(buff);
+  if (ret == xml_client_stat_ok) {
+    g_signal_handlers_block_by_func(widgets->log_entries[llog_entry_txrst], on_window_main_entry_changed, NULL);
+    gtk_entry_buffer_delete_text(widgets->log_entry_buffers[llog_entry_txrst], 0, -1);
+    gtk_entry_buffer_insert_text(widgets->log_entry_buffers[llog_entry_txrst], 0, buff, -1);
+    g_signal_handlers_unblock_by_func(widgets->log_entries[llog_entry_txrst], on_window_main_entry_changed, NULL);
+  } else {
+    printf("Error getting rst\n");
+  }
+
+  ret = xml_client_fldigi_get_qth(buff);
+  if (ret == xml_client_stat_ok) {
+    g_signal_handlers_block_by_func(widgets->log_entries[llog_entry_qth], on_window_main_entry_changed, NULL);
+    gtk_entry_buffer_delete_text(widgets->log_entry_buffers[llog_entry_qth], 0, -1);
+    gtk_entry_buffer_insert_text(widgets->log_entry_buffers[llog_entry_qth], 0, buff, -1);
+    g_signal_handlers_unblock_by_func(widgets->log_entries[llog_entry_qth], on_window_main_entry_changed, NULL);
+  } else {
+    printf("Error getting qth\n");
+  }
+
+  ret = xml_client_fldigi_get_qra(buff);
+  if (ret == xml_client_stat_ok) {
+    g_signal_handlers_block_by_func(widgets->log_entries[llog_entry_qra], on_window_main_entry_changed, NULL);
+    gtk_entry_buffer_delete_text(widgets->log_entry_buffers[llog_entry_qra], 0, -1);
+    gtk_entry_buffer_insert_text(widgets->log_entry_buffers[llog_entry_qra], 0, buff, -1);
+    g_signal_handlers_unblock_by_func(widgets->log_entries[llog_entry_qra], on_window_main_entry_changed, NULL);
+  } else {
+    printf("Error getting qra\n");
+  }
+
+  ret = xml_client_fldigi_get_utc(buff);
+  if (ret == xml_client_stat_ok) {
+    g_signal_handlers_block_by_func(widgets->log_entries[llog_entry_utc], on_window_main_entry_changed, NULL);
+    gtk_entry_buffer_delete_text(widgets->log_entry_buffers[llog_entry_utc], 0, -1);
+    gtk_entry_buffer_insert_text(widgets->log_entry_buffers[llog_entry_utc], 0, buff, -1);
+    g_signal_handlers_unblock_by_func(widgets->log_entries[llog_entry_utc], on_window_main_entry_changed, NULL);
+  } else {
+    printf("Error getting utc\n");
   }
 
   free(buff);

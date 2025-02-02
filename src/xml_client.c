@@ -258,7 +258,7 @@ int xml_client_fldigi_get_name(char *name) {
   return ret;
 }
 
-int xml_client_fldigi_get_rxrxt(char *rxrst) {
+int xml_client_fldigi_get_rxrst(char *rxrst) {
   xmlrpc_res result;
   int ret;
   xmlrpc_env env;
@@ -268,6 +268,70 @@ int xml_client_fldigi_get_rxrxt(char *rxrst) {
   if (ret == xml_client_stat_ok) {
     strncpy(rxrst, result.stringval, RST_LEN);
     printf("RXRST: %s\n", rxrst);
+  }
+
+  return ret;
+}
+
+
+int xml_client_fldigi_get_txrst(char *txrst) {
+  xmlrpc_res result;
+  int ret;
+  xmlrpc_env env;
+
+  ret = xml_client_query(&result, &env, FLDIGI_XML_METHOD_LOG_GET_RST_OUT, "");
+
+  if (ret == xml_client_stat_ok) {
+    strncpy(txrst, result.stringval, RST_LEN);
+    printf("TXRST: %s\n", txrst);
+  }
+
+  return ret;
+}
+
+
+int xml_client_fldigi_get_qth(char *qth) {
+  xmlrpc_res result;
+  int ret;
+  xmlrpc_env env;
+
+  ret = xml_client_query(&result, &env, FLDIGI_XML_METHOD_LOG_GET_QTH, "");
+
+  if (ret == xml_client_stat_ok) {
+    strncpy(qth, result.stringval, QTH_LEN);
+    printf("QTH: %s\n", qth);
+  }
+
+  return ret;
+}
+
+
+int xml_client_fldigi_get_qra(char *qra) {
+  xmlrpc_res result;
+  int ret;
+  xmlrpc_env env;
+
+  ret = xml_client_query(&result, &env, FLDIGI_XML_METHOD_LOG_GET_LOCATOR, "");
+
+  if (ret == xml_client_stat_ok) {
+    strncpy(qra, result.stringval, QRA_LEN);
+    printf("QRA: %s\n", qra);
+  }
+
+  return ret;
+}
+
+
+int xml_client_fldigi_get_utc(char *utc) {
+  xmlrpc_res result;
+  int ret;
+  xmlrpc_env env;
+
+  ret = xml_client_query(&result, &env, FLDIGI_XML_METHOD_LOG_GET_TIME_ON, "");
+
+  if (ret == xml_client_stat_ok) {
+    strncpy(utc, result.stringval, NAME_LEN);
+    printf("UTC: %s\n", utc);
   }
 
   return ret;
