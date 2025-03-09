@@ -434,7 +434,12 @@ static int exporter_add_adi_qso(log_entry_t *qso, station_entry_t *station) {
     ret = export_status_file_err;
     goto out;
   }
-  num_bytes = fprintf(output_txt_file, "<QSO_DATE:%lu>%s\n", strlen(qso->date), qso->date);
+
+  // Convert date from YYYY-MM-DD to YYYYMMDD format
+  char formatted_date[9];
+  snprintf(formatted_date, sizeof(formatted_date), "%.4s%.2s%.2s", qso->date, qso->date + 5, qso->date + 8);
+
+  num_bytes = fprintf(output_txt_file, "<QSO_DATE:%lu>%s\n", strlen(formatted_date), formatted_date);
   if (num_bytes < 0) {
     perror("Failed to write to file");
     ret = export_status_file_err;
