@@ -30,6 +30,7 @@
 int db_sqlite_init(llog_t *llog);
 int db_close(llog_t *llog);
 int db_set_log_entry(llog_t *log, log_entry_t *entry);
+int db_merge_wal_file(llog_t *llog);
 int db_check_dup_qso(llog_t *log, log_entry_t *entry);
 int db_get_max_nr(llog_t *log, log_entry_t *entry);
 int db_get_station_entry(llog_t *log, station_entry_t *station);

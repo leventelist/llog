@@ -165,13 +165,10 @@ typedef enum {
 } xml_client_init_state_t;
 
 
-
-static xmlrpc_env env;
 static char *xmlrpc_url;
 xmlrpc_server_info *xml_client_server_info = NULL;
 pthread_mutex_t xmlrpc_mutex = PTHREAD_MUTEX_INITIALIZER;
 uint32_t xml_client_initialized = xml_client_not_initialized;
-
 
 
 static char *xml_client_assemble_url(const char *host, u_int64_t port);
@@ -181,6 +178,7 @@ static int xml_client_query(xmlrpc_res *local_result, xmlrpc_env *local_env,
 
 int xml_client_init(const char *host, u_int64_t port) {
   int ret = xml_client_stat_ok;
+  static xmlrpc_env env;
 
   xmlrpc_url = xml_client_assemble_url(host, port);
 
@@ -199,6 +197,7 @@ int xml_client_init(const char *host, u_int64_t port) {
     xml_client_server_info = NULL;
     xml_client_initialized = xml_client_not_initialized;
     ret = xml_client_stat_err;
+    goto out;
   }
 
   xml_client_initialized = xml_client_initailized;
@@ -337,12 +336,15 @@ int xml_client_fldigi_get_utc(char *utc) {
   return ret;
 }
 
+
 void xml_client_shutdown(void) {
   printf("Shutting down xml client\n");
-  xmlrpc_server_info_free(xml_client_server_info);
-  xmlrpc_client_cleanup();
-  xmlrpc_env_clean(&env);
-  free(xmlrpc_url);
+  if (xml_client_initialized == xml_client_initailized) {
+    xmlrpc_server_info_free(xml_client_server_info);
+    xmlrpc_client_cleanup();
+    free(xmlrpc_url);
+    xml_client_initialized = xml_client_not_initialized;
+  }
 }
 
 

@@ -18,6 +18,7 @@ There is an SQLite database where all logged information is saved.
 * Integration with QRZ for call sign lookup
 * User-friendly interface with GTK4
 * ADI, ADX, CSV export
+* FLDIGI integration using XMLRPC
 
 ## Prerequisites
 
@@ -57,6 +58,7 @@ File->Reload
 * Fill out all the info you have
 * Click the Log button. All data will be saved to the database
 * Click on the Call button, and the default browser will be launched with a QRZ query
+* Click on the Get button to get information from FLDIGI
 * Enjoy!
 
 

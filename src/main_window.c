@@ -1422,6 +1422,7 @@ static void on_reload_activate(GMenuItem *menuitem, app_widgets_t *app_wdgts) {
 
   llog_shutdown();
   llog_open_db();
+  xml_client_init(local_llog->xmlrpc_host, local_llog->xmlrpc_port);
   llog_load_static_data(&log_entry_data);
   set_static_data();
   position_init(local_llog->gpsd_host, local_llog->gpsd_port, main_window_update_position_labels);

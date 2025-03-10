@@ -53,25 +53,24 @@ int db_sqlite_init(llog_t *llog) {
   printf("Opening log file %s\n", llog->log_file_name);
   ret = sqlite3_open_v2(llog->log_file_name, &llog->log_db, SQLITE_FLAGS, NULL);
 
-  do{
-    if (ret != SQLITE_OK) {
-      printf("Error opening the log database '%s'.\n", llog->log_file_name);
-      ret_val = llog_stat_err;
-      break;
-    }
+  if (ret != SQLITE_OK) {
+    printf("Error opening the log database '%s'.\n", llog->log_file_name);
+    ret_val = llog_stat_err;
+    goto out;
+  } else {
     sqlite3_busy_timeout(llog->log_db, DATABASE_TIMEOUT);
     llog->stat = db_opened;
-  } while (0);
+  }
 
 
-  printf("Opening summits database %s\n", SUMMITS_DB_PATH);
-  // Enable WAL mode
-  ret = sqlite3_exec(llog->log_db, "PRAGMA journal_mode=WAL;", NULL, NULL, NULL);
+  // Set journal mode
+  ret = sqlite3_exec(llog->log_db, "PRAGMA journal_mode=DELETE;", NULL, NULL, NULL);
   if (ret != SQLITE_OK) {
-    fprintf(stderr, "Failed to enable WAL mode: %s\n", sqlite3_errmsg(llog->log_db));
+    fprintf(stderr, "Failed to set journal mode: %s\n", sqlite3_errmsg(llog->log_db));
     return llog_stat_err;
   }
 
+  printf("Opening summits database %s\n", SUMMITS_DB_PATH);
   // Open the summits database
   ret = sqlite3_open_v2(SUMMITS_DB_PATH, &llog->summits_db, SQLITE_FLAGS, NULL);
   if (ret != SQLITE_OK) {
@@ -81,18 +80,45 @@ int db_sqlite_init(llog_t *llog) {
     sqlite3_busy_timeout(llog->summits_db, DATABASE_TIMEOUT);
   }
 
-
+out:
   return ret_val;
 }
 
 
 int db_close(llog_t *llog) {
+  int ret;
+
   printf("Closing log database\n");
-  sqlite3_close_v2(llog->log_db);
+  ret = sqlite3_close_v2(llog->log_db);
+  if (ret != SQLITE_OK) {
+    printf("Error closing log database: %s\n", sqlite3_errmsg(llog->log_db));
+  }
   llog->stat = db_closed;
   llog->log_db = NULL;
   printf("Closing summit database\n");
-  sqlite3_close_v2(llog->summits_db);
+  ret = sqlite3_close_v2(llog->summits_db);
+  if (ret != SQLITE_OK) {
+    printf("Error closing summits database: %s\n", sqlite3_errmsg(llog->log_db));
+  }
+
+  return llog_stat_ok;
+}
+
+
+int db_merge_wal_file(llog_t *llog) {
+  int ret;
+  char *err_msg = NULL;
+
+  if (llog->log_db == NULL) {
+    return llog_stat_err;
+  }
+
+  ret = sqlite3_exec(llog->log_db, "PRAGMA wal_checkpoint(FULL);", NULL, NULL, &err_msg);
+  if (ret != SQLITE_OK) {
+    printf("Error merging WAL file: %s\n", err_msg);
+    sqlite3_free(err_msg);
+    return llog_stat_err;
+  }
 
   return llog_stat_ok;
 }
@@ -464,13 +490,13 @@ int db_set_log_entry(llog_t *llog, log_entry_t *entry) {
   }
 
   snprintf(buff, BUF_SIZ, "INSERT INTO log (date, UTC, call, rxrst, txrst, rxnr, txnr, rxextra, txextra, QTH, name, "
-                          "QRA, QRG, mode, pwr, rxQSL, txQSL, comment, station, S2S_REF, SOTA_REF) VALUES "
-                          "('%s', '%s', '%s', '%s', '%s', %" PRIu64 ", %" PRIu64 ", '%s', '%s', '%s', '%s', '%s', "
-                          "%f, '%s', '%s', %" PRIu64 ", %" PRIu64 ", '%s', %" PRIu64 ", '%s', '%s');",
-                          entry->date, entry->utc, entry->call, entry->rxrst, entry->txrst, entry->rxnr,
-                          entry->txnr, entry->rxextra, entry->txextra, entry->qth, entry->name, entry->qra,
-                          entry->qrg, entry->mode.name, entry->power, (uint64_t)0U, (uint64_t)0U, entry->comment,
-                          entry->station_id, entry->s2s_ref, entry->summit_ref);
+           "QRA, QRG, mode, pwr, rxQSL, txQSL, comment, station, S2S_REF, SOTA_REF) VALUES "
+           "('%s', '%s', '%s', '%s', '%s', %" PRIu64 ", %" PRIu64 ", '%s', '%s', '%s', '%s', '%s', "
+           "%f, '%s', '%s', %" PRIu64 ", %" PRIu64 ", '%s', %" PRIu64 ", '%s', '%s');",
+           entry->date, entry->utc, entry->call, entry->rxrst, entry->txrst, entry->rxnr,
+           entry->txnr, entry->rxextra, entry->txextra, entry->qth, entry->name, entry->qra,
+           entry->qrg, entry->mode.name, entry->power, (uint64_t)0U, (uint64_t)0U, entry->comment,
+           entry->station_id, entry->s2s_ref, entry->summit_ref);
   sqlite3_prepare_v2(llog->log_db, buff, -1, &entry->sq3_stmt, NULL);
 
 
@@ -650,7 +676,7 @@ int db_get_mode_entry(llog_t *llog, mode_entry_t *mode, uint64_t *id) {
     break;
   }
 
-  if (finalize) {
+  if (finalize || id != NULL) {
     sqlite3_finalize(mode->sq3_stmt);
   }
 

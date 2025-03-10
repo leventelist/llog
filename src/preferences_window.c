@@ -119,7 +119,7 @@ void on_preferences_window_activate(GtkWidget *widget, gpointer data) {
 
 static void on_button_ok_clicked(GtkWidget *widget, gpointer data) {
   (void)widget;
-  // Add your code to handle OK button click
+
   app_widgets_t *widgets = (app_widgets_t *)data;
   const gchar *host = gtk_editable_get_text(GTK_EDITABLE(widgets->gpsd_host_entry));
   const gchar *port = gtk_editable_get_text(GTK_EDITABLE(widgets->gpsd_port_entry));
