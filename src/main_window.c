@@ -22,6 +22,7 @@
 #include <inttypes.h>
 #include <unistd.h>
 #include <gps.h>
+#include <math.h>
 
 #include "main_window.h"
 #include "llog.h"
@@ -332,9 +333,13 @@ static void logentrydisplay_item_class_init(LogEntryDisplayItemClass *klass) {
 static LogEntryDisplayItem *logentrydisplay_new(log_entry_t *entry) {
   LogEntryDisplayItem *self = g_object_new(LOGENTRYDISPLAY_TYPE_ITEM, NULL);
 
+  double qrg;
+
+  qrg = floor(entry->qrg * 1000) / 1000.0;
+
   self->id = g_strdup_printf("%" PRIu64, entry->id);
   self->call = g_strdup(entry->call);
-  self->qrg = g_strdup_printf("%.2f", entry->qrg);
+  self->qrg = g_strdup_printf("%.3f", qrg);
   self->date = g_strdup(entry->date);
   self->utc = g_strdup(entry->utc);
   self->mode = g_strdup(entry->mode.name);
