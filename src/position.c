@@ -169,6 +169,10 @@ static void *position_thread(void *user_data) {
   pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, NULL);
   pthread_setcanceltype(PTHREAD_CANCEL_DEFERRED, NULL);
 
+  timespec_t ts;
+  ts.tv_sec = 1;
+  ts.tv_nsec = 0;
+
   while (1) {
     pthread_testcancel();
     position_status = position_stat_running;
@@ -181,6 +185,7 @@ static void *position_thread(void *user_data) {
         pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, NULL);
       }
     }
+    nanosleep(&ts, NULL);
   }
 
   position_stop();

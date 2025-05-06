@@ -24,7 +24,7 @@
 #include <gps.h>
 #include "llog.h"
 
-#define POSITION_TIMEOUT_USEC 5000000
+#define POSITION_TIMEOUT_USEC 5000000UL
 
 typedef struct gps_data_t gps_data_real_t;
 

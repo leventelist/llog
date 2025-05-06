@@ -432,7 +432,7 @@ static void bind_mode_cb(GtkSignalListItemFactory *factory, GtkListItem *listite
 }
 
 /*Module variables*/
-static app_widgets_t *widgets;
+static app_widgets_t *widgets = NULL;
 static log_entry_t log_entry_data;
 static llog_t *local_llog;
 
@@ -467,7 +467,7 @@ int main_window_draw(int argc, char *argv[]) {
   GtkApplication *app;
   int status;
 
-  app = gtk_application_new("com.example.GtkApplication", G_APPLICATION_DEFAULT_FLAGS);
+  app = gtk_application_new(NULL, G_APPLICATION_NON_UNIQUE);
   g_signal_connect(app, "activate", G_CALLBACK(on_activate), NULL);
   status = g_application_run(G_APPLICATION(app), argc, argv);
   g_object_unref(app);
