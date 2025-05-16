@@ -39,8 +39,23 @@ pkg_check_modules(XML REQUIRED IMPORTED_TARGET libxml-2.0)
 
 find_library(MATH_LIBRARY m REQUIRED)
 
-execute_process(COMMAND xmlrpc-c-config client --libs OUTPUT_VARIABLE XMLRPC_LIBS)
-execute_process(COMMAND xmlrpc-c-config client --cflags OUTPUT_VARIABLE XMLRPC_CFLAGS)
+execute_process(
+  COMMAND xmlrpc-c-config client --libs
+  OUTPUT_VARIABLE XMLRPC_LIBS
+  RESULT_VARIABLE XMLRPC_LIBS_RESULT
+)
+if(NOT XMLRPC_LIBS_RESULT EQUAL 0)
+  message(FATAL_ERROR "Failed to run xmlrpc-c-config client --libs")
+endif()
+
+execute_process(
+  COMMAND xmlrpc-c-config client --cflags
+  OUTPUT_VARIABLE XMLRPC_CFLAGS
+  RESULT_VARIABLE XMLRPC_CFLAGS_RESULT
+)
+if(NOT XMLRPC_CFLAGS_RESULT EQUAL 0)
+  message(FATAL_ERROR "Failed to run xmlrpc-c-config client --cflags")
+endif()
 
 string(STRIP ${XMLRPC_LIBS} XMLRPC_LIBS)
 string(STRIP ${XMLRPC_CFLAGS} XMLRPC_CFLAGS)
