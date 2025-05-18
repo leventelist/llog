@@ -10,7 +10,3 @@ https://hamlib.sourceforge.net/manuals/4.3/_2tests_2testrig_8c-example.html
 * Read mode of the rig
 
 # Connect to FLDIGI
-
-https://xmlrpc-c.sourceforge.io/doc/index.html#clientexample
-https://github.com/Tlf/tlf/blob/master/src/fldigixmlrpc.c#L601
-

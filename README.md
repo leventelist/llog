@@ -53,7 +53,7 @@ There is an SQLite database where all logged information is saved.
 * Launch llog, and then create a new database by clicking File->New.
 * Edit your station by clicking Edit->Log database. This will fire up sqlitebrowser.
 * Once you are happy with your changes, reload the database by clicking
-File->Reload
+    File->Reload
 * CLick on the UTC button to get current UTC
 * Click on the 'Summit ref' button the get the closest SOTA reference
 * Fill out all the info you have
