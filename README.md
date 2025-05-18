@@ -28,6 +28,7 @@ There is an SQLite database where all logged information is saved.
 * libhamlib-dev
 * libxml2-dev
 * libxmlrpc-core-c3-dev
+* libcurl4-openssl-dev
 * sqlitebrowser
 * gpsd
 * gpsd-tools

@@ -57,6 +57,12 @@ if(NOT XMLRPC_CFLAGS_RESULT EQUAL 0)
   message(FATAL_ERROR "Failed to run xmlrpc-c-config client --cflags")
 endif()
 
+# Libxmlrpc uses libcurl, but the package dependency is
+# not set correctly in Debian, so we require libcurl
+# to be installed, and fail at configuration time if it
+# is not found.
+pkg_check_modules(CURL REQUIRED IMPORTED_TARGET libcurl)
+
 string(STRIP ${XMLRPC_LIBS} XMLRPC_LIBS)
 string(STRIP ${XMLRPC_CFLAGS} XMLRPC_CFLAGS)
 
