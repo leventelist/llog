@@ -454,7 +454,6 @@ static void on_qrt_activate(GtkApplication *app);
 static void on_about_menu_activate(app_widgets_t *app_wdgts);
 static void on_reload_activate(GMenuItem *menuitem, app_widgets_t *app_wdgts);
 static void on_menuitm_open_activate(app_widgets_t *app_wdgts);
-static void on_open_file_response(GtkDialog *dialog, gint response_id, gpointer user_data);
 static void on_new_file_response(GtkDialog *dialog, gint response_id, gpointer user_data);
 static void on_station_entry_change(GtkEditable *entry, gpointer user_data);
 static void on_export_activate(app_widgets_t *app_wdgts);
@@ -940,42 +939,27 @@ void set_static_data(void) {
 }
 
 
-/*Main window callbacks*/
-
-static void on_menuitm_open_activate(app_widgets_t *app_wdgts) {
-  char *current_log_file_name;
-
-  llog_get_log_file_path(&current_log_file_name);
-
-  app_wdgts->logfile_choose = gtk_file_chooser_dialog_new("Open Log File",
-                                                          GTK_WINDOW(app_wdgts->main_window),
-                                                          GTK_FILE_CHOOSER_ACTION_OPEN, "_Cancel",
-                                                          GTK_RESPONSE_CANCEL,
-                                                          "_Open",
-                                                          GTK_RESPONSE_OK,
-                                                          NULL);
-
-/*Add last loaded filename to the chooser*/
-  if (current_log_file_name != NULL && current_log_file_name[0] != '\0') {
-    GFile *file = g_file_new_for_path(current_log_file_name);
-    gtk_file_chooser_set_file(GTK_FILE_CHOOSER(app_wdgts->logfile_choose), file, NULL);
-  }
-
-  g_signal_connect(app_wdgts->logfile_choose, "response", G_CALLBACK(on_open_file_response), app_wdgts);
-
-  // Show the "Open Text File" dialog box
-  gtk_window_present(GTK_WINDOW(app_wdgts->logfile_choose));
-}
-
-static void on_open_file_response(GtkDialog *dialog, gint response_id, gpointer user_data) {
-  int file_success;    // File read status
-
+static void
+open_response_cb (GObject *source,
+                  GAsyncResult *result,
+                  gpointer user_data)
+{
   (void)user_data;
+  GtkFileDialog *dialog = GTK_FILE_DIALOG (source);
+  //GApplication *app = G_APPLICATION (user_data);
+  GFile *file;
+  GError *error = NULL;
+  char *filename;
 
-  if (response_id == GTK_RESPONSE_OK) {
-    GtkFileChooser *chooser = GTK_FILE_CHOOSER(dialog);
-    GFile *file = gtk_file_chooser_get_file(chooser);
-    char *filename = g_file_get_path(file);
+
+  printf("Open response callback\n");
+
+
+  file = gtk_file_dialog_open_finish (dialog, result, &error);
+  if (file) {
+    int file_success;    // File read status
+    filename = g_file_get_path(file);
+    printf("File selected: %s\n", filename);
     if (filename != NULL) {
       llog_set_log_file(filename, true);
       file_success = llog_open_db();
@@ -987,11 +971,46 @@ static void on_open_file_response(GtkDialog *dialog, gint response_id, gpointer 
         return;
       }
     }
-    g_print("File selected: %s\n", filename);
-    g_free(filename);
-    g_object_unref(file);
+      g_free(filename);
+    }
+
+  if (error)
+    {
+      GtkAlertDialog *alert;
+
+      alert = gtk_alert_dialog_new ("Error loading file: \"%s\"", error->message);
+      gtk_alert_dialog_show (alert, NULL);
+      g_object_unref (alert);
+      g_error_free (error);
+    }
+  g_object_unref (file);
+}
+
+
+
+
+/*Main window callbacks*/
+
+static void on_menuitm_open_activate(app_widgets_t *app_wdgts) {
+  char *current_log_file_name;
+
+  llog_get_log_file_path(&current_log_file_name);
+
+  GtkFileDialog *dialog;
+  GFile *cwd;
+
+  dialog = gtk_file_dialog_new();
+  gtk_file_dialog_set_title (dialog, "Open file");
+  if (current_log_file_name != NULL && current_log_file_name[0] != '\0') {
+    cwd = g_file_new_for_path (current_log_file_name);
+    fprintf(stderr, "File: %s\n", current_log_file_name);
+  } else {
+    cwd = g_file_new_for_path (".");
   }
-  gtk_window_destroy(GTK_WINDOW(dialog));
+  gtk_file_dialog_set_initial_folder(dialog, cwd);
+  g_object_unref (cwd);
+  gtk_file_dialog_open(dialog, GTK_WINDOW (app_wdgts->main_window), NULL, open_response_cb, app_wdgts);
+  g_object_unref (dialog);
 }
 
 

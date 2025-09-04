@@ -119,7 +119,7 @@ void on_exporter_window_activate(GtkWidget *widget, gpointer data) {
   g_signal_connect(widgets->button_export, "clicked", G_CALLBACK(on_button_export_clicked), widgets);
   g_signal_connect(widgets->button_cancel, "clicked", G_CALLBACK(on_button_close_clicked), widgets);
 
-  gtk_widget_show(widgets->window);
+  gtk_widget_set_visible(widgets->window, true);
 }
 
 
@@ -144,7 +144,7 @@ static void on_exporter_file_chose_btn_clicked(GtkWidget *widget, gpointer data)
 
   g_signal_connect(app_wdgts->adif_fn_chooser, "response", G_CALLBACK(on_exporter_open_file_response), app_wdgts);
 
-  gtk_widget_show(app_wdgts->adif_fn_chooser);
+  gtk_widget_set_visible(app_wdgts->adif_fn_chooser, true);
 }
 
 
