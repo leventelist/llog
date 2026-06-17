@@ -44,9 +44,10 @@ typedef struct {
   llog_t *llog;
 } adif_widgets_t;
 
+static adif_widgets_t *widgets = NULL;
+
 static void on_exporter_window_destroy(GtkWidget *widget, gpointer data);
 static void on_exporter_file_chose_btn_clicked(GtkWidget *widget, gpointer data);
-static void on_exporter_open_file_response(GtkDialog *dialog, gint response_id, gpointer user_data);
 static void on_button_export_clicked(GtkWidget *widget, gpointer data);
 static void on_button_close_clicked(GtkWidget *widget, gpointer data);
 
@@ -55,7 +56,12 @@ void on_exporter_window_activate(GtkWidget *widget, gpointer data) {
   (void)widget;
   (void)data;
 
-  adif_widgets_t *widgets = g_malloc(sizeof(adif_widgets_t));
+  if (widgets != NULL) {
+    gtk_window_present(GTK_WINDOW(widgets->window));
+    return;
+  }
+
+  widgets = g_malloc(sizeof(adif_widgets_t));
 
   widgets->llog = (llog_t *)data;
 
@@ -84,7 +90,7 @@ void on_exporter_window_activate(GtkWidget *widget, gpointer data) {
   gtk_grid_attach(GTK_GRID(widgets->grid), widgets->adif_fn_entry, 1, 0, 1, 1);
   gtk_widget_set_hexpand(widgets->adif_fn_entry, TRUE);
 
-  widgets->export_format = gtk_label_new("Exprt format:");
+  widgets->export_format = gtk_label_new("Export format:");
   gtk_grid_attach(GTK_GRID(widgets->grid), GTK_WIDGET(widgets->export_format), 0, 1, 1, 1);
   widgets->adi_checkbox = gtk_check_button_new_with_label("ADI");
   gtk_grid_attach(GTK_GRID(widgets->grid), GTK_WIDGET(widgets->adi_checkbox), 1, 1, 1, 1);
@@ -93,9 +99,10 @@ void on_exporter_window_activate(GtkWidget *widget, gpointer data) {
   widgets->csv_checkbox = gtk_check_button_new_with_label("CSV (SOTA)");
   gtk_grid_attach(GTK_GRID(widgets->grid), GTK_WIDGET(widgets->csv_checkbox), 1, 3, 1, 1);
 
-  gtk_check_button_set_group(GTK_CHECK_BUTTON(widgets->adi_checkbox), GTK_CHECK_BUTTON(widgets->adx_checkbox));
-  gtk_check_button_set_group(GTK_CHECK_BUTTON(widgets->adi_checkbox), GTK_CHECK_BUTTON(widgets->csv_checkbox));
-  gtk_check_button_set_group(GTK_CHECK_BUTTON(widgets->adx_checkbox), GTK_CHECK_BUTTON(widgets->csv_checkbox));
+  gtk_check_button_set_group(GTK_CHECK_BUTTON(widgets->adx_checkbox),
+                           GTK_CHECK_BUTTON(widgets->adi_checkbox));
+  gtk_check_button_set_group(GTK_CHECK_BUTTON(widgets->csv_checkbox),
+                           GTK_CHECK_BUTTON(widgets->adi_checkbox));
 
 
 
@@ -122,56 +129,50 @@ void on_exporter_window_activate(GtkWidget *widget, gpointer data) {
   gtk_widget_set_visible(widgets->window, true);
 }
 
+static void export_save_response_cb(GObject *source, GAsyncResult *result, gpointer user_data) {
+  adif_widgets_t *app_wdgts = (adif_widgets_t *)user_data;
+  GtkFileDialog *dialog = GTK_FILE_DIALOG(source);
+  GError *error = NULL;
+
+  GFile *file = gtk_file_dialog_save_finish(dialog, result, &error);
+  if (file) {
+    char *filename = g_file_get_path(file);
+    if (filename != NULL) {
+      g_strlcpy(app_wdgts->llog->export_file_name, filename,
+                sizeof(app_wdgts->llog->export_file_name));
+      llog_save_config_file();
+      g_print("File selected: %s\n", filename);
+      g_free(filename);
+    }
+    GtkEntryBuffer *buf = gtk_entry_get_buffer(GTK_ENTRY(app_wdgts->adif_fn_entry));
+    gtk_entry_buffer_set_text(buf, app_wdgts->llog->export_file_name, -1);
+    g_object_unref(file);
+  }
+
+  if (error) {
+    g_error_free(error);   // user cancelled — error is also set for cancel, just discard
+  }
+}
+
+
 
 static void on_exporter_file_chose_btn_clicked(GtkWidget *widget, gpointer data) {
   (void)widget;
 
   adif_widgets_t *app_wdgts = (adif_widgets_t *)data;
 
-  app_wdgts->adif_fn_chooser = gtk_file_chooser_dialog_new("Export to File",
-                                                           GTK_WINDOW(app_wdgts->window),
-                                                           GTK_FILE_CHOOSER_ACTION_SAVE, "_Cancel",
-                                                           GTK_RESPONSE_CANCEL,
-                                                           "_Save",
-                                                           GTK_RESPONSE_OK,
-                                                           NULL);
-
+  GtkFileDialog *dialog = gtk_file_dialog_new();
+  gtk_file_dialog_set_title(dialog, "Export to File");
 
   if (app_wdgts->llog->export_file_name[0] != '\0') {
-    GFile *file = g_file_new_for_path(app_wdgts->llog->export_file_name);
-    gtk_file_chooser_set_file(GTK_FILE_CHOOSER(app_wdgts->adif_fn_chooser), file, NULL);
+    GFile *initial = g_file_new_for_path(app_wdgts->llog->export_file_name);
+    gtk_file_dialog_set_initial_file(dialog, initial);
+    g_object_unref(initial);
   }
 
-  g_signal_connect(app_wdgts->adif_fn_chooser, "response", G_CALLBACK(on_exporter_open_file_response), app_wdgts);
-
-  gtk_widget_set_visible(app_wdgts->adif_fn_chooser, true);
-}
-
-
-static void on_exporter_open_file_response(GtkDialog *dialog, gint response_id, gpointer user_data) {
-
-  adif_widgets_t *app_wdgts = (adif_widgets_t *)user_data;
-  GtkEntryBuffer *adif_fn_buffer;
-
-  if (response_id == GTK_RESPONSE_OK) {
-    GtkFileChooser *chooser = GTK_FILE_CHOOSER(dialog);
-    GFile *file = gtk_file_chooser_get_file(chooser);
-    char *filename = g_file_get_path(file);
-    if (filename != NULL) {
-      strcpy(app_wdgts->llog->export_file_name, filename);
-      llog_save_config_file();
-    }
-    g_print("File selected: %s\n", filename);
-    g_free(filename);
-    g_object_unref(file);
-  }
-
-  adif_fn_buffer = gtk_entry_get_buffer(GTK_ENTRY(app_wdgts->adif_fn_entry));
-
-  gtk_entry_buffer_set_text(adif_fn_buffer,
-                            app_wdgts->llog->export_file_name, -1);
-
-  gtk_window_destroy(GTK_WINDOW(dialog));
+  gtk_file_dialog_save(dialog, GTK_WINDOW(app_wdgts->window), NULL,
+                       export_save_response_cb, app_wdgts);
+  g_object_unref(dialog);
 }
 
 
@@ -204,7 +205,7 @@ static void on_button_export_clicked(GtkWidget *widget, gpointer data) {
 
   if (ret_val != export_status_ok) {
     gtk_label_set_text(GTK_LABEL(app_wdgts->status_label), "Error writing header");
-    return;
+    goto out;
   }
 
   log_entry_t entry;
@@ -229,6 +230,7 @@ static void on_button_export_clicked(GtkWidget *widget, gpointer data) {
     gtk_label_set_text(GTK_LABEL(app_wdgts->status_label), "Exporting failed");
   }
 
+out:
   exporter_close();
 }
 
@@ -243,5 +245,6 @@ static void on_button_close_clicked(GtkWidget *widget, gpointer data) {
 static void on_exporter_window_destroy(GtkWidget *widget, gpointer data) {
   (void)widget;
 
+  widgets = NULL;
   g_free(data);
 }

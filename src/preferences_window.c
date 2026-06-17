@@ -24,6 +24,8 @@
 #include "main_window.h"
 #include "xml_client.h"
 
+#define PORT_LEN 16
+
 
 /*Forward declarations for the callbacks*/
 static void on_button_ok_clicked(GtkWidget *widget, gpointer data);
@@ -43,95 +45,110 @@ typedef struct {
   GtkWidget *xml_rpc_port_entry;
   GtkWidget *button_box;
   GtkWidget *button_ok;
-  GtkWidget *button_apply;
   GtkWidget *button_cancel;
   llog_t *llog;
 } app_widgets_t;
 
+static app_widgets_t *preferences_widgets = NULL;
+
 void on_preferences_window_activate(GtkWidget *widget, gpointer data) {
   (void)widget;
 
-  app_widgets_t *widgets = g_malloc(sizeof(app_widgets_t));
+  if (preferences_widgets != NULL) {
+    gtk_window_present(GTK_WINDOW(preferences_widgets->window));
+    return;
+  }
 
-  widgets->llog = (llog_t *)data;
+  preferences_widgets = g_malloc(sizeof(app_widgets_t));
+
+  preferences_widgets->llog = (llog_t *)data;
 
 
-  widgets->window = gtk_window_new();
-  gtk_window_set_title(GTK_WINDOW(widgets->window), "Preferences");
-  gtk_window_set_default_size(GTK_WINDOW(widgets->window), 400, 300);
-  g_signal_connect(widgets->window, "destroy", G_CALLBACK(on_preferences_window_destroy), widgets);
+  preferences_widgets->window = gtk_window_new();
+  gtk_window_set_title(GTK_WINDOW(preferences_widgets->window), "Preferences");
+  gtk_window_set_default_size(GTK_WINDOW(preferences_widgets->window), 400, 300);
+  g_signal_connect(preferences_widgets->window, "destroy", G_CALLBACK(on_preferences_window_destroy), preferences_widgets);
 
 
-  widgets->box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 15);
-  gtk_window_set_child(GTK_WINDOW(widgets->window), widgets->box);
+  preferences_widgets->box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 15);
+  gtk_window_set_child(GTK_WINDOW(preferences_widgets->window), preferences_widgets->box);
 
   GtkWidget *grid;
 
   grid = gtk_grid_new();
   gtk_grid_set_row_spacing(GTK_GRID(grid), 10);
   gtk_grid_set_column_spacing(GTK_GRID(grid), 10);
-  gtk_box_append(GTK_BOX(widgets->box), grid);
+  gtk_box_append(GTK_BOX(preferences_widgets->box), grid);
 
-  widgets->gpsd_host_label = gtk_label_new("GPSD Host:");
-  widgets->gpsd_host_entry = gtk_entry_new();
-  gtk_grid_attach(GTK_GRID(grid), widgets->gpsd_host_label, 0, 0, 1, 1);
-  gtk_grid_attach(GTK_GRID(grid), widgets->gpsd_host_entry, 1, 0, 1, 1);
-  gtk_widget_set_hexpand(widgets->gpsd_host_entry, TRUE);
+  preferences_widgets->gpsd_host_label = gtk_label_new("GPSD Host:");
+  preferences_widgets->gpsd_host_entry = gtk_entry_new();
+  gtk_grid_attach(GTK_GRID(grid), preferences_widgets->gpsd_host_label, 0, 0, 1, 1);
+  gtk_grid_attach(GTK_GRID(grid), preferences_widgets->gpsd_host_entry, 1, 0, 1, 1);
+  gtk_widget_set_hexpand(preferences_widgets->gpsd_host_entry, TRUE);
 
-  widgets->gpsd_port_label = gtk_label_new("GPSD Port:");
-  widgets->gpsd_port_entry = gtk_entry_new();
-  gtk_grid_attach(GTK_GRID(grid), widgets->gpsd_port_label, 0, 1, 1, 1);
-  gtk_grid_attach(GTK_GRID(grid), widgets->gpsd_port_entry, 1, 1, 1, 1);
-  gtk_widget_set_hexpand(widgets->gpsd_port_entry, TRUE);
+  preferences_widgets->gpsd_port_label = gtk_label_new("GPSD Port:");
+  preferences_widgets->gpsd_port_entry = gtk_entry_new();
+  gtk_grid_attach(GTK_GRID(grid), preferences_widgets->gpsd_port_label, 0, 1, 1, 1);
+  gtk_grid_attach(GTK_GRID(grid), preferences_widgets->gpsd_port_entry, 1, 1, 1, 1);
+  gtk_widget_set_hexpand(preferences_widgets->gpsd_port_entry, TRUE);
 
-  gtk_editable_set_text(GTK_EDITABLE(widgets->gpsd_host_entry), widgets->llog->gpsd_host);
-  char port[16];
+  gtk_editable_set_text(GTK_EDITABLE(preferences_widgets->gpsd_host_entry), preferences_widgets->llog->gpsd_host);
+  char port[PORT_LEN];
 
-  sprintf(port, "%lu", widgets->llog->gpsd_port);
-  gtk_editable_set_text(GTK_EDITABLE(widgets->gpsd_port_entry), port);
+  snprintf(port, PORT_LEN, "%lu", preferences_widgets->llog->gpsd_port);
+  gtk_editable_set_text(GTK_EDITABLE(preferences_widgets->gpsd_port_entry), port);
 
-  widgets->xml_rpc_host_label = gtk_label_new("XML-RPC Host:");
-  widgets->xml_rpc_host_entry = gtk_entry_new();
-  gtk_grid_attach(GTK_GRID(grid), widgets->xml_rpc_host_label, 0, 2, 1, 1);
-  gtk_grid_attach(GTK_GRID(grid), widgets->xml_rpc_host_entry, 1, 2, 1, 1);
-  gtk_editable_set_text(GTK_EDITABLE(widgets->xml_rpc_host_entry), widgets->llog->xmlrpc_host);
+  preferences_widgets->xml_rpc_host_label = gtk_label_new("XML-RPC Host:");
+  preferences_widgets->xml_rpc_host_entry = gtk_entry_new();
+  gtk_grid_attach(GTK_GRID(grid), preferences_widgets->xml_rpc_host_label, 0, 2, 1, 1);
+  gtk_grid_attach(GTK_GRID(grid), preferences_widgets->xml_rpc_host_entry, 1, 2, 1, 1);
+  gtk_editable_set_text(GTK_EDITABLE(preferences_widgets->xml_rpc_host_entry), preferences_widgets->llog->xmlrpc_host);
 
-  widgets->xml_rpc_port_label = gtk_label_new("XML-RPC Port:");
-  widgets->xml_rpc_port_entry = gtk_entry_new();
-  gtk_grid_attach(GTK_GRID(grid), widgets->xml_rpc_port_label, 0, 3, 1, 1);
-  gtk_grid_attach(GTK_GRID(grid), widgets->xml_rpc_port_entry, 1, 3, 1, 1);
-  sprintf(port, "%lu", widgets->llog->xmlrpc_port);
-  gtk_editable_set_text(GTK_EDITABLE(widgets->xml_rpc_port_entry), port);
+  preferences_widgets->xml_rpc_port_label = gtk_label_new("XML-RPC Port:");
+  preferences_widgets->xml_rpc_port_entry = gtk_entry_new();
+  gtk_grid_attach(GTK_GRID(grid), preferences_widgets->xml_rpc_port_label, 0, 3, 1, 1);
+  gtk_grid_attach(GTK_GRID(grid), preferences_widgets->xml_rpc_port_entry, 1, 3, 1, 1);
+  snprintf(port, PORT_LEN, "%lu", preferences_widgets->llog->xmlrpc_port);
+  gtk_editable_set_text(GTK_EDITABLE(preferences_widgets->xml_rpc_port_entry), port);
 
 
-  widgets->button_box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
-  gtk_box_append(GTK_BOX(widgets->box), widgets->button_box);
+  preferences_widgets->button_box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
+  gtk_box_append(GTK_BOX(preferences_widgets->box), preferences_widgets->button_box);
 
-  widgets->button_ok = gtk_button_new_with_label("OK");
-  gtk_box_append(GTK_BOX(widgets->button_box), widgets->button_ok);
+  preferences_widgets->button_ok = gtk_button_new_with_label("OK");
+  gtk_box_append(GTK_BOX(preferences_widgets->button_box), preferences_widgets->button_ok);
 
-  widgets->button_cancel = gtk_button_new_with_label("Cancel");
-  gtk_box_append(GTK_BOX(widgets->button_box), widgets->button_cancel);
-  g_signal_connect(widgets->button_ok, "clicked", G_CALLBACK(on_button_ok_clicked), widgets);
-  g_signal_connect(widgets->button_cancel, "clicked", G_CALLBACK(on_button_cancel_clicked), widgets);
-  gtk_widget_show(widgets->window);
+  preferences_widgets->button_cancel = gtk_button_new_with_label("Cancel");
+  gtk_box_append(GTK_BOX(preferences_widgets->button_box), preferences_widgets->button_cancel);
+  g_signal_connect(preferences_widgets->button_ok, "clicked", G_CALLBACK(on_button_ok_clicked), preferences_widgets);
+  g_signal_connect(preferences_widgets->button_cancel, "clicked", G_CALLBACK(on_button_cancel_clicked), preferences_widgets);
+  gtk_window_present(GTK_WINDOW(preferences_widgets->window));
 }
 
 static void on_button_ok_clicked(GtkWidget *widget, gpointer data) {
   (void)widget;
 
   app_widgets_t *widgets = (app_widgets_t *)data;
+  char *endptr;
+  unsigned long val;
+
   const gchar *host = gtk_editable_get_text(GTK_EDITABLE(widgets->gpsd_host_entry));
   const gchar *port = gtk_editable_get_text(GTK_EDITABLE(widgets->gpsd_port_entry));
 
-  strcpy(widgets->llog->gpsd_host, host);
-  widgets->llog->gpsd_port = atoi(port);
+  g_strlcpy(widgets->llog->gpsd_host, host, sizeof(widgets->llog->gpsd_host));
+  val = strtoul(gtk_editable_get_text(GTK_EDITABLE(widgets->gpsd_port_entry)), &endptr, 10);
+  if (endptr != port && *endptr == '\0' && val <= 65535) {
+    widgets->llog->gpsd_port = val;
+  }
 
   host = gtk_editable_get_text(GTK_EDITABLE(widgets->xml_rpc_host_entry));
   port = gtk_editable_get_text(GTK_EDITABLE(widgets->xml_rpc_port_entry));
 
-  strcpy(widgets->llog->xmlrpc_host, host);
-  widgets->llog->xmlrpc_port = atoi(port);
+  g_strlcpy(widgets->llog->xmlrpc_host, host, sizeof(widgets->llog->xmlrpc_host));
+  val = strtoul(gtk_editable_get_text(GTK_EDITABLE(widgets->xml_rpc_port_entry)), &endptr, 10);
+  if (endptr != port && *endptr == '\0' && val <= 65535) {
+    widgets->llog->xmlrpc_port = val;
+  }
 
   llog_save_config_file();
 
@@ -155,4 +172,5 @@ static void on_preferences_window_destroy(GtkWidget *widget, gpointer data) {
   (void)widget;
 
   g_free(data);
+  preferences_widgets = NULL;  // clear the guard
 }
