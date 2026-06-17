@@ -15,6 +15,7 @@ set(SOURCES
 	exporter_writer.c
 	export_window.c
 	xml_client.c
+  band.c
 )
 
 # Add the executable

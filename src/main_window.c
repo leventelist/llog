@@ -198,19 +198,20 @@ static ModeEntry *mode_entry_new(mode_entry_t *entry) {
 }
 
 static char *mode_entry_get_name(ModeEntry *item) {
-  if (item == NULL) {
-    return "NULL";
+  if (item == NULL || item->name == NULL) {
+    return g_strdup("");
   }
-  return item->name;
+  return g_strdup(item->name);
 }
 
 static void bind_mode_dropdown_cb(GtkSignalListItemFactory *factory, GtkListItem *listitem) {
   (void)factory;
   GtkWidget *label = gtk_list_item_get_child(listitem);
   GObject *item = gtk_list_item_get_item(GTK_LIST_ITEM(listitem));
-  const char *string = mode_entry_get_name(MODEENTRY_ITEM(item));
+  char *string = mode_entry_get_name(MODEENTRY_ITEM(item));
 
   gtk_label_set_text(GTK_LABEL(label), string);
+  g_free(string);
 }
 
 
@@ -615,6 +616,14 @@ static void on_activate(GtkApplication *app, gpointer user_data) {
     case llog_entry_mode:
       entry_widget = gtk_label_new(entry_labels[entry_index]);
       widgets->log_entries[entry_index] = gtk_drop_down_new(G_LIST_MODEL(widgets->mode_list_store), NULL);
+      gtk_drop_down_set_enable_search(GTK_DROP_DOWN(widgets->log_entries[entry_index]), TRUE);
+      GtkExpression *expr = gtk_cclosure_expression_new(G_TYPE_STRING,                          // return type
+                                                        NULL,                                   // no extra marshal needed
+                                                        0, NULL,                                // no extra params
+                                                        G_CALLBACK(mode_entry_get_name),        // your existing getter
+                                                        NULL, NULL);
+      gtk_drop_down_set_expression(GTK_DROP_DOWN(widgets->log_entries[entry_index]), expr);
+      gtk_expression_unref(expr);
       factory = gtk_signal_list_item_factory_new();
       gtk_drop_down_set_factory(GTK_DROP_DOWN(widgets->log_entries[entry_index]), factory);
       g_signal_connect(factory, "setup", G_CALLBACK(setup_cb), NULL);
@@ -1105,6 +1114,9 @@ static void on_mode_entry_change(GtkWidget *entry, gpointer user_data) {
 
   if (selected_item != NULL) {
     ModeEntry *mode_entry = MODEENTRY_ITEM(selected_item);
+    if (mode_entry->id == NULL || mode_entry->id[0] == '\0') {
+      return;
+    }
     llog_get_default_rst(log_entry_data.txrst, atoll(mode_entry->id));
     gtk_entry_buffer_delete_text(widgets->log_entry_buffers[llog_entry_txrst], 0, -1);
     gtk_entry_buffer_delete_text(widgets->log_entry_buffers[llog_entry_rxrst], 0, -1);

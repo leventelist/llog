@@ -23,58 +23,18 @@
 #include <libxml/xmlwriter.h>
 
 #include "exporter_writer.h"
+#include "band.h"
 
 #include "llog.h"
 
 #define ENCODING "UTF-8"
-
-// Define a structure for band lookup
-typedef struct {
-  const char *band;
-  double lower_freq;   // Lower bound of the band in MHz
-  double upper_freq;   // Upper bound of the band in MHz
-} Band;
-
-// Lookup table for bands
-const Band band_table[] = {
-  { "2190m", 0.1357, 0.1378 },
-  { "630m", 0.472, 0.479 },
-  { "560m", 0.501, 0.504 },
-  { "160m", 1.8, 2.0 },
-  { "80m", 3.5, 4.0 },
-  { "60m", 5.06, 5.45 },
-  { "40m", 7.0, 7.3 },
-  { "30m", 10.1, 10.15 },
-  { "20m", 14.0, 14.35 },
-  { "17m", 18.068, 18.168 },
-  { "15m", 21.0, 21.45 },
-  { "12m", 24.89, 24.99 },
-  { "10m", 28.0, 29.7 },
-  { "6m", 50.0, 54.0 },
-  { "4m", 70.0, 71.0 },
-  { "2m", 144.0, 148.0 },
-  { "1.25m", 222.0, 225.0 },
-  { "70cm", 420.0, 450.0 },
-  { "33cm", 902.0, 928.0 },
-  { "23cm", 1240.0, 1300.0 },
-  { "13cm", 2300.0, 2450.0 },
-  { "9cm", 3300.0, 3500.0 },
-  { "6cm", 5650.0, 5925.0 },
-  { "3cm", 10000.0, 10500.0 },
-  { "1.25cm", 24000.0, 24250.0 },
-  { "6mm", 47000.0, 47200.0 },
-  { "4mm", 75500.0, 81000.0 },
-  { "2.5mm", 119980.0, 120020.0 },
-  { "2mm", 142000.0, 149000.0 },
-  { "1mm", 241000.0, 250000.0 }
-};
 
 
 static xmlTextWriterPtr writer;
 static FILE *output_txt_file;
 static adif_writer_export_format_t export_format;
 
-static const char *exporter_find_band(double frequency_mhz);
+
 static int exporter_write_adx_header(const char *filename);
 static int exporter_write_adi_header(const char *filename);
 static int exporter_write_csv_header(const char *filename);
@@ -86,18 +46,6 @@ static void exporter_file_close(void);
 
 
 
-// Function to find the band based on frequency
-static const char *exporter_find_band(double frequency_mhz) {
-  int band_count = sizeof(band_table) / sizeof(band_table[0]);
-
-  for (int i = 0; i < band_count; i++) {
-    if (frequency_mhz >= band_table[i].lower_freq && frequency_mhz <= band_table[i].upper_freq) {
-      return band_table[i].band;
-    }
-  }
-
-  return "Unknown";   // Return "Unknown" if the frequency does not match any band
-}
 
 
 /*Interface functions*/
@@ -256,7 +204,7 @@ static int exporter_add_adx_qso(log_entry_t *qso, station_entry_t *station) {
   ret = export_status_ok;
 
   // Find the band based on the frequency
-  band_str = exporter_find_band(qso->qrg);
+  band_str = band_find(qso->qrg);
 
   ret_val = xmlTextWriterStartElement(writer, BAD_CAST "RECORD");
   if (ret_val < 0) {
@@ -412,7 +360,7 @@ static int exporter_add_adi_qso(log_entry_t *qso, station_entry_t *station) {
   (void)station;
 
   // Find the band based on the frequency
-  band_str = exporter_find_band(qso->qrg);
+  band_str = band_find(qso->qrg);
 
   num_bytes = fprintf(output_txt_file, "<CALL:%lu>%s\n", strlen(qso->call), qso->call);
 
@@ -507,7 +455,7 @@ static int exporter_add_csv_qso(log_entry_t *qso, station_entry_t *station) {
   const char *band_str;
 
   // Find the band based on the frequency
-  band_str = exporter_find_band(qso->qrg);
+  band_str = band_find(qso->qrg);
 
   fprintf(output_txt_file, "V2,%s,%s,%s,%s,%s,%s,%s,%s\n", station->call, qso->summit_ref, qso->date, qso->utc, band_str, qso->mode.name, qso->call, qso->s2s_ref);
 

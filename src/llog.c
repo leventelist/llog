@@ -278,15 +278,6 @@ int llog_get_default_rst(char *default_rst, uint64_t mode_id) {
 }
 
 
-int llog_get_max_nr(log_entry_t *entry) {
-  int ret;
-
-  ret = db_get_max_nr(&llog, entry);
-
-  return ret;
-}
-
-
 void llog_get_time(log_entry_t *entry) {
   struct timeval qso_time;
   struct tm qso_bdt;
@@ -325,7 +316,7 @@ int llog_load_static_data(log_entry_t *entry) {
     if (ret != llog_stat_ok) {
       break;
     }
-    ret = llog_get_max_nr(entry);
+    ret = db_get_max_nr(&llog, entry);
     if (ret != llog_stat_ok) {
       break;
     }

@@ -30,6 +30,7 @@
 #include "db_sqlite.h"
 #include "llog.h"
 #include "llog_config.h"
+#include "band.h"
 
 #include <inttypes.h>
 #include <string.h>
@@ -477,6 +478,59 @@ int db_get_max_nr(llog_t *llog, log_entry_t *entry) {
 
   sqlite3_finalize(entry->sq3_stmt);
 
+  return ret_val;
+}
+
+
+int db_get_max_nr_by_band(llog_t *llog, log_entry_t *entry, double qrg_mhz) {
+  int ret, ret_val = llog_stat_ok;
+  char buff[BUF_SIZ];
+  bool have_work = true;
+  double band_low, band_high;
+
+  if (llog->log_db == NULL) {
+    return llog_stat_err;
+  }
+
+  entry->txnr = 1;
+
+  if (band_get_edges(qrg_mhz, &band_low, &band_high) != 0) {
+    // QRG not in any known band — fall back to global max
+    return db_get_max_nr(llog, entry);
+  }
+
+  snprintf(buff, BUF_SIZ,
+           "SELECT txnr FROM log WHERE qrg >= %f AND qrg < %f ORDER BY txnr DESC LIMIT 1;",
+           band_low, band_high);
+  sqlite3_prepare_v2(llog->log_db, buff, -1, &entry->sq3_stmt, NULL);
+
+  while (have_work) {
+    ret = sqlite3_step(entry->sq3_stmt);
+    switch (ret) {
+    case SQLITE_ROW:
+      entry->txnr = sqlite3_column_int64(entry->sq3_stmt, 0) + 1;
+      ret_val = llog_stat_ok;
+      break;
+
+    case SQLITE_DONE:
+      have_work = false;
+      ret_val = llog_stat_ok;
+      break;
+
+    case SQLITE_BUSY:
+      ret_val = llog_stat_err;
+      have_work = false;
+      break;
+
+    default:
+      ret_val = llog_stat_err;
+      have_work = false;
+      printf("Error looking up serial number by band: %s\n", sqlite3_errmsg(llog->log_db));
+      break;
+    }
+  }
+
+  sqlite3_finalize(entry->sq3_stmt);
   return ret_val;
 }
 
