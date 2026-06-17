@@ -589,7 +589,7 @@ static void on_activate(GtkApplication *app, gpointer user_data) {
       entry_widget = gtk_button_new_with_label(entry_labels[entry_index]);
       widgets->log_entries[entry_index] = gtk_entry_new();
       widgets->call_label = entry_widget;
-      g_signal_connect(widgets->log_entries[entry_index], "insert-text",
+      g_signal_connect(gtk_editable_get_delegate(GTK_EDITABLE(widgets->log_entries[entry_index])), "insert-text",
                    G_CALLBACK(on_insert_text_uppercase), NULL);
       g_signal_connect(widgets->log_entries[entry_index], "changed", G_CALLBACK(on_window_main_entry_changed), NULL);
       widgets->log_entry_buffers[entry_index] = gtk_entry_get_buffer(GTK_ENTRY(widgets->log_entries[entry_index]));
@@ -637,7 +637,7 @@ static void on_activate(GtkApplication *app, gpointer user_data) {
       entry_widget = gtk_button_new_with_label(entry_labels[entry_index]);
       g_signal_connect(entry_widget, "clicked", G_CALLBACK(on_summit_ref_btn_clicked), NULL);
       widgets->log_entries[entry_index] = gtk_entry_new();
-      g_signal_connect(widgets->log_entries[entry_index], "insert-text",
+      g_signal_connect(gtk_editable_get_delegate(GTK_EDITABLE(widgets->log_entries[entry_index])), "insert-text",
                    G_CALLBACK(on_insert_text_uppercase), NULL);
       g_signal_connect(widgets->log_entries[entry_index], "changed", G_CALLBACK(on_window_main_entry_changed), NULL);
       widgets->log_entry_buffers[entry_index] = gtk_entry_get_buffer(GTK_ENTRY(widgets->log_entries[entry_index]));
@@ -648,7 +648,7 @@ static void on_activate(GtkApplication *app, gpointer user_data) {
     case llog_entry_s2s_ref:
       entry_widget = gtk_label_new(entry_labels[entry_index]);
       widgets->log_entries[entry_index] = gtk_entry_new();
-      g_signal_connect(widgets->log_entries[entry_index], "insert-text",
+      g_signal_connect(gtk_editable_get_delegate(GTK_EDITABLE(widgets->log_entries[entry_index])), "insert-text",
                    G_CALLBACK(on_insert_text_uppercase), NULL);
       g_signal_connect(widgets->log_entries[entry_index], "changed", G_CALLBACK(on_window_main_entry_changed), NULL);
       widgets->log_entry_buffers[entry_index] = gtk_entry_get_buffer(GTK_ENTRY(widgets->log_entries[entry_index]));
@@ -1023,8 +1023,7 @@ static void on_menuitm_open_activate(app_widgets_t *app_wdgts) {
 
 static void on_insert_text_uppercase(GtkEditable *editable, const gchar *text, int length, int *position, gpointer user_data) {
   (void)user_data;
-  printf("This fucking called\n");
-    // Block ourselves to prevent recursion
+  // Block ourselves to prevent recursion
   g_signal_handlers_block_by_func(editable, on_insert_text_uppercase, NULL);
 
   // Also block the changed handler to avoid it firing mid-insert

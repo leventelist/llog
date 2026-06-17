@@ -134,7 +134,7 @@ int db_check_dup_qso(llog_t *llog, log_entry_t *entry) {
     return llog_stat_err;
   }
 
-  sprintf(buff, "SELECT date, UTC FROM log WHERE call='%s';", entry->call);
+  sprintf(buff, "SELECT date, UTC FROM log WHERE call='%s' COLLATE NOCASE;", entry->call);
   sqlite3_prepare_v2(llog->log_db, buff, -1, &entry->sq3_stmt, NULL);
 
   while (have_work) {
