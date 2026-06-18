@@ -21,6 +21,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <inttypes.h>
+#include <stdbool.h>
 
 #include "conf.h"
 static int parse_config_line(char *line, char *attr, char *value);
@@ -103,7 +104,7 @@ static int config_set(config_attribute_t *ca, char *option, char *value) {
     break;
 
   case CONFIG_Boolean:
-    *(int *)ca[n].value = strstr(value, "true") ? 1 : 0;
+    *(bool *)ca[n].value = strstr(value, "true") ? true : false;
     break;
 
   case CONFIG_Integer:
@@ -153,7 +154,7 @@ int config_print_file(char *dest_filename, config_attribute_t *ca) {
         break;
 
       case CONFIG_Boolean:
-        fprintf(dest_fd, "%s=%d\n", ca[i].name, *(int *)ca[i].value ? 1 : 0);
+        fprintf(dest_fd, "%s=%s\n", ca[i].name, *(bool *)ca[i].value ? "true" : "false");
         break;
 
       case CONFIG_Integer:

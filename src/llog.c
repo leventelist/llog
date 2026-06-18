@@ -48,6 +48,7 @@ static config_attribute_t llog_ca[] = {
   { "gpsd_host", CONFIG_String, llog.gpsd_host },
   { "gpsd_port", CONFIG_ULLInteger, &llog.gpsd_port },
   { "export_filename", CONFIG_String, llog.export_file_name },
+  { "tx_nr_per_band", CONFIG_Boolean, &llog.band_nr },
   { NULL, CONFIG_Unused, NULL }
 };
 
@@ -303,25 +304,25 @@ int llog_check_dup_qso(log_entry_t *entry) {
 int llog_load_static_data(log_entry_t *entry) {
   int ret;
 
-  do {
-    ret = llog_add_log_entries();
-    if (ret != llog_stat_ok) {
-      break;
-    }
-    ret = llog_add_station_entries();
-    if (ret != llog_stat_ok) {
-      break;
-    }
-    ret = llog_add_modes_entries();
-    if (ret != llog_stat_ok) {
-      break;
-    }
-    ret = db_get_max_nr(&llog, entry);
-    if (ret != llog_stat_ok) {
-      break;
-    }
-  } while (0);
 
+  ret = llog_add_log_entries();
+  if (ret != llog_stat_ok) {
+    goto out;
+  }
+  ret = llog_add_station_entries();
+  if (ret != llog_stat_ok) {
+    goto out;
+  }
+  ret = llog_add_modes_entries();
+  if (ret != llog_stat_ok) {
+    goto out;
+  }
+  ret = db_get_max_nr(&llog, entry, entry->qrg);
+  if (ret != llog_stat_ok) {
+    goto out;
+  }
+
+out:
   return ret;
 }
 

@@ -476,6 +476,15 @@ int main_window_draw(int argc, char *argv[]) {
   return status;
 }
 
+void main_window_update_txnr(void) {
+  char buff[BUFF_SIZ];
+
+  db_get_max_nr(local_llog, &log_entry_data, log_entry_data.qrg);
+  snprintf(buff, BUFF_SIZ, "%04" PRIu64, log_entry_data.txnr);
+  gtk_entry_buffer_delete_text(widgets->log_entry_buffers[llog_entry_txnr], 0, -1);
+  gtk_entry_buffer_insert_text(widgets->log_entry_buffers[llog_entry_txnr], 0, buff, -1);
+}
+
 static void on_activate(GtkApplication *app, gpointer user_data) {
   int entry_index;
   station_entry_t *initial_station;
@@ -667,7 +676,7 @@ static void on_activate(GtkApplication *app, gpointer user_data) {
     default:
       entry_widget = gtk_label_new(entry_labels[entry_index]);
       widgets->log_entries[entry_index] = gtk_entry_new();
-      //g_signal_connect(widgets->log_entries[entry_index], "changed", G_CALLBACK(on_window_main_entry_changed), NULL);
+      g_signal_connect(widgets->log_entries[entry_index], "changed", G_CALLBACK(on_window_main_entry_changed), NULL);
       widgets->log_entry_buffers[entry_index] = gtk_entry_get_buffer(GTK_ENTRY(widgets->log_entries[entry_index]));
       gtk_editable_set_editable(GTK_EDITABLE(widgets->log_entries[entry_index]), true);
       break;
@@ -944,12 +953,9 @@ void main_window_clear_position_labels(void) {
 }
 
 void set_static_data(void) {
-  char buff[BUFF_SIZ];
 
   /*Set txnr*/
-  snprintf(buff, BUFF_SIZ, "%04" PRIu64, log_entry_data.txnr);
-  gtk_entry_buffer_delete_text(widgets->log_entry_buffers[llog_entry_txnr], 0, -1);
-  gtk_entry_buffer_insert_text(widgets->log_entry_buffers[llog_entry_txnr], 0, buff, -1);
+  main_window_update_txnr();
 
   on_mode_entry_change(widgets->log_entries[llog_entry_mode], NULL);
 }
@@ -1098,6 +1104,10 @@ static void on_window_main_entry_changed(GtkEditable *editable, gpointer user_da
 
   case llog_entry_qra:
     snprintf(log_entry_data.qra, QRA_LEN, "%s", gtk_entry_buffer_get_text(buffer));
+    break;
+  case llog_entry_qrg:
+    log_entry_data.qrg = atof(gtk_entry_buffer_get_text(buffer));
+    main_window_update_txnr();
     break;
   default:
     break;
@@ -1248,7 +1258,6 @@ static void on_get_btn_clicked(void) {
 
 static void on_log_btn_clicked(void) {
   int ret;
-  char buff[BUFF_SIZ];
   GObject *item;
 
   /*Gather log data*/
@@ -1295,22 +1304,13 @@ static void on_log_btn_clicked(void) {
   /*Write log entry to the DB */
   ret = llog_log_entry(&log_entry_data);
 
-  switch (ret) {
-  case llog_stat_ok:
-    /* Increment the counter. */
-    log_entry_data.txnr++;
-    break;
-
-  case llog_stat_err:
+  if (ret != llog_stat_ok) {
     /*Display some error message.*/
     GtkAlertDialog *alert = gtk_alert_dialog_new("Error logging the QSO!");
     gtk_alert_dialog_set_detail(alert, "Database is not ready.");
     gtk_alert_dialog_show(alert, GTK_WINDOW(widgets->main_window));
     g_object_unref(alert);
     return;
-
-  default:
-    break;
   }
 
   llog_reset_entry(&log_entry_data);
@@ -1340,10 +1340,6 @@ static void on_log_btn_clicked(void) {
       break;
     }
   }
-
-  snprintf(buff, BUFF_SIZ, "%04" PRIu64, log_entry_data.txnr);
-  gtk_entry_buffer_delete_text(widgets->log_entry_buffers[llog_entry_txnr], 0, -1);
-  gtk_entry_buffer_insert_text(widgets->log_entry_buffers[llog_entry_txnr], 0, buff, -1);
 
   /*Refresh the log list*/
   llog_add_log_entries();

@@ -130,6 +130,7 @@ typedef struct {
   config_attribute_t *ca;
   char gpsd_host[FILE_LEN];
   uint64_t gpsd_port;
+  bool band_nr;
 } llog_t;
 
 

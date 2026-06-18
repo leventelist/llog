@@ -32,7 +32,7 @@ int db_close(llog_t *llog);
 int db_set_log_entry(llog_t *log, log_entry_t *entry);
 int db_merge_wal_file(llog_t *llog);
 int db_check_dup_qso(llog_t *log, log_entry_t *entry);
-int db_get_max_nr(llog_t *log, log_entry_t *entry);
+int db_get_max_nr(llog_t *llog, log_entry_t *entry, double qrg_mhz);
 int db_get_station_entry(llog_t *log, station_entry_t *station);
 int db_get_mode_entry(llog_t *log, mode_entry_t *mode, uint64_t *id);
 int db_get_log_entries(llog_t *log, log_entry_t *entry);

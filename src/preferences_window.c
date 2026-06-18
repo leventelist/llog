@@ -46,6 +46,7 @@ typedef struct {
   GtkWidget *button_box;
   GtkWidget *button_ok;
   GtkWidget *button_cancel;
+  GtkWidget *band_nr_check;
   llog_t *llog;
 } app_widgets_t;
 
@@ -112,6 +113,14 @@ void on_preferences_window_activate(GtkWidget *widget, gpointer data) {
   gtk_editable_set_text(GTK_EDITABLE(preferences_widgets->xml_rpc_port_entry), port);
 
 
+  GtkWidget *band_nr_label = gtk_label_new("Band serial number:");
+  gtk_grid_attach(GTK_GRID(grid), band_nr_label, 0, 4, 1, 1);
+
+  preferences_widgets->band_nr_check = gtk_check_button_new();
+  gtk_check_button_set_active(GTK_CHECK_BUTTON(preferences_widgets->band_nr_check),
+                            preferences_widgets->llog->band_nr);
+  gtk_grid_attach(GTK_GRID(grid), preferences_widgets->band_nr_check, 1, 4, 1, 1);
+
   preferences_widgets->button_box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
   gtk_box_append(GTK_BOX(preferences_widgets->box), preferences_widgets->button_box);
 
@@ -150,7 +159,10 @@ static void on_button_ok_clicked(GtkWidget *widget, gpointer data) {
     widgets->llog->xmlrpc_port = val;
   }
 
+  widgets->llog->band_nr = gtk_check_button_get_active(GTK_CHECK_BUTTON(widgets->band_nr_check));
+
   llog_save_config_file();
+  main_window_update_txnr();
 
   position_init(widgets->llog->gpsd_host, widgets->llog->gpsd_port, main_window_update_position_labels);
   main_window_clear_position_labels();
