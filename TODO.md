@@ -8,5 +8,3 @@ https://hamlib.sourceforge.net/manuals/4.3/_2tests_2testrig_8c-example.html
 
 * Read frequency of the rig
 * Read mode of the rig
-
-# Connect to FLDIGI

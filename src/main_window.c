@@ -1112,7 +1112,6 @@ static void on_window_main_entry_changed(GtkEditable *editable, gpointer user_da
   default:
     break;
   }
-
 }
 
 
@@ -1159,12 +1158,10 @@ static void on_get_btn_clicked(void) {
   ret = xml_client_fldigi_get_frequency(&qrg);
 
   if (ret == xml_client_stat_ok) {
-    g_signal_handlers_block_by_func(widgets->log_entries[llog_entry_qrg], on_window_main_entry_changed, NULL);
     gtk_entry_buffer_delete_text(widgets->log_entry_buffers[llog_entry_qrg], 0, -1);
     gchar *qrg_str = g_strdup_printf("%.3f", qrg);
     gtk_entry_buffer_insert_text(widgets->log_entry_buffers[llog_entry_qrg], 0, qrg_str, -1);
     g_free(qrg_str);
-    g_signal_handlers_unblock_by_func(widgets->log_entries[llog_entry_qrg], on_window_main_entry_changed, NULL);
   } else {
     printf("Error getting frequency\n");
   }

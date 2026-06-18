@@ -26,6 +26,7 @@
 #include <stdbool.h>
 #include <float.h>
 #include <string.h>
+#include <glib.h>
 
 #include "position.h"
 #include "llog.h"
@@ -62,6 +63,10 @@ int position_init(char *host, uint64_t port, position_callback_t callback) {
   int ret;
   int ret_val;
 
+  if (host == NULL) {
+    return llog_stat_err;
+  }
+
   printf("Initializing GPSd interface %s, %ld\n", host, port);
 
   if (position_status != position_stat_uninit) {
@@ -79,6 +84,7 @@ int position_init(char *host, uint64_t port, position_callback_t callback) {
     ret_val = llog_stat_ok;
     position_status = position_stat_init;
     position_register_callback(callback);
+    gps_stream(&gpsdata, WATCH_ENABLE | WATCH_JSON, NULL);
     position_start_thread();
     break;
 
@@ -91,13 +97,13 @@ int position_init(char *host, uint64_t port, position_callback_t callback) {
     break;
   }
 
-  gps_stream(&gpsdata, WATCH_ENABLE | WATCH_JSON, NULL);
-
   return ret_val;
 }
 
 static void position_register_callback(position_callback_t callback) {
+  pthread_mutex_lock(&pos_mutex);
   position_callback = callback;
+  pthread_mutex_unlock(&pos_mutex);
 }
 
 void position_get(position_t *out_pos) {
@@ -160,10 +166,31 @@ int position_step(void) {
 }
 
 
+typedef struct {
+  position_callback_t callback;
+  position_t pos;
+} position_callback_data_t;
+
+static gboolean position_callback_idle(gpointer user_data) {
+  position_callback_data_t *cbd = user_data;
+  cbd->callback(&cbd->pos);
+  g_free(cbd);
+  return G_SOURCE_REMOVE;
+}
+
+static void position_thread_cleanup(void *arg) {
+  (void)arg;
+  gps_stream(&gpsdata, WATCH_DISABLE, NULL);
+  gps_close(&gpsdata);
+  position_status = position_stat_uninit;
+}
+
+
 static void *position_thread(void *user_data) {
   (void)user_data;
   position_t local_pos;
 
+  pthread_cleanup_push(position_thread_cleanup, NULL);
   int ret_val;
 
   pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, NULL);
@@ -173,22 +200,27 @@ static void *position_thread(void *user_data) {
   ts.tv_sec = 1;
   ts.tv_nsec = 0;
 
+  pthread_mutex_lock(&pos_mutex);
+  position_callback_t cb = position_callback;
+  pthread_mutex_unlock(&pos_mutex);
+
   while (1) {
     pthread_testcancel();
     position_status = position_stat_running;
     ret_val = position_step();
     if (ret_val == llog_stat_ok) {
       position_get(&local_pos);
-      if (position_callback) {
-        pthread_setcancelstate(PTHREAD_CANCEL_DISABLE, NULL);
-        position_callback(&local_pos);
-        pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, NULL);
+      if (cb) {
+        position_callback_data_t *cbd = g_malloc(sizeof(position_callback_data_t));
+        cbd->callback = position_callback;
+        cbd->pos = local_pos;
+        g_idle_add(position_callback_idle, cbd);
       }
     }
     nanosleep(&ts, NULL);
   }
 
-  position_stop();
+  pthread_cleanup_pop(1);
   return NULL;
 }
 
@@ -257,7 +289,7 @@ void position_to_qra(position_t *pos, char *qra_locator) {
 void position_stop(void) {
   printf("Stopping GPS\n");
   position_register_callback(NULL);
-  if (position_status == position_stat_running) {
+  if (position_status == position_stat_running || position_status == position_stat_init) {
     pthread_cancel(thread_id);
     pthread_join(thread_id, NULL);
   }
