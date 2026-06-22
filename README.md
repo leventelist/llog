@@ -22,6 +22,8 @@ There is an SQLite database where all logged information is saved.
 
 ## Prerequisites
 
+### Packages
+
 * libsqlite3-dev
 * libgtk-4-dev
 * libgps-dev
@@ -35,6 +37,10 @@ There is an SQLite database where all logged information is saved.
 * gpsd-clients
 * python3
     - sqlite3
+
+### Internet connection
+
+llog requires Internet connection at build time. It fetches SOTA references.
 
 ## Install
 
