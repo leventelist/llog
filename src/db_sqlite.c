@@ -41,10 +41,22 @@
 #define R_EARTH 6371e3
 #define SQLITE_FLAGS SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE | SQLITE_OPEN_FULLMUTEX
 
+#define AUX_DB_FN "summitslist.sqlite"
+#define AUX_DB_PATH ".local/share" PROGRAM_NAME "/" AUX_DB_FN
+
 
 int db_sqlite_init(llog_t *llog) {
   int ret;
   int ret_val = llog_stat_ok;
+
+  char aux_db_path[FILE_LEN];
+  char *home_fn;
+
+  home_fn = getenv("HOME");
+
+  strcpy(aux_db_path, home_fn);
+  strcat(aux_db_path, AUX_DB_PATH);
+
 
   if (llog->stat == db_opened) {
     db_close(llog);
@@ -71,14 +83,14 @@ int db_sqlite_init(llog_t *llog) {
     return llog_stat_err;
   }
 
-  printf("Opening summits database %s\n", SUMMITS_DB_PATH);
+  printf("Opening aux database\n");
   // Open the summits database
-  ret = sqlite3_open_v2(SUMMITS_DB_PATH, &llog->summits_db, SQLITE_FLAGS, NULL);
+  ret = sqlite3_open_v2(aux_db_path, &llog->aux_db, SQLITE_FLAGS, NULL);
   if (ret != SQLITE_OK) {
-    printf("Error opening the summits database '%s'.\n", SUMMITS_DB_PATH);
+    printf("Error opening the aux database '%s'.\n", aux_db_path);
     ret_val = llog_stat_err;
   } else {
-    sqlite3_busy_timeout(llog->summits_db, DATABASE_TIMEOUT);
+    sqlite3_busy_timeout(llog->aux_db, DATABASE_TIMEOUT);
   }
 
 out:
@@ -97,7 +109,7 @@ int db_close(llog_t *llog) {
   llog->stat = db_closed;
   llog->log_db = NULL;
   printf("Closing summit database\n");
-  ret = sqlite3_close_v2(llog->summits_db);
+  ret = sqlite3_close_v2(llog->aux_db);
   if (ret != SQLITE_OK) {
     printf("Error closing summits database: %s\n", sqlite3_errmsg(llog->log_db));
   }
@@ -635,7 +647,7 @@ int db_get_mode_entry(llog_t *llog, mode_entry_t *mode, uint64_t *id) {
   bool finalize = true;
   char *cell;
 
-  if (llog->log_db == NULL) {
+  if (llog->aux_db == NULL) {
     return llog_stat_err;
   }
 
@@ -645,7 +657,7 @@ int db_get_mode_entry(llog_t *llog, mode_entry_t *mode, uint64_t *id) {
     } else {
       sprintf(buff, "SELECT rowid, name, default_rst, comment FROM mode WHERE rowid=%" PRIu64 ";", *id);
     }
-    sqlite3_prepare_v2(llog->log_db, buff, -1, &mode->sq3_stmt, NULL);
+    sqlite3_prepare_v2(llog->aux_db, buff, -1, &mode->sq3_stmt, NULL);
   }
 
   mode->data_stat = db_data_err;
@@ -695,6 +707,7 @@ int db_get_mode_entry(llog_t *llog, mode_entry_t *mode, uint64_t *id) {
 
   return ret_val;
 }
+
 
 int db_create_from_schema(llog_t *llog, const char *schema_file) {
   FILE *file;
@@ -748,7 +761,7 @@ int db_get_summit_entry(llog_t *llog, summit_entry_t *summit, position_t *pos) {
   bool finalize = true;
   char *cell;
 
-  if (llog->summits_db == NULL) {
+  if (llog->aux_db == NULL) {
     summit->data_stat = db_data_err;
     return llog_stat_err;
   }
@@ -771,7 +784,7 @@ int db_get_summit_entry(llog_t *llog, summit_entry_t *summit, position_t *pos) {
     } else {
       snprintf(buff, BUF_SIZ, SUMMIT_QUERY, pos->lat, pos->lon, pos->lat);
     }
-    sqlite3_prepare_v2(llog->summits_db, buff, -1, &summit->sq3_stmt, NULL);
+    sqlite3_prepare_v2(llog->aux_db, buff, -1, &summit->sq3_stmt, NULL);
   }
 
   summit->data_stat = db_data_err;
@@ -827,7 +840,7 @@ int db_get_summit_entry(llog_t *llog, summit_entry_t *summit, position_t *pos) {
 
   default:
     ret_val = llog_stat_err;
-    printf("Error looking up summit: %s\n", sqlite3_errmsg(llog->summits_db));
+    printf("Error looking up summit: %s\n", sqlite3_errmsg(llog->aux_db));
     break;
   }
 

@@ -48,7 +48,8 @@ typedef struct {
   void *value;
 } config_attribute_t;
 
-int config_file_read(char *path, config_attribute_t *ca);
-int config_print_file(char *dest_filename, config_attribute_t *ca);
+int config_file_read(config_attribute_t *ca, char *app_name);
+int config_print_file(config_attribute_t *ca);
 int config_print(config_attribute_t *ca);
+char *get_config_file_path(void);
 #endif

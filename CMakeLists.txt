@@ -8,16 +8,8 @@ set(ICONS_FILE_DIR ${CMAKE_INSTALL_PREFIX}/share/icons)
 set(DB_FILE_NAME llog.sql)
 set(DB_FILE_PATH ${SHARE_DIR}/${DB_FILE_NAME})
 
-set(SUMMITS_DB_FILE_NAME summitslist.sqlite)
-set(SUMMITS_DB_FILE_PATH ${SHARE_DIR}/${SUMMITS_DB_FILE_NAME})
-set(SOTA_DB_PATH ${CMAKE_SOURCE_DIR}/sota_db)
-
-add_custom_command(
-	OUTPUT ${PROJECT_BINARY_DIR}/${SUMMITS_DB_FILE_NAME}
-	COMMAND python3 ${SOTA_DB_PATH}/summits_to_db.py
-)
-
-add_custom_target(generate_summits_db ALL DEPENDS ${PROJECT_BINARY_DIR}/${SUMMITS_DB_FILE_NAME})
+set(AUX_DB_GEN_FILE_NAME create_aux_db.py)
+set(AUX_DB_GEN_FILE_PATH ${SHARE_DIR}/${AUX_DB_GEN_FILE_NAME})
 
 add_subdirectory(src)
 
@@ -34,7 +26,7 @@ install (FILES gui/llog.png db/${DB_FILE_NAME}
 			PERMISSIONS OWNER_WRITE OWNER_READ
 			GROUP_READ WORLD_READ)
 
-install(FILES ${PROJECT_BINARY_DIR}/${SUMMITS_DB_FILE_NAME}
+install(FILES aux_db/create_aux_db.py
 			DESTINATION ${SHARE_DIR}
 			COMPONENT config
 			PERMISSIONS OWNER_WRITE OWNER_READ

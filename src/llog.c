@@ -54,12 +54,11 @@ static config_attribute_t llog_ca[] = {
 
 
 llog_t *llog_init(void) {
-  char *homedir = getenv("HOME");
-
-  sprintf(llog.config_file_name, "%s/llog.cf", homedir);
+  int ret;
   llog.log_db = NULL;
   llog.log_file_name[0] = '\0';
   llog.stat = db_closed;
+
 
   llog.ca = llog_ca;
 
@@ -72,6 +71,29 @@ llog_t *llog_init(void) {
   sprintf(llog.xmlrpc_host, "localhost");
   llog.xmlrpc_port = 7362;
 
+
+
+	ret = llog_parse_config_file();
+
+	if (ret != llog_stat_ok) {
+		goto out;
+	}
+
+  llog_save_config_file();
+	llog_open_db();
+
+  initial_station.data_stat = db_data_init;
+  while (initial_station.data_stat != db_data_last) {
+    ret = db_get_station_entry(&llog, &initial_station);
+    if (ret != llog_stat_ok) {
+      break;
+    }
+  }
+
+  /*Initialize GPS*/
+  position_init(llog.gpsd_host, llog.gpsd_port, main_window_update_position_labels);
+
+out:
   return &llog;
 }
 
@@ -98,42 +120,18 @@ int llog_set_log_file(char *log_file_name, bool check) {
   return ret_val;
 }
 
-int llog_set_config_file(char *config_file_name) {
-  int ret = llog_stat_ok;
-
-  strncpy(llog.config_file_name, config_file_name, FILE_LEN);
-
-  return ret;
-}
-
 
 int llog_parse_config_file(void) {
   int ret_val;
   int ret = llog_stat_ok;
 
-  /*Check if there were log file name supplied at the command line*/
-  if (llog.log_file_name[0] == '\0') {     /*It wasn't*/
-    ret_val = config_file_read(llog.config_file_name, llog.ca);
-    if (ret_val == CONF_READ_ERR) {
-      printf("Error reading config file `%s`\n", llog.config_file_name);
-      ret = llog_stat_err;
-    }
+  ret_val = config_file_read(llog.ca, PROGRAM_NAME);
+  if (ret_val == CONF_READ_ERR) {
+    char *path;
+    path = get_config_file_path();
+    printf("Error reading config file `%s`\n", path);
+    ret = llog_stat_err;
   }
-
-  if (ret == llog_stat_ok) {
-    llog_open_db();
-  }
-
-  initial_station.data_stat = db_data_init;
-  while (initial_station.data_stat != db_data_last) {
-    ret_val = db_get_station_entry(&llog, &initial_station);
-    if (ret_val != llog_stat_ok) {
-      break;
-    }
-  }
-
-  /*Initialize GPS*/
-  position_init(llog.gpsd_host, llog.gpsd_port, main_window_update_position_labels);
 
   return ret;
 }
@@ -157,7 +155,7 @@ int llog_get_initial_station(station_entry_t **station) {
 int llog_save_config_file(void) {
   int ret;
 
-  ret = config_print_file(llog.config_file_name, llog.ca);
+  ret = config_print_file(llog.ca);
   return ret;
 }
 

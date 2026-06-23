@@ -62,17 +62,15 @@ int main(int argc, char *argv[]) {
 
 	/*Parse command line arguments*/
 
-	while ((opt = getopt(argc, argv, "c:f:hv")) !=-1) {
+	while ((opt = getopt(argc, argv, "f:hv")) !=-1) {
 		switch (opt) {
 		case 'h': /*print help*/
 			print_help();
 			return(llog_stat_ok);
 		break;
-		case 'c':
-			llog_set_config_file(optarg);
-		break;
 		case 'f':
 			llog_set_log_file(optarg, true);
+			llog_open_db();
 			llog_save_config_file();
 		break;
 		case 'v':
@@ -89,8 +87,6 @@ int main(int argc, char *argv[]) {
 		}
 	}
 
-	/*This will also open the database for us.*/
-	llog_parse_config_file();
 
 	xml_client_init("localhost", 7362);
 
@@ -106,7 +102,7 @@ int main(int argc, char *argv[]) {
 
 static void print_ver(void) {
 
-	printf("\nThis is llog, a minimalist HAM log software.\n");
+	printf("\nThis is %s, a minimalist HAM log software.\n", PROGRAM_NAME);
 	printf("\nLicense: GNU 3.0.\n");
 	printf("Version: %s.\n", VERSION);
 	printf("Author: ha5ogl.levente@gmail.com.\n\n");

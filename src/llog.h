@@ -119,13 +119,12 @@ typedef struct {
 /*Main data storage*/
 typedef struct {
   char log_file_name[FILE_LEN];       /*SQLite database file name*/
-  char config_file_name[FILE_LEN];
   char export_file_name[FILE_LEN];
   char xmlrpc_host[FILE_LEN];
   uint64_t xmlrpc_port;
   uint64_t station_id;
   sqlite3 *log_db;
-  sqlite3 *summits_db;
+  sqlite3 *aux_db;
   uint32_t stat;
   config_attribute_t *ca;
   char gpsd_host[FILE_LEN];
@@ -194,7 +193,6 @@ typedef struct {
 /*Function definitions*/
 llog_t *llog_init(void);
 int llog_set_log_file(char *log_file_name, bool check);
-int llog_set_config_file(char *config_file_name);
 int llog_get_log_file_path(char **path);
 int llog_open_db(void);
 void llog_shutdown(void);

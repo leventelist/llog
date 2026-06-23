@@ -21,4 +21,4 @@
 /*Configuration for llog*/
 
 #define LLOG_DB_PATH "@DB_FILE_PATH@"
-#define SUMMITS_DB_PATH "@SUMMITS_DB_FILE_PATH@"
+#define AUX_DB_GEN_PATH "@AUX_DB_GEN_FILE_PATH@"
