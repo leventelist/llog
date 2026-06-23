@@ -438,7 +438,6 @@ static log_entry_t log_entry_data;
 static llog_t *local_llog;
 
 /*Callbacks*/
-static void on_window_main_destroy(GtkApplication *app, GtkApplicationWindow window);
 static void on_call_btn_clicked(void);
 static void on_utc_btn_clicked(void);
 static void on_summit_ref_btn_clicked(void);
@@ -459,6 +458,7 @@ static void save_response_cb(GObject *source, GAsyncResult *result, gpointer use
 static void on_station_entry_change(GtkEditable *entry, gpointer user_data);
 static void on_export_activate(app_widgets_t *app_wdgts);
 static void on_insert_text_uppercase(GtkEditable *editable, const gchar *text, int length, int *position, gpointer user_data);
+static gboolean on_close_request(GtkWindow *window, gpointer user_data);
 
 void main_window_set_llog(llog_t *llog) {
   local_llog = llog;
@@ -503,7 +503,7 @@ static void on_activate(GtkApplication *app, gpointer user_data) {
   widgets->main_window = gtk_application_window_new(app);
   gtk_window_set_title(GTK_WINDOW(widgets->main_window), PROGRAM_NAME);
   gtk_window_set_default_size(GTK_WINDOW(widgets->main_window), 400, 300);
-  g_signal_connect_swapped(widgets->main_window, "destroy", G_CALLBACK(on_window_main_destroy), app);
+  g_signal_connect(widgets->main_window, "close-request", G_CALLBACK(on_close_request), app);
 
   widgets->vertical_box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 1);
   widgets->horizontal_box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 1);
@@ -1504,13 +1504,6 @@ static void on_edit_log_db_activate(app_widgets_t *app_wdgts) {
 }
 
 
-static void on_window_main_destroy(GtkApplication *app, GtkApplicationWindow window) {
-  (void)window;
-  g_slice_free(app_widgets_t, widgets);
-  on_qrt_activate(app);
-}
-
-
 static void on_qrt_activate(GtkApplication *app) {
   g_application_quit(G_APPLICATION(app));
 }
@@ -1551,4 +1544,15 @@ void main_window_clear_station_list(void) {
 
 void main_window_clear_modes_list(void) {
   g_list_store_remove_all(widgets->mode_list_store);
+}
+
+static gboolean on_close_request(GtkWindow *window, gpointer user_data) {
+  (void)window;
+  GtkApplication *app = GTK_APPLICATION(user_data);
+
+  llog_shutdown();
+  widgets = NULL;         // prevent any remaining callbacks from touching widgets
+  on_qrt_activate(app);
+
+  return TRUE;  // TRUE means "I handled it, don't destroy the window"
 }

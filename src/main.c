@@ -95,8 +95,6 @@ int main(int argc, char *argv[]) {
 	main_window_set_llog(llog);
 	main_window_draw(argc, argv);
 
-	llog_shutdown();
-
 	return EXIT_SUCCESS;
 }
 
