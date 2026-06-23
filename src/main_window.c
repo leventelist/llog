@@ -487,6 +487,72 @@ void main_window_update_txnr(void) {
   gtk_entry_buffer_insert_text(widgets->log_entry_buffers[llog_entry_txnr], 0, buff, -1);
 }
 
+/*Splash screen support*/
+
+typedef struct {
+  GtkApplication *app;
+  GtkWidget      *splash;
+} InitData;
+
+static GtkWidget *build_splash(GtkApplication *app) {
+  GtkWidget *win = gtk_application_window_new(app);
+
+  gtk_window_set_title(GTK_WINDOW(win), PROGRAM_NAME);
+  gtk_window_set_decorated(GTK_WINDOW(win), FALSE);
+  gtk_window_set_resizable(GTK_WINDOW(win), FALSE);
+  gtk_window_set_default_size(GTK_WINDOW(win), 300, 120);
+
+  GtkWidget *box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 12);
+  gtk_widget_set_margin_top(box, 24);
+  gtk_widget_set_margin_bottom(box, 24);
+  gtk_widget_set_margin_start(box, 24);
+  gtk_widget_set_margin_end(box, 24);
+
+  GtkWidget *title_label = gtk_label_new(PROGRAM_NAME);
+  PangoAttrList *attrs = pango_attr_list_new();
+  pango_attr_list_insert(attrs, pango_attr_scale_new(1.5));
+  pango_attr_list_insert(attrs, pango_attr_weight_new(PANGO_WEIGHT_BOLD));
+  gtk_label_set_attributes(GTK_LABEL(title_label), attrs);
+  pango_attr_list_unref(attrs);
+
+  GtkWidget *spinner = gtk_spinner_new();
+  gtk_spinner_start(GTK_SPINNER(spinner));
+
+  GtkWidget *status_label = gtk_label_new("Generating static data, please wait…");
+
+  gtk_box_append(GTK_BOX(box), title_label);
+  gtk_box_append(GTK_BOX(box), spinner);
+  gtk_box_append(GTK_BOX(box), status_label);
+  gtk_window_set_child(GTK_WINDOW(win), box);
+
+  return win;
+}
+
+static gboolean init_done_cb(gpointer user_data) {
+  InitData *data = user_data;
+
+  /*set_static_data touches GTK widgets — must run on the main thread*/
+  set_static_data();
+
+  /*Close splash and present the already-built (but hidden) main window*/
+  gtk_window_destroy(GTK_WINDOW(data->splash));
+  gtk_window_present(GTK_WINDOW(widgets->main_window));
+  llog_load_static_data(&log_entry_data);
+  set_static_data();
+
+  g_free(data);
+  return G_SOURCE_REMOVE;
+}
+
+static gpointer init_thread_func(gpointer user_data) {
+  /*This runs off the main thread — no GTK calls allowed here*/
+  llog_init();
+
+  /*Schedule the UI update back on the main thread*/
+  g_idle_add(init_done_cb, user_data);
+  return NULL;
+}
+
 static void on_activate(GtkApplication *app, gpointer user_data) {
   int entry_index;
   station_entry_t *initial_station;
@@ -858,11 +924,17 @@ static void on_activate(GtkApplication *app, gpointer user_data) {
   gtk_widget_set_vexpand(widgets->logged_column_view, TRUE);
 
   gtk_application_window_set_show_menubar(GTK_APPLICATION_WINDOW(widgets->main_window), TRUE);
-  /*Let's rock!*/
-  gtk_window_present(GTK_WINDOW(widgets->main_window));
 
-  llog_load_static_data(&log_entry_data);
-  set_static_data();
+  /*Show splash while the slow init runs in the background*/
+  GtkWidget *splash = build_splash(app);
+  gtk_window_present(GTK_WINDOW(splash));
+
+  InitData *init_data = g_new0(InitData, 1);
+  init_data->app    = app;
+  init_data->splash = splash;
+
+  GThread *t = g_thread_new("llog-init", init_thread_func, init_data);
+  g_thread_unref(t);
 
   return;
 }
@@ -1505,6 +1577,7 @@ static void on_edit_log_db_activate(app_widgets_t *app_wdgts) {
 
 
 static void on_qrt_activate(GtkApplication *app) {
+  llog_shutdown();
   g_application_quit(G_APPLICATION(app));
 }
 

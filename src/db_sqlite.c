@@ -96,10 +96,10 @@ int db_close(llog_t *llog) {
   }
   llog->stat = db_closed;
   llog->log_db = NULL;
-  printf("Closing summit database\n");
+  printf("Closing aux database\n");
   ret = sqlite3_close_v2(llog->aux_db);
   if (ret != SQLITE_OK) {
-    printf("Error closing summits database: %s\n", sqlite3_errmsg(llog->log_db));
+    printf("Error closing aux database: %s\n", sqlite3_errmsg(llog->log_db));
   }
 
   return llog_stat_ok;

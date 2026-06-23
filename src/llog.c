@@ -55,8 +55,7 @@ static config_attribute_t llog_ca[] = {
 };
 
 
-llog_t *llog_init(void) {
-  int ret;
+llog_t *llog_set_default(void) {
   llog.log_db = NULL;
   llog.log_file_name[0] = '\0';
   llog.stat = db_closed;
@@ -73,9 +72,17 @@ llog_t *llog_init(void) {
   sprintf(llog.xmlrpc_host, "localhost");
   llog.xmlrpc_port = 7362;
 
+  llog.force_generate_aux_db = false;
+  return &llog;
+}
+
+
+llog_t *llog_init() {
+  int ret;
+
   // Build the aux database.
 
-  llog_ensure_aux_db(false);
+  llog_ensure_aux_db(llog.force_generate_aux_db);
 
 
 	ret = llog_parse_config_file();

@@ -58,7 +58,7 @@ int main(int argc, char *argv[]) {
 	}
 
 	/*Initialize main data structures*/
-	llog = llog_init();
+	llog = llog_set_default();
 
 	/*Parse command line arguments*/
 
@@ -70,15 +70,13 @@ int main(int argc, char *argv[]) {
 		break;
 		case 'f':
 			llog_set_log_file(optarg, true);
-			llog_open_db();
-			llog_save_config_file();
 		break;
 		case 'v':
 			print_ver();
 			return(llog_stat_ok);
 		break;
 		case 's':
-			llog_ensure_aux_db(true);
+			llog->force_generate_aux_db = true;
 		break;
 		case '?':
 		case ':':

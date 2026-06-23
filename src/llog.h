@@ -131,6 +131,7 @@ typedef struct {
   char gpsd_host[FILE_LEN];
   uint64_t gpsd_port;
   bool band_nr;
+  bool force_generate_aux_db;
 } llog_t;
 
 
@@ -193,6 +194,7 @@ typedef struct {
 
 /*Function definitions*/
 llog_t *llog_init(void);
+llog_t *llog_set_default(void);
 int llog_set_log_file(char *log_file_name, bool check);
 int llog_get_log_file_path(char **path);
 int llog_open_db(void);
