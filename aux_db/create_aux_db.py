@@ -5,6 +5,8 @@ import sqlite3
 import requests
 import os
 import argparse
+import pathlib
+
 
 # Paths
 CSV_URL    = 'https://www.sotadata.org.uk/summitslist.csv'
@@ -339,6 +341,7 @@ def main():
     args = parse_args()
     db_path = args.output
 
+    pathlib.Path(db_path).parent.mkdir(parents=True, exist_ok=True)
 
     # --- SOTA summits ---
     download_sota_csv(CSV_URL, CSV_FILE)

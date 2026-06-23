@@ -35,8 +35,10 @@
 #include "conf.h"
 #include "position.h"
 #include "xml_client.h"
+#include "llog_config.h"
 
 #define BUF_SIZ 1024
+#define CND_SIZ 2048
 
 static llog_t llog;
 static station_entry_t initial_station;
@@ -71,6 +73,9 @@ llog_t *llog_init(void) {
   sprintf(llog.xmlrpc_host, "localhost");
   llog.xmlrpc_port = 7362;
 
+  // Build the aux database.
+
+  llog_ensure_aux_db(false);
 
 
 	ret = llog_parse_config_file();
@@ -93,9 +98,36 @@ llog_t *llog_init(void) {
   /*Initialize GPS*/
   position_init(llog.gpsd_host, llog.gpsd_port, main_window_update_position_labels);
 
+  xml_client_init(llog.xmlrpc_host, llog.xmlrpc_port);
+
 out:
   return &llog;
 }
+
+
+int llog_ensure_aux_db(bool force) {
+
+  char cmd[CND_SIZ];
+  char *home;
+
+  home = getenv("HOME");
+
+  snprintf(llog.aux_db_path, FILE_LEN, "%s/.config/%s/aux_db.sqlite", home, PROGRAM_NAME);
+  printf("Database to generate: %s\n", llog.aux_db_path);
+
+  if (force == false && access(llog.aux_db_path, F_OK) == 0) {
+    return 0;  /* already exists */
+  }
+
+
+  snprintf(cmd, CND_SIZ, "python3 %s --output %s", AUX_DB_GEN_PATH, llog.aux_db_path);
+
+  printf("Generating auxiliary database...\n%s\n", cmd);
+  int ret = system(cmd);
+
+  return ret;
+}
+
 
 int llog_set_log_file(char *log_file_name, bool check) {
   char real_log_file_name[FILE_LEN];

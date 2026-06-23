@@ -467,10 +467,12 @@ void main_window_set_llog(llog_t *llog) {
 int main_window_draw(int argc, char *argv[]) {
   GtkApplication *app;
   int status;
+  (void)argc;
+  (void)argv;
 
   app = gtk_application_new(NULL, G_APPLICATION_NON_UNIQUE);
   g_signal_connect(app, "activate", G_CALLBACK(on_activate), NULL);
-  status = g_application_run(G_APPLICATION(app), argc, argv);
+  status = g_application_run(G_APPLICATION(app), 0, NULL);
   g_object_unref(app);
 
   return status;

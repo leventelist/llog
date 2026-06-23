@@ -41,22 +41,10 @@
 #define R_EARTH 6371e3
 #define SQLITE_FLAGS SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE | SQLITE_OPEN_FULLMUTEX
 
-#define AUX_DB_FN "summitslist.sqlite"
-#define AUX_DB_PATH ".local/share" PROGRAM_NAME "/" AUX_DB_FN
-
 
 int db_sqlite_init(llog_t *llog) {
   int ret;
   int ret_val = llog_stat_ok;
-
-  char aux_db_path[FILE_LEN];
-  char *home_fn;
-
-  home_fn = getenv("HOME");
-
-  strcpy(aux_db_path, home_fn);
-  strcat(aux_db_path, AUX_DB_PATH);
-
 
   if (llog->stat == db_opened) {
     db_close(llog);
@@ -85,9 +73,9 @@ int db_sqlite_init(llog_t *llog) {
 
   printf("Opening aux database\n");
   // Open the summits database
-  ret = sqlite3_open_v2(aux_db_path, &llog->aux_db, SQLITE_FLAGS, NULL);
+  ret = sqlite3_open_v2(llog->aux_db_path, &llog->aux_db, SQLITE_FLAGS, NULL);
   if (ret != SQLITE_OK) {
-    printf("Error opening the aux database '%s'.\n", aux_db_path);
+    printf("Error opening the aux database '%s'.\n", llog->aux_db_path);
     ret_val = llog_stat_err;
   } else {
     sqlite3_busy_timeout(llog->aux_db, DATABASE_TIMEOUT);

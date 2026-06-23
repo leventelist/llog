@@ -119,6 +119,7 @@ typedef struct {
 /*Main data storage*/
 typedef struct {
   char log_file_name[FILE_LEN];       /*SQLite database file name*/
+  char aux_db_path[FILE_LEN];
   char export_file_name[FILE_LEN];
   char xmlrpc_host[FILE_LEN];
   uint64_t xmlrpc_port;
@@ -210,5 +211,6 @@ int llog_check_dup_qso(log_entry_t *entry);
 int llog_get_default_rst(char *default_rst, uint64_t mode_id);
 int llog_load_static_data(log_entry_t *entry);
 void llog_open_qrz_url(const char *url);
+int llog_ensure_aux_db(bool force);
 
 #endif

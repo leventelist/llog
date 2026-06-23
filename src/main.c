@@ -62,7 +62,7 @@ int main(int argc, char *argv[]) {
 
 	/*Parse command line arguments*/
 
-	while ((opt = getopt(argc, argv, "f:hv")) !=-1) {
+	while ((opt = getopt(argc, argv, "sf:hv")) !=-1) {
 		switch (opt) {
 		case 'h': /*print help*/
 			print_help();
@@ -77,6 +77,9 @@ int main(int argc, char *argv[]) {
 			print_ver();
 			return(llog_stat_ok);
 		break;
+		case 's':
+			llog_ensure_aux_db(true);
+		break;
 		case '?':
 		case ':':
 		default:
@@ -87,8 +90,6 @@ int main(int argc, char *argv[]) {
 		}
 	}
 
-
-	xml_client_init("localhost", 7362);
 
 	/*Draw main window*/
 	main_window_set_llog(llog);
@@ -115,6 +116,7 @@ static void print_help(void) {
 	printf("\nCommand line options\n\n");
 	printf("\t-c FILE\t\tRead configuration from FILE.\n");
 	printf("\t-f FILE\t\tSet logfile to FILE.\n");
+	printf("\t-s\t\tForce generate the static database\n");
 	printf("\t-h\t\tGet help.\n");
 	printf("\t-v\t\tPrint version information.\n\n");
 }
