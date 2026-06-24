@@ -81,11 +81,18 @@ sudo make install
 ## Getting started
 
 1. Launch llog. A splash screen is shown while the database initialises.
-2. Create a new log file via **File → New**.
-3. Set up your station via **Edit → Log database** — this opens sqlitebrowser.
+1. Create a new log file via **File → New**.
+1. Set up your station via **Edit → Log database** — this opens sqlitebrowser.
    Add your station details, save, then reload via **File → Reload**.
-4. If your SOTA summit reference database ever becomes stale, rebuild it via
+1. If your SOTA summit reference database ever becomes stale, rebuild it via
    **Edit → Rebuild aux database**.
+
+**!!!CAUTION!!!**
+
+Launch llog before you go to the field. With the first run, it
+generates a database for static data. If you miss this step,
+you'll end up an empty mode list, and the summit references will
+also be missing.
 
 ---
 
