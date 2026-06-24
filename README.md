@@ -3,6 +3,9 @@
 A minimalist logging application for HAM radio operators, with a focus on
 [SOTA](https://www.sota.org.uk/) (Summits on the Air) activations.
 
+
+## Motivation
+
 Inspired by [Ham2K](https://play.google.com/store/apps/details?id=com.ham2k.polo.beta&hl=en-US)
 for mobile devices, llog is designed for operators who carry a laptop to the
 summit — no smartphone required. Connect a GPS receiver, run GPSd, and llog
@@ -10,6 +13,10 @@ will find your location automatically, identify the nearest SOTA summit, and
 let you log contacts with minimal effort.
 
 All log data is stored in a local SQLite database.
+
+I looked at other log softwares, they are good, but they were very complicated. Simply, you just can't
+afford a complex software, when you are at the top of the summit. What you need is a simple, very easy
+to use application.
 
 ---
 
