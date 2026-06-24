@@ -1641,12 +1641,44 @@ static gboolean on_close_request(GtkWindow *window, gpointer user_data) {
 }
 
 
+static gboolean rebuild_done_cb(gpointer user_data) {
+  InitData *data = user_data;
+
+  /*Reload static data on the main thread after background rebuild*/
+  llog_load_static_data(&log_entry_data);
+  set_static_data();
+
+  gtk_window_destroy(GTK_WINDOW(data->splash));
+  gtk_widget_set_sensitive(widgets->main_window, TRUE);
+
+  g_free(data);
+  return G_SOURCE_REMOVE;
+}
+
+static gpointer rebuild_thread_func(gpointer user_data) {
+  /*Slow call — runs off the main thread*/
+  llog_ensure_aux_db(true);
+
+  g_idle_add(rebuild_done_cb, user_data);
+  return NULL;
+}
+
 static void on_rebuild_aux_db_activate(app_widgets_t *app_wdgts) {
   (void)app_wdgts;
 
-  llog_ensure_aux_db(true);
+  GtkApplication *app = GTK_APPLICATION(
+      gtk_window_get_application(GTK_WINDOW(widgets->main_window)));
 
-  /*Reload static data so the UI reflects the rebuilt DB*/
-  llog_load_static_data(&log_entry_data);
-  set_static_data();
+  /*Show splash and block the main window while rebuilding*/
+  GtkWidget *splash = build_splash(app);
+  gtk_window_set_transient_for(GTK_WINDOW(splash), GTK_WINDOW(widgets->main_window));
+  gtk_window_present(GTK_WINDOW(splash));
+  gtk_widget_set_sensitive(widgets->main_window, FALSE);
+
+  InitData *data = g_new0(InitData, 1);
+  data->app    = app;
+  data->splash = splash;
+
+  GThread *t = g_thread_new("rebuild-aux-db", rebuild_thread_func, data);
+  g_thread_unref(t);
 }
