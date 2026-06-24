@@ -459,6 +459,7 @@ static void on_station_entry_change(GtkEditable *entry, gpointer user_data);
 static void on_export_activate(app_widgets_t *app_wdgts);
 static void on_insert_text_uppercase(GtkEditable *editable, const gchar *text, int length, int *position, gpointer user_data);
 static gboolean on_close_request(GtkWindow *window, gpointer user_data);
+static void on_rebuild_aux_db_activate(app_widgets_t *app_wdgts);
 
 void main_window_set_llog(llog_t *llog) {
   local_llog = llog;
@@ -847,7 +848,17 @@ static void on_activate(GtkApplication *app, gpointer user_data) {
 
   g_menu_append_item(edit_section, menu_item_edit_log_db);
   g_object_unref(menu_item_edit_log_db);
+
+  GMenuItem *menu_item_rebuild_aux_db = g_menu_item_new("Rebuild aux database", "app.rebuild_aux_db");
+  GSimpleAction *act_rebuild_aux_db = g_simple_action_new("rebuild_aux_db", NULL);
+
+  g_menu_append_item(edit_section, menu_item_rebuild_aux_db);
+  g_object_unref(menu_item_rebuild_aux_db);
+
   g_object_unref(edit_section);
+
+  g_signal_connect_swapped(act_rebuild_aux_db, "activate", G_CALLBACK(on_rebuild_aux_db_activate), widgets);
+  g_action_map_add_action(G_ACTION_MAP(app), G_ACTION(act_rebuild_aux_db));
   g_signal_connect_swapped(act_edit_log_db, "activate", G_CALLBACK(on_edit_log_db_activate), widgets);
   g_action_map_add_action(G_ACTION_MAP(app), G_ACTION(act_edit_log_db));
 
@@ -1038,11 +1049,9 @@ void set_static_data(void) {
 static void
 open_response_cb (GObject *source,
                   GAsyncResult *result,
-                  gpointer user_data)
-{
+                  gpointer user_data) {
   (void)user_data;
   GtkFileDialog *dialog = GTK_FILE_DIALOG (source);
-  //GApplication *app = G_APPLICATION (user_data);
   GFile *file;
   GError *error = NULL;
   char *filename;
@@ -1619,6 +1628,7 @@ void main_window_clear_modes_list(void) {
   g_list_store_remove_all(widgets->mode_list_store);
 }
 
+
 static gboolean on_close_request(GtkWindow *window, gpointer user_data) {
   (void)window;
   GtkApplication *app = GTK_APPLICATION(user_data);
@@ -1628,4 +1638,15 @@ static gboolean on_close_request(GtkWindow *window, gpointer user_data) {
   on_qrt_activate(app);
 
   return TRUE;  // TRUE means "I handled it, don't destroy the window"
+}
+
+
+static void on_rebuild_aux_db_activate(app_widgets_t *app_wdgts) {
+  (void)app_wdgts;
+
+  llog_ensure_aux_db(true);
+
+  /*Reload static data so the UI reflects the rebuilt DB*/
+  llog_load_static_data(&log_entry_data);
+  set_static_data();
 }
