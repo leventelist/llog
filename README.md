@@ -1,72 +1,117 @@
 # llog
-Log software for HAM operators
 
-Inspired by [Ham2K](https://play.google.com/store/apps/details?id=com.ham2k.polo.beta&hl=en-US) for mobile devices.
+A minimalist logging application for HAM radio operators, with a focus on
+[SOTA](https://www.sota.org.uk/) (Summits on the Air) activations.
 
-This is mainly targets SOTA operators. The user case is that you have
-your computer with you, and nothing else. Not even a smartphone. You have your GPS receiver connected, and GPSd set up.
-The program connects to gpsd, and knows where you are. The closest SOTA summit is selected, and you can save your location
-just by one click.
+Inspired by [Ham2K](https://play.google.com/store/apps/details?id=com.ham2k.polo.beta&hl=en-US)
+for mobile devices, llog is designed for operators who carry a laptop to the
+summit — no smartphone required. Connect a GPS receiver, run GPSd, and llog
+will find your location automatically, identify the nearest SOTA summit, and
+let you log contacts with minimal effort.
 
-There is an SQLite database where all logged information is saved.
+All log data is stored in a local SQLite database.
+
+---
 
 ## Features
-* Automatic location detection via GPSd
-* Closest SOTA summit identification
-* One-click location logging
-* SQLite database for storing logs
-* Integration with QRZ for call sign lookup
-* User-friendly interface with GTK4
-* ADI, ADX, CSV export
-* FLDIGI integration using XMLRPC
+
+- **Automatic location detection** via GPSd
+- **Nearest SOTA summit identification** and one-click reference insertion
+- **Splash screen on startup** while the database initialises
+- **SQLite logging** with a clean, queryable schema
+- **Duplicate QSO detection** with visual warning
+- **QRZ lookup** — click the Call button to open the browser
+- **FLDIGI integration** via XML-RPC (Get button populates fields from FLDIGI)
+- **ADI, ADX, CSV export**
+- **Auxiliary database rebuild** from Edit menu
+- **GTK4 interface** with resizable column view of logged contacts
+
+---
 
 ## Prerequisites
 
-### Packages
+### Build dependencies
 
-* libsqlite3-dev
-* libgtk-4-dev
-* libgps-dev
-* libhamlib-dev
-* libxml2-dev
-* libxmlrpc-core-c3-dev
-* libcurl4-openssl-dev
-* sqlitebrowser
-* gpsd
-* gpsd-tools
-* gpsd-clients
-* python3
-    - sqlite3
+```
+libsqlite3-dev
+libgtk-4-dev
+libgps-dev
+libhamlib-dev
+libxml2-dev
+libxmlrpc-core-c3-dev
+libcurl4-openssl-dev
+```
 
-### Internet connection
+### Runtime dependencies
 
-llog requires Internet connection at build time. It fetches SOTA references.
+```
+gpsd
+gpsd-tools
+gpsd-clients
+sqlitebrowser    (for Edit → Log database)
+python3 + sqlite3 module
+```
 
-## Install
+### Internet connection at build time
 
-\$ mkdir build
+llog fetches the current SOTA summit references during the build. An internet
+connection is required when running `cmake`.
 
-\$ cd build
+---
 
-\$ cmake ..
+## Building and installing
 
-\$ make -j16
+```bash
+mkdir build
+cd build
+cmake ..
+make -j$(nproc)
+sudo make install
+```
 
-\# make install
+---
 
-## Usage
+## Getting started
 
-* Launch llog, and then create a new database by clicking File->New.
-* Edit your station by clicking Edit->Log database. This will fire up sqlitebrowser.
-* Once you are happy with your changes, reload the database by clicking
-    File->Reload
-* CLick on the UTC button to get current UTC
-* Click on the 'Summit ref' button the get the closest SOTA reference
-* Fill out all the info you have
-* Click the Log button. All data will be saved to the database
-* Click on the Call button, and the default browser will be launched with a QRZ query
-* Click on the Get button to get information from FLDIGI
-* Enjoy!
+1. Launch llog. A splash screen is shown while the database initialises.
+2. Create a new log file via **File → New**.
+3. Set up your station via **Edit → Log database** — this opens sqlitebrowser.
+   Add your station details, save, then reload via **File → Reload**.
+4. If your SOTA summit reference database ever becomes stale, rebuild it via
+   **Edit → Rebuild aux database**.
 
+---
 
-Patches, improvements are welcome.
+## Logging a contact
+
+| Action | How |
+|---|---|
+| Get current UTC | Click the **UTC** button |
+| Insert nearest SOTA summit | Click the **Summit ref** button |
+| Look up a callsign on QRZ | Click the **Call** button |
+| Import data from FLDIGI | Click the **Get** button |
+| Save the contact | Click the **Log** button |
+
+Fields that are not cleared after logging (QRG, mode, power, summit ref) are
+intentionally kept so you don't have to re-enter them between contacts.
+
+---
+
+## Command line options
+
+| Option | Description |
+|---|---|
+| `-f <file>` | Set the log database file |
+| `-s` | Rebuild the auxiliary (SOTA) database on startup |
+| `-v` | Print version and exit |
+| `-h` | Print help and exit |
+
+---
+
+## License
+
+Copyright (C) 2013–2025 Levente Kovacs — HA5OGL
+
+Released under the [GNU General Public License v3](https://www.gnu.org/licenses/gpl-3.0.html).
+
+Patches and improvements are welcome.
