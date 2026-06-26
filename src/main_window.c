@@ -95,6 +95,7 @@ typedef struct {
   GListStore *logged_list_store;
   GtkTreeSelection *logged_list_selection;
   GtkWidget *search_entry;
+  GtkWidget *programme_dropdown;
   GtkFilterListModel *filtered_list_model;
   GtkCustomFilter *call_filter;
 
@@ -466,6 +467,7 @@ static gboolean on_close_request(GtkWindow *window, gpointer user_data);
 static void on_rebuild_aux_db_activate(app_widgets_t *app_wdgts);
 static int filter_by_call(void *item, gpointer user_data);
 static void on_search_entry_changed(GtkSearchEntry *entry, gpointer user_data);
+static void on_programme_changed(GtkDropDown *dropdown, GParamSpec *pspec, gpointer user_data);
 
 
 
@@ -494,6 +496,17 @@ static void on_search_entry_changed(GtkSearchEntry *entry, gpointer user_data) {
   (void)entry;
   (void)user_data;
   gtk_filter_changed(GTK_FILTER(widgets->call_filter), GTK_FILTER_CHANGE_DIFFERENT);
+}
+
+static void on_programme_changed(GtkDropDown *dropdown, GParamSpec *pspec, gpointer user_data) {
+  (void)pspec;
+  (void)user_data;
+  guint index = gtk_drop_down_get_selected(dropdown);
+  const char *programmes[] = { "SOTA", "POTA", "WWFF" };
+  if (index < G_N_ELEMENTS(programmes)) {
+    g_print("Programme selected: %s\n", programmes[index]);
+    /* TODO: persist to config file */
+  }
 }
 
 
@@ -931,7 +944,20 @@ static void on_activate(GtkApplication *app, gpointer user_data) {
   gtk_search_entry_set_placeholder_text(GTK_SEARCH_ENTRY(widgets->search_entry), "Search callsign…");
   g_signal_connect(widgets->search_entry, "search-changed",
                    G_CALLBACK(on_search_entry_changed), NULL);
-  gtk_box_append(GTK_BOX(widgets->right_box), GTK_WIDGET(widgets->search_entry));
+  gtk_widget_set_hexpand(widgets->search_entry, TRUE);
+
+  GtkStringList *programme_list = gtk_string_list_new(
+      (const char *[]){"SOTA", "POTA", "WWFF", NULL});
+  widgets->programme_dropdown = gtk_drop_down_new(G_LIST_MODEL(programme_list), NULL);
+  gtk_drop_down_set_selected(GTK_DROP_DOWN(widgets->programme_dropdown), 0);  /* default: SOTA */
+  g_signal_connect(widgets->programme_dropdown, "notify::selected",
+                   G_CALLBACK(on_programme_changed), NULL);
+
+  GtkWidget *top_bar = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 4);
+  gtk_box_append(GTK_BOX(top_bar), GTK_WIDGET(widgets->search_entry));
+  gtk_box_append(GTK_BOX(top_bar), GTK_WIDGET(widgets->programme_dropdown));
+
+  gtk_box_append(GTK_BOX(widgets->right_box), GTK_WIDGET(top_bar));
   gtk_box_append(GTK_BOX(widgets->right_box), GTK_WIDGET(scrolled_window));
 
 
