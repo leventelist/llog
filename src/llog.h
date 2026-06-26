@@ -83,6 +83,12 @@ enum llog_entry_pos {
   llog_entry_station_id
 };
 
+enum llog_programme_id {
+  llog_sota = 0,
+  llog_pota,
+  llog_wwff
+};
+
 #define MAX_SUMMIT_CODE_LENGTH 256
 #define DATE_LEN 128
 
@@ -132,6 +138,8 @@ typedef struct {
   uint64_t gpsd_port;
   bool band_nr;
   bool force_generate_aux_db;
+  char programme_label[64];
+  uint8_t programme_id;
 } llog_t;
 
 
@@ -191,6 +199,7 @@ typedef struct {
   sqlite3_stmt *sq3_stmt;
 } station_entry_t;
 
+extern const char *programme_config_labels[];
 
 /*Function definitions*/
 llog_t *llog_init(void);

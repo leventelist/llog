@@ -1,5 +1,5 @@
 /*	This is llog, a minimalist HAM logging software.
- *	Copyright (C) 2013-2025  Levente Kovacs
+ *	Copyright (C) 2013-2026  Levente Kovacs
  *
  *	This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -51,15 +51,19 @@ static config_attribute_t llog_ca[] = {
   { "gpsd_port", CONFIG_ULLInteger, &llog.gpsd_port },
   { "export_filename", CONFIG_String, llog.export_file_name },
   { "tx_nr_per_band", CONFIG_Boolean, &llog.band_nr },
+  { "programme", CONFIG_String, &llog.programme_label},
   { NULL, CONFIG_Unused, NULL }
 };
+
+const char *programme_config_labels[] = { "SOTA",    "POTA",   "WWFF"  };
 
 
 llog_t *llog_set_default(void) {
   llog.log_db = NULL;
   llog.log_file_name[0] = '\0';
   llog.stat = db_closed;
-
+  llog.programme_id = llog_sota;
+  strcpy(llog.programme_label, programme_config_labels[llog_sota]);
 
   llog.ca = llog_ca;
 
@@ -90,6 +94,20 @@ llog_t *llog_init() {
 	if (ret != llog_stat_ok) {
 		goto out;
 	}
+
+  if (strcasestr(llog.programme_label, programme_config_labels[llog_sota])) {
+    llog.programme_id = llog_sota;
+    strcpy(llog.programme_label, programme_config_labels[llog_sota]);
+  } else if (strcasestr(llog.programme_label, programme_config_labels[llog_pota])) {
+    llog.programme_id = llog_pota;
+    strcpy(llog.programme_label, programme_config_labels[llog_pota]);
+  } else if (strcasestr(llog.programme_label, programme_config_labels[llog_wwff])) {
+    llog.programme_id = llog_wwff;
+    strcpy(llog.programme_label, programme_config_labels[llog_wwff]);
+  } else {
+    llog.programme_id = llog_sota;
+    strcpy(llog.programme_label, programme_config_labels[llog_sota]);
+  }
 
   llog_save_config_file();
 	llog_open_db();

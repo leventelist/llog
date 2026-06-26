@@ -87,7 +87,8 @@ typedef struct {
   GtkWidget *distance_label;
   GtkWidget *heading_label;
   GtkWidget *speed_label;
-  GtkWidget *summit_ref_label;
+  GtkWidget *programme_name_label;
+  GtkWidget *programme_ref_label;
   GtkWidget *summit_qra_label;
 
   /*Logged list store*/
@@ -96,6 +97,8 @@ typedef struct {
   GtkTreeSelection *logged_list_selection;
   GtkWidget *search_entry;
   GtkWidget *programme_dropdown;
+  GtkWidget *summit_ref_btn;       /* button label changes with programme selection */
+  GtkWidget *s2s_ref_label;        /* label changes with programme selection */
   GtkFilterListModel *filtered_list_model;
   GtkCustomFilter *call_filter;
 
@@ -441,6 +444,8 @@ static void bind_mode_cb(GtkSignalListItemFactory *factory, GtkListItem *listite
 static app_widgets_t *widgets = NULL;
 static log_entry_t log_entry_data;
 static llog_t *local_llog;
+static const char *ref_labels[] = { "Summit ref", "Park ref",  "WWFF ref" };
+static const char *x2x_labels[] = { "S2S ref",    "P2P ref",   "W2W ref"  };
 
 /*Callbacks*/
 static void on_call_btn_clicked(void);
@@ -501,12 +506,19 @@ static void on_search_entry_changed(GtkSearchEntry *entry, gpointer user_data) {
 static void on_programme_changed(GtkDropDown *dropdown, GParamSpec *pspec, gpointer user_data) {
   (void)pspec;
   (void)user_data;
+
   guint index = gtk_drop_down_get_selected(dropdown);
-  const char *programmes[] = { "SOTA", "POTA", "WWFF" };
-  if (index < G_N_ELEMENTS(programmes)) {
-    g_print("Programme selected: %s\n", programmes[index]);
-    /* TODO: persist to config file */
-  }
+  if (index >= G_N_ELEMENTS(ref_labels))
+    return;
+
+  gtk_button_set_label(GTK_BUTTON(widgets->summit_ref_btn), ref_labels[index]);
+  gtk_label_set_text(GTK_LABEL(widgets->s2s_ref_label),    x2x_labels[index]);
+  gtk_label_set_text(GTK_LABEL(widgets->programme_name_label), ref_labels[index]);
+
+  g_print("Programme selected: %s\n", ref_labels[index]);
+  local_llog->programme_id = index;
+  strcpy(local_llog->programme_label, programme_config_labels[index]);
+  llog_save_config_file();
 }
 
 
@@ -590,6 +602,8 @@ static gboolean init_done_cb(gpointer user_data) {
   llog_load_static_data(&log_entry_data);
   set_static_data();
 
+  gtk_drop_down_set_selected(GTK_DROP_DOWN(widgets->programme_dropdown), local_llog->programme_id);
+
   g_free(data);
   return G_SOURCE_REMOVE;
 }
@@ -647,7 +661,6 @@ static void on_activate(GtkApplication *app, gpointer user_data) {
 
   GtkColumnViewColumn *column;
   GtkListItemFactory *factory;
-
 
   factory = gtk_signal_list_item_factory_new();
   g_signal_connect(factory, "setup", G_CALLBACK(setup_cb), NULL);
@@ -776,6 +789,7 @@ static void on_activate(GtkApplication *app, gpointer user_data) {
 
     case llog_entry_summit_ref:
       entry_widget = gtk_button_new_with_label(entry_labels[entry_index]);
+      widgets->summit_ref_btn = entry_widget;
       g_signal_connect(entry_widget, "clicked", G_CALLBACK(on_summit_ref_btn_clicked), NULL);
       widgets->log_entries[entry_index] = gtk_entry_new();
       g_signal_connect(gtk_editable_get_delegate(GTK_EDITABLE(widgets->log_entries[entry_index])), "insert-text",
@@ -785,8 +799,18 @@ static void on_activate(GtkApplication *app, gpointer user_data) {
       gtk_editable_set_editable(GTK_EDITABLE(widgets->log_entries[entry_index]), true);
       break;
 
-    case llog_entry_qra:
     case llog_entry_s2s_ref:
+      entry_widget = gtk_label_new(entry_labels[entry_index]);
+      widgets->s2s_ref_label = entry_widget;
+      widgets->log_entries[entry_index] = gtk_entry_new();
+      g_signal_connect(gtk_editable_get_delegate(GTK_EDITABLE(widgets->log_entries[entry_index])), "insert-text",
+                   G_CALLBACK(on_insert_text_uppercase), NULL);
+      g_signal_connect(widgets->log_entries[entry_index], "changed", G_CALLBACK(on_window_main_entry_changed), NULL);
+      widgets->log_entry_buffers[entry_index] = gtk_entry_get_buffer(GTK_ENTRY(widgets->log_entries[entry_index]));
+      gtk_editable_set_editable(GTK_EDITABLE(widgets->log_entries[entry_index]), true);
+      break;
+
+    case llog_entry_qra:
       entry_widget = gtk_label_new(entry_labels[entry_index]);
       widgets->log_entries[entry_index] = gtk_entry_new();
       g_signal_connect(gtk_editable_get_delegate(GTK_EDITABLE(widgets->log_entries[entry_index])), "insert-text",
@@ -949,7 +973,6 @@ static void on_activate(GtkApplication *app, gpointer user_data) {
   GtkStringList *programme_list = gtk_string_list_new(
       (const char *[]){"SOTA", "POTA", "WWFF", NULL});
   widgets->programme_dropdown = gtk_drop_down_new(G_LIST_MODEL(programme_list), NULL);
-  gtk_drop_down_set_selected(GTK_DROP_DOWN(widgets->programme_dropdown), 0);  /* default: SOTA */
   g_signal_connect(widgets->programme_dropdown, "notify::selected",
                    G_CALLBACK(on_programme_changed), NULL);
 
@@ -993,10 +1016,10 @@ static void on_activate(GtkApplication *app, gpointer user_data) {
   widgets->fix_mode_label = gtk_label_new("No fix");
   gtk_box_append(GTK_BOX(widgets->status_box), GTK_WIDGET(widgets->fix_mode_label));
 
-  label = gtk_label_new("Summit:");
-  gtk_box_append(GTK_BOX(widgets->status_box), GTK_WIDGET(label));
-  widgets->summit_ref_label = gtk_label_new("---");
-  gtk_box_append(GTK_BOX(widgets->status_box), GTK_WIDGET(widgets->summit_ref_label));
+  widgets->programme_name_label = gtk_label_new(ref_labels[local_llog->programme_id]);
+  gtk_box_append(GTK_BOX(widgets->status_box), GTK_WIDGET(widgets->programme_name_label));
+  widgets->programme_ref_label = gtk_label_new("---");
+  gtk_box_append(GTK_BOX(widgets->status_box), GTK_WIDGET(widgets->programme_ref_label));
 
   label = gtk_label_new("@");
   gtk_box_append(GTK_BOX(widgets->status_box), GTK_WIDGET(label));
@@ -1086,11 +1109,11 @@ void main_window_update_position_labels(position_t *position) {
 
   if (summit_entry.id != 0) {
     snprintf(buffer, BUFF_SIZ, "%s", summit_entry.summit_code);
-    gtk_label_set_text(GTK_LABEL(widgets->summit_ref_label), buffer);
+    gtk_label_set_text(GTK_LABEL(widgets->programme_ref_label), buffer);
     position_to_qra(&summit_entry.position, buffer);
     gtk_label_set_text(GTK_LABEL(widgets->summit_qra_label), buffer);
   } else {
-    gtk_label_set_text(GTK_LABEL(widgets->summit_ref_label), "---");
+    gtk_label_set_text(GTK_LABEL(widgets->programme_ref_label), "---");
     gtk_label_set_text(GTK_LABEL(widgets->summit_qra_label), "------");
   }
 }
@@ -1106,7 +1129,7 @@ void main_window_clear_position_labels(void) {
   gtk_label_set_text(GTK_LABEL(widgets->distance_label), "---");
   gtk_label_set_text(GTK_LABEL(widgets->heading_label), "---");
   gtk_label_set_text(GTK_LABEL(widgets->fix_mode_label), "No fix");
-  gtk_label_set_text(GTK_LABEL(widgets->summit_ref_label), "---");
+  gtk_label_set_text(GTK_LABEL(widgets->programme_ref_label), "---");
   gtk_label_set_text(GTK_LABEL(widgets->qra_label), "------");
   gtk_label_set_text(GTK_LABEL(widgets->summit_qra_label), "---");
 }
@@ -1526,7 +1549,7 @@ static void on_summit_ref_btn_clicked(void) {
 
   g_signal_handlers_block_by_func(widgets->log_entries[llog_entry_summit_ref], on_window_main_entry_changed, NULL);
 
-  const char *summit_ref = gtk_label_get_text(GTK_LABEL(widgets->summit_ref_label));
+  const char *summit_ref = gtk_label_get_text(GTK_LABEL(widgets->programme_ref_label));
 
   gtk_entry_buffer_delete_text(widgets->log_entry_buffers[llog_entry_summit_ref], 0, -1);
   gtk_entry_buffer_insert_text(widgets->log_entry_buffers[llog_entry_summit_ref], 0, summit_ref, -1);
