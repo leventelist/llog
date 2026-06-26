@@ -13,6 +13,12 @@ CSV_URL    = 'https://www.sotadata.org.uk/summitslist.csv'
 CSV_FILE   = 'summitslist.csv'
 SQLITE_DB  = 'aux_db.sqlite'
 
+POTA_CSV_URL  = 'https://pota.app/all_parks_ext.csv'
+POTA_CSV_FILE = 'pota_parks.csv'
+
+WWFF_CSV_URL  = 'https://wwff.co/wwff-data/wwff_directory.csv'
+WWFF_CSV_FILE = 'wwff_directory.csv'
+
 
 def parse_args():
     p = argparse.ArgumentParser(description='Build auxiliary database for llog')
@@ -120,6 +126,169 @@ def import_sota_summits(conn, cursor, csv_file):
         raise
 
     print(f"SOTA summit data from {csv_file} imported successfully.")
+
+
+# ---------------------------------------------------------------------------
+# POTA parks
+# ---------------------------------------------------------------------------
+
+def download_pota_csv(csv_url, csv_file):
+    """Download the POTA all_parks_ext.csv if not already present locally."""
+    if os.path.exists(csv_file):
+        print(f"{csv_file} already exists. Skipping download.")
+        return
+
+    print(f"Downloading {csv_url}...")
+    try:
+        response = requests.get(csv_url)
+        response.raise_for_status()
+    except requests.exceptions.RequestException as e:
+        print(f"Error downloading POTA CSV: {e}")
+        raise
+
+    with open(csv_file, 'wb') as f:
+        f.write(response.content)
+
+
+def create_pota_table(cursor):
+    """Create the pota_park_data table (dropping any previous version)."""
+    cursor.execute('DROP TABLE IF EXISTS pota_park_data')
+    cursor.execute('''
+        CREATE TABLE pota_park_data (
+            reference    TEXT,
+            name         TEXT,
+            active       INTEGER,
+            entity_id    INTEGER,
+            location     TEXT,
+            latitude     REAL,
+            longitude    REAL,
+            grid         TEXT
+        )
+    ''')
+    cursor.execute('CREATE INDEX IF NOT EXISTS idx_pota_reference ON pota_park_data (reference)')
+
+
+def import_pota_parks(conn, cursor, csv_file):
+    """Read the POTA CSV and populate the pota_park_data table."""
+    create_pota_table(cursor)
+
+    try:
+        print(f"Opening {csv_file}...")
+        with open(csv_file, 'r', encoding='utf-8') as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                try:
+                    cursor.execute('''
+                        INSERT INTO pota_park_data (
+                            reference, name, active, entity_id,
+                            location, latitude, longitude, grid
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    ''', (
+                        row.get('reference', ''),
+                        row.get('name', ''),
+                        int(row.get('active', 0) or 0),
+                        int(row.get('entityId', 0) or 0),
+                        row.get('locationDesc', ''),
+                        float(row.get('latitude', 0) or 0),
+                        float(row.get('longitude', 0) or 0),
+                        row.get('grid', ''),
+                    ))
+                except (sqlite3.Error, ValueError) as e:
+                    print(f"Error inserting POTA row {row}: {e}")
+    except FileNotFoundError as e:
+        print(f"Error: {e}")
+        raise
+    except csv.Error as e:
+        print(f"Error reading POTA CSV: {e}")
+        raise
+
+    print(f"POTA park data from {csv_file} imported successfully.")
+
+
+# ---------------------------------------------------------------------------
+# WWFF areas
+# ---------------------------------------------------------------------------
+
+def download_wwff_csv(csv_url, csv_file):
+    """Download the WWFF directory CSV if not already present locally."""
+    if os.path.exists(csv_file):
+        print(f"{csv_file} already exists. Skipping download.")
+        return
+
+    print(f"Downloading {csv_url}...")
+    try:
+        response = requests.get(csv_url)
+        response.raise_for_status()
+    except requests.exceptions.RequestException as e:
+        print(f"Error downloading WWFF CSV: {e}")
+        raise
+
+    with open(csv_file, 'wb') as f:
+        f.write(response.content)
+
+
+def create_wwff_table(cursor):
+    """Create the wwff_area_data table (dropping any previous version)."""
+    cursor.execute('DROP TABLE IF EXISTS wwff_area_data')
+    cursor.execute('''
+        CREATE TABLE wwff_area_data (
+            reference    TEXT,
+            status       TEXT,
+            name         TEXT,
+            program      TEXT,
+            dxcc         TEXT,
+            continent    TEXT,
+            iaru_locator TEXT,
+            latitude     REAL,
+            longitude    REAL,
+            country      TEXT,
+            valid_from   TEXT,
+            valid_to     TEXT
+        )
+    ''')
+    cursor.execute('CREATE INDEX IF NOT EXISTS idx_wwff_reference ON wwff_area_data (reference)')
+
+
+def import_wwff_areas(conn, cursor, csv_file):
+    """Read the WWFF directory CSV and populate the wwff_area_data table."""
+    create_wwff_table(cursor)
+
+    try:
+        print(f"Opening {csv_file}...")
+        with open(csv_file, 'r', encoding='utf-8') as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                try:
+                    cursor.execute('''
+                        INSERT INTO wwff_area_data (
+                            reference, status, name, program, dxcc,
+                            continent, iaru_locator, latitude, longitude,
+                            country, valid_from, valid_to
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    ''', (
+                        row.get('reference', ''),
+                        row.get('status', ''),
+                        row.get('name', ''),
+                        row.get('program', ''),
+                        row.get('dxcc', ''),
+                        row.get('continent', ''),
+                        row.get('iaruLocator', ''),
+                        float(row.get('latitude', 0) or 0),
+                        float(row.get('longitude', 0) or 0),
+                        row.get('country', ''),
+                        row.get('validFrom', ''),
+                        row.get('validTo', ''),
+                    ))
+                except (sqlite3.Error, ValueError) as e:
+                    print(f"Error inserting WWFF row {row}: {e}")
+    except FileNotFoundError as e:
+        print(f"Error: {e}")
+        raise
+    except csv.Error as e:
+        print(f"Error reading WWFF CSV: {e}")
+        raise
+
+    print(f"WWFF area data from {csv_file} imported successfully.")
 
 
 # ---------------------------------------------------------------------------
@@ -346,18 +515,25 @@ def main():
     # --- SOTA summits ---
     download_sota_csv(CSV_URL, CSV_FILE)
 
+    # --- POTA parks ---
+    download_pota_csv(POTA_CSV_URL, POTA_CSV_FILE)
+
+    # --- WWFF areas ---
+    download_wwff_csv(WWFF_CSV_URL, WWFF_CSV_FILE)
+
     conn, cursor = open_db(db_path)
     try:
         import_sota_summits(conn, cursor, CSV_FILE)
+        import_pota_parks(conn, cursor, POTA_CSV_FILE)
+        import_wwff_areas(conn, cursor, WWFF_CSV_FILE)
         import_modes(conn, cursor)
-        # Add calls to other import functions here, e.g.:
-        # import_something_else(conn, cursor)
     finally:
         close_db(conn)
 
-    if os.path.exists(CSV_FILE):
-        os.remove(CSV_FILE)
-        print(f"Removed intermediate file {CSV_FILE}.")
+    for tmp in (CSV_FILE, POTA_CSV_FILE, WWFF_CSV_FILE):
+        if os.path.exists(tmp):
+            os.remove(tmp)
+            print(f"Removed intermediate file {tmp}.")
 
     print(f"Database {db_path} built successfully.")
 
