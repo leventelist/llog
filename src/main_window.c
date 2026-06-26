@@ -94,6 +94,9 @@ typedef struct {
   GtkWidget *logged_column_view;                     // Pointer to the logged elemnt list
   GListStore *logged_list_store;
   GtkTreeSelection *logged_list_selection;
+  GtkWidget *search_entry;
+  GtkFilterListModel *filtered_list_model;
+  GtkCustomFilter *call_filter;
 
   /*Station list store*/
   GListStore *station_list_store;
@@ -104,6 +107,7 @@ typedef struct {
   GtkWidget *call_label;
   GtkWidget *about_dialog;
   GtkWidget *get_button;
+  GtkSortListModel *sort_list_model;
 } app_widgets_t;
 
 
@@ -460,6 +464,38 @@ static void on_export_activate(app_widgets_t *app_wdgts);
 static void on_insert_text_uppercase(GtkEditable *editable, const gchar *text, int length, int *position, gpointer user_data);
 static gboolean on_close_request(GtkWindow *window, gpointer user_data);
 static void on_rebuild_aux_db_activate(app_widgets_t *app_wdgts);
+static int filter_by_call(void *item, gpointer user_data);
+static void on_search_entry_changed(GtkSearchEntry *entry, gpointer user_data);
+
+
+
+static int filter_by_call(void *item, gpointer user_data) {
+  (void)user_data;
+  GtkSearchEntry *se = GTK_SEARCH_ENTRY(widgets->search_entry);
+  const char *needle = gtk_editable_get_text(GTK_EDITABLE(se));
+
+  if (needle == NULL || needle[0] == '\0')
+    return 1;
+
+  LogEntryDisplayItem *entry = LOGENTRYDISPLAY_ITEM(item);
+  if (entry->call == NULL)
+    return 0;
+
+  /* Case-insensitive substring match */
+  char *call_lower  = g_ascii_strdown(entry->call, -1);
+  char *needle_lower = g_ascii_strdown(needle, -1);
+  gboolean match = strstr(call_lower, needle_lower) != NULL;
+  g_free(call_lower);
+  g_free(needle_lower);
+  return match;
+}
+
+static void on_search_entry_changed(GtkSearchEntry *entry, gpointer user_data) {
+  (void)entry;
+  (void)user_data;
+  gtk_filter_changed(GTK_FILTER(widgets->call_filter), GTK_FILTER_CHANGE_DIFFERENT);
+}
+
 
 void main_window_set_llog(llog_t *llog) {
   local_llog = llog;
@@ -585,7 +621,12 @@ static void on_activate(GtkApplication *app, gpointer user_data) {
 
   GtkSingleSelection *selection;
 
-  selection = gtk_single_selection_new(G_LIST_MODEL(widgets->logged_list_store));
+  widgets->call_filter = gtk_custom_filter_new(filter_by_call, NULL, NULL);
+  widgets->filtered_list_model = gtk_filter_list_model_new(
+      G_LIST_MODEL(widgets->logged_list_store),
+      GTK_FILTER(widgets->call_filter));
+
+  selection = gtk_single_selection_new(G_LIST_MODEL(widgets->filtered_list_model));
   widgets->logged_column_view = gtk_column_view_new(GTK_SELECTION_MODEL(selection));
   g_object_unref(selection);
 
@@ -886,7 +927,14 @@ static void on_activate(GtkApplication *app, gpointer user_data) {
 
   widgets->right_box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 1);
 
+  widgets->search_entry = gtk_search_entry_new();
+  gtk_search_entry_set_placeholder_text(GTK_SEARCH_ENTRY(widgets->search_entry), "Search callsign…");
+  g_signal_connect(widgets->search_entry, "search-changed",
+                   G_CALLBACK(on_search_entry_changed), NULL);
+  gtk_box_append(GTK_BOX(widgets->right_box), GTK_WIDGET(widgets->search_entry));
   gtk_box_append(GTK_BOX(widgets->right_box), GTK_WIDGET(scrolled_window));
+
+
   gtk_box_append(GTK_BOX(widgets->horizontal_box), GTK_WIDGET(widgets->right_box));
 
   widgets->status_box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 10);
