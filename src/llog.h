@@ -78,8 +78,8 @@ enum llog_entry_pos {
   llog_entry_rxextra,
   llog_entry_txextra,
   llog_entry_comment,
-  llog_entry_summit_ref,
-  llog_entry_s2s_ref,
+  llog_entry_spw_ref,
+  llog_entry_spw2spw_ref,
   llog_entry_station_id
 };
 
@@ -89,9 +89,14 @@ enum llog_programme_id {
   llog_wwff
 };
 
-#define MAX_PROGRAMME_REF_LENGTH 256
-#define MAX_PROGRAMME_NAME_LENGTH 256
+#define SPW_REF_LEN 256
+#define SPW_NAME_LEN 256
 #define MAX_ENTITY_LEN 256
+#define WWFF_PROGRAM_LEN 64
+#define DXCC_LEN 16
+#define CONTINENT_LEN 16
+#define COUNTRY_LEN 128
+#define STATUS_LEN 32
 #define DATE_LEN 128
 
 typedef struct {
@@ -113,45 +118,33 @@ enum db_data_state {
 
 typedef struct {
   uint64_t id;
-  char summit_code[MAX_PROGRAMME_REF_LENGTH];
-  char name[MAX_PROGRAMME_REF_LENGTH];
-  char valid_from[DATE_LEN];
-  char valid_to[DATE_LEN];
+  /*Common fields*/
+  char ref[SPW_REF_LEN];
+  char name[SPW_REF_LEN];
   position_t position; // Not all member makes sense for a summit. Only lat/lon/alt are used.
+  char valid_from[DATE_LEN]; /*In SOTA and WWFF*/
+  char valid_to[DATE_LEN];
+  char grid[QRA_LEN]; /*POTA and WWFF*/
+  /*SOTA specific*/
   int points;
   int bonus_points;
-  enum db_data_state data_stat;
-  sqlite3_stmt *sq3_stmt;
-} summit_entry_t;
-
-
-typedef struct {
-  uint64_t id;
-  char summit_code[MAX_PROGRAMME_REF_LENGTH];
-  char name[MAX_PROGRAMME_NAME_LENGTH];
-  char valid_from[DATE_LEN];
-  char valid_to[DATE_LEN];
-  position_t position; // Not all member makes sense for a summit. Only lat/lon/alt are used.
-  int points;
-  int bonus_points;
-  enum db_data_state data_stat;
-  sqlite3_stmt *sq3_stmt;
-} park_entry_t;
-
-
-typedef struct {
-  uint64_t id;
-  char wwff_ref[MAX_PROGRAMME_REF_LENGTH];
-  char name[MAX_PROGRAMME_NAME_LENGTH];
+  /*POTA specific*/
   uint8_t is_active;
   uint32_t entity_id;
   char location[MAX_ENTITY_LEN];
-  position_t position; // Not all member makes sense for a summit. Only lat/lon/alt are used.
-  int points;
-  int bonus_points;
+
+  /*WWFF*/
+  char wwff_program[WWFF_PROGRAM_LEN];
+  char dxcc[DXCC_LEN];
+  char continent[CONTINENT_LEN];
+  char country[COUNTRY_LEN];
+  char status[STATUS_LEN];
+
+  /*SQLite*/
   enum db_data_state data_stat;
   sqlite3_stmt *sq3_stmt;
-} wwff_entry_t;
+} spw_entry_t;
+
 
 
 /*Main data storage*/
@@ -205,8 +198,8 @@ typedef struct {
   uint64_t station_id;
   char date[NAME_LEN];
   char utc[NAME_LEN];
-  char summit_ref[MAX_PROGRAMME_REF_LENGTH];
-  char s2s_ref[MAX_PROGRAMME_REF_LENGTH];
+  char spw_ref[SPW_REF_LEN];
+  char spw2spw_ref[SPW_REF_LEN];
   uint32_t data_stat;
   sqlite3_stmt *sq3_stmt;
 } log_entry_t;

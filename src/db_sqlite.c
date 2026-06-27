@@ -343,16 +343,16 @@ int db_get_log_entry_with_station(llog_t *llog, log_entry_t *entry, station_entr
 
     cell = (char *)sqlite3_column_text(entry->sq3_stmt, 8);
     if (cell != NULL) {
-      strncpy(entry->summit_ref, cell, MAX_PROGRAMME_REF_LENGTH);
+      strncpy(entry->spw_ref, cell, SPW_REF_LEN);
     } else {
-      entry->summit_ref[0] = '\0';
+      entry->spw_ref[0] = '\0';
     }
 
     cell = (char *)sqlite3_column_text(entry->sq3_stmt, 9);
     if (cell != NULL) {
-      strncpy(entry->s2s_ref, cell, MAX_PROGRAMME_REF_LENGTH);
+      strncpy(entry->spw2spw_ref, cell, SPW_REF_LEN);
     } else {
-      entry->s2s_ref[0] = '\0';
+      entry->spw2spw_ref[0] = '\0';
     }
 
     station->id = sqlite3_column_int64(entry->sq3_stmt, 10);
@@ -509,7 +509,7 @@ int db_set_log_entry(llog_t *llog, log_entry_t *entry) {
            entry->date, entry->utc, entry->call, entry->rxrst, entry->txrst, entry->rxnr,
            entry->txnr, entry->rxextra, entry->txextra, entry->qth, entry->name, entry->qra,
            entry->qrg, entry->mode.name, entry->power, (uint64_t)0U, (uint64_t)0U, entry->comment,
-           entry->station_id, entry->s2s_ref, entry->summit_ref);
+           entry->station_id, entry->spw2spw_ref, entry->spw_ref);
   sqlite3_prepare_v2(llog->log_db, buff, -1, &entry->sq3_stmt, NULL);
 
 
@@ -743,7 +743,7 @@ int db_create_from_schema(llog_t *llog, const char *schema_file) {
   return ret_val;
 }
 
-int db_get_summit_entry(llog_t *llog, summit_entry_t *summit, position_t *pos) {
+int db_get_sota_entry(llog_t *llog, spw_entry_t *summit, position_t *pos) {
   char buff[BUF_SIZ];
   int ret, ret_val = llog_stat_err;
   bool finalize = true;
@@ -786,7 +786,7 @@ int db_get_summit_entry(llog_t *llog, summit_entry_t *summit, position_t *pos) {
     if (cell == NULL) {
       cell = EMPTY_STRING;
     }
-    strncpy(summit->summit_code, cell, MAX_PROGRAMME_REF_LENGTH);
+    strncpy(summit->ref, cell, SPW_REF_LEN);
 
     cell = (char *)sqlite3_column_text(summit->sq3_stmt, 2); // name
     if (cell == NULL) {
@@ -834,6 +834,192 @@ int db_get_summit_entry(llog_t *llog, summit_entry_t *summit, position_t *pos) {
 
   if (finalize) {
     sqlite3_finalize(summit->sq3_stmt);
+  }
+
+  return ret_val;
+}
+
+
+int db_get_pota_entry(llog_t *llog, spw_entry_t *park, position_t *pos) {
+  char buff[BUF_SIZ];
+  int ret, ret_val = llog_stat_err;
+  bool finalize = true;
+  char *cell;
+
+  if (llog->aux_db == NULL) {
+    park->data_stat = db_data_err;
+    return llog_stat_err;
+  }
+
+#define POTA_QUERY "SELECT \
+     rowid, reference, name, active, entity_id, location, latitude, longitude, grid, ( \
+        6371 * acos( \
+            cos(radians(%f)) * cos(radians(latitude)) * \
+            cos(radians(longitude) - radians(%f)) + \
+            sin(radians(%f)) * sin(radians(latitude)) \
+        ) \
+    ) AS distance \
+  FROM pota_park_data \
+  ORDER BY distance ASC \
+  LIMIT 1;"
+
+  if (park->data_stat == db_data_init) {
+    if (pos == NULL) {
+      snprintf(buff, BUF_SIZ, "SELECT rowid, reference, name, active, entity_id, location, latitude, longitude, grid FROM pota_park_data;");
+    } else {
+      snprintf(buff, BUF_SIZ, POTA_QUERY, pos->lat, pos->lon, pos->lat);
+    }
+    sqlite3_prepare_v2(llog->aux_db, buff, -1, &park->sq3_stmt, NULL);
+  }
+
+  park->data_stat = db_data_err;
+
+  ret = sqlite3_step(park->sq3_stmt);
+  switch (ret) {
+  case SQLITE_ROW:
+    park->id = sqlite3_column_int64(park->sq3_stmt, 0);
+
+    cell = (char *)sqlite3_column_text(park->sq3_stmt, 1); // reference
+    strncpy(park->ref, cell != NULL ? cell : EMPTY_STRING, SPW_REF_LEN);
+
+    cell = (char *)sqlite3_column_text(park->sq3_stmt, 2); // name
+    strncpy(park->name, cell != NULL ? cell : EMPTY_STRING, SPW_REF_LEN);
+
+    park->is_active = (uint8_t)sqlite3_column_int(park->sq3_stmt, 3);
+    park->entity_id = (uint32_t)sqlite3_column_int(park->sq3_stmt, 4);
+
+    cell = (char *)sqlite3_column_text(park->sq3_stmt, 5); // location
+    strncpy(park->location, cell != NULL ? cell : EMPTY_STRING, MAX_ENTITY_LEN);
+
+    park->position.lat = sqlite3_column_double(park->sq3_stmt, 6);
+    park->position.lon = sqlite3_column_double(park->sq3_stmt, 7);
+
+    cell = (char *)sqlite3_column_text(park->sq3_stmt, 8); // grid
+    strncpy(park->grid, cell != NULL ? cell : EMPTY_STRING, QRA_LEN);
+
+    ret_val = llog_stat_ok;
+    finalize = false;
+    park->data_stat = db_data_valid;
+    break;
+
+  case SQLITE_DONE:
+    ret_val = llog_stat_ok;
+    park->data_stat = db_data_last;
+    break;
+
+  case SQLITE_BUSY:
+    ret_val = llog_stat_err;
+    break;
+
+  default:
+    ret_val = llog_stat_err;
+    printf("Error looking up POTA park: %s\n", sqlite3_errmsg(llog->aux_db));
+    break;
+  }
+
+  if (finalize) {
+    sqlite3_finalize(park->sq3_stmt);
+  }
+
+  return ret_val;
+}
+
+
+int db_get_wwff_entry(llog_t *llog, spw_entry_t *area, position_t *pos) {
+  char buff[BUF_SIZ];
+  int ret, ret_val = llog_stat_err;
+  bool finalize = true;
+  char *cell;
+
+  if (llog->aux_db == NULL) {
+    area->data_stat = db_data_err;
+    return llog_stat_err;
+  }
+
+#define WWFF_QUERY "SELECT \
+     rowid, reference, status, name, latitude, longitude, iaru_locator, \
+     valid_from, valid_to, program, dxcc, continent, country, ( \
+        6371 * acos( \
+            cos(radians(%f)) * cos(radians(latitude)) * \
+            cos(radians(longitude) - radians(%f)) + \
+            sin(radians(%f)) * sin(radians(latitude)) \
+        ) \
+    ) AS distance \
+  FROM wwff_area_data \
+  ORDER BY distance ASC \
+  LIMIT 1;"
+
+  if (area->data_stat == db_data_init) {
+    if (pos == NULL) {
+      snprintf(buff, BUF_SIZ, "SELECT rowid, reference, status, name, latitude, longitude, iaru_locator, valid_from, valid_to, program, dxcc, continent, country FROM wwff_area_data;");
+    } else {
+      snprintf(buff, BUF_SIZ, WWFF_QUERY, pos->lat, pos->lon, pos->lat);
+    }
+    sqlite3_prepare_v2(llog->aux_db, buff, -1, &area->sq3_stmt, NULL);
+  }
+
+  area->data_stat = db_data_err;
+
+  ret = sqlite3_step(area->sq3_stmt);
+  switch (ret) {
+  case SQLITE_ROW:
+    area->id = sqlite3_column_int64(area->sq3_stmt, 0);
+
+    cell = (char *)sqlite3_column_text(area->sq3_stmt, 1); // reference
+    strncpy(area->ref, cell != NULL ? cell : EMPTY_STRING, SPW_REF_LEN);
+
+    cell = (char *)sqlite3_column_text(area->sq3_stmt, 2); // status
+    strncpy(area->status, cell != NULL ? cell : EMPTY_STRING, STATUS_LEN);
+
+    cell = (char *)sqlite3_column_text(area->sq3_stmt, 3); // name
+    strncpy(area->name, cell != NULL ? cell : EMPTY_STRING, SPW_REF_LEN);
+
+    area->position.lat = sqlite3_column_double(area->sq3_stmt, 4);
+    area->position.lon = sqlite3_column_double(area->sq3_stmt, 5);
+
+    cell = (char *)sqlite3_column_text(area->sq3_stmt, 6); // iaru_locator -> grid
+    strncpy(area->grid, cell != NULL ? cell : EMPTY_STRING, QRA_LEN);
+
+    cell = (char *)sqlite3_column_text(area->sq3_stmt, 7); // valid_from
+    strncpy(area->valid_from, cell != NULL ? cell : EMPTY_STRING, DATE_LEN);
+
+    cell = (char *)sqlite3_column_text(area->sq3_stmt, 8); // valid_to
+    strncpy(area->valid_to, cell != NULL ? cell : EMPTY_STRING, DATE_LEN);
+
+    cell = (char *)sqlite3_column_text(area->sq3_stmt, 9); // program
+    strncpy(area->wwff_program, cell != NULL ? cell : EMPTY_STRING, WWFF_PROGRAM_LEN);
+
+    cell = (char *)sqlite3_column_text(area->sq3_stmt, 10); // dxcc
+    strncpy(area->dxcc, cell != NULL ? cell : EMPTY_STRING, DXCC_LEN);
+
+    cell = (char *)sqlite3_column_text(area->sq3_stmt, 11); // continent
+    strncpy(area->continent, cell != NULL ? cell : EMPTY_STRING, CONTINENT_LEN);
+
+    cell = (char *)sqlite3_column_text(area->sq3_stmt, 12); // country
+    strncpy(area->country, cell != NULL ? cell : EMPTY_STRING, COUNTRY_LEN);
+
+    ret_val = llog_stat_ok;
+    finalize = false;
+    area->data_stat = db_data_valid;
+    break;
+
+  case SQLITE_DONE:
+    ret_val = llog_stat_ok;
+    area->data_stat = db_data_last;
+    break;
+
+  case SQLITE_BUSY:
+    ret_val = llog_stat_err;
+    break;
+
+  default:
+    ret_val = llog_stat_err;
+    printf("Error looking up WWFF area: %s\n", sqlite3_errmsg(llog->aux_db));
+    break;
+  }
+
+  if (finalize) {
+    sqlite3_finalize(area->sq3_stmt);
   }
 
   return ret_val;

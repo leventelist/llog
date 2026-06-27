@@ -457,7 +457,7 @@ static int exporter_add_csv_qso(log_entry_t *qso, station_entry_t *station) {
   // Find the band based on the frequency
   band_str = band_find(qso->qrg);
 
-  fprintf(output_txt_file, "V2,%s,%s,%s,%s,%s,%s,%s,%s\n", station->call, qso->summit_ref, qso->date, qso->utc, band_str, qso->mode.name, qso->call, qso->s2s_ref);
+  fprintf(output_txt_file, "V2,%s,%s,%s,%s,%s,%s,%s,%s\n", station->call, qso->spw_ref, qso->date, qso->utc, band_str, qso->mode.name, qso->call, qso->spw2spw_ref);
 
   return export_status_ok;
 }
