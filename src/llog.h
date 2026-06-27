@@ -89,7 +89,9 @@ enum llog_programme_id {
   llog_wwff
 };
 
-#define MAX_SUMMIT_CODE_LENGTH 256
+#define MAX_PROGRAMME_REF_LENGTH 256
+#define MAX_PROGRAMME_NAME_LENGTH 256
+#define MAX_ENTITY_LEN 256
 #define DATE_LEN 128
 
 typedef struct {
@@ -111,16 +113,46 @@ enum db_data_state {
 
 typedef struct {
   uint64_t id;
-  char summit_code[MAX_SUMMIT_CODE_LENGTH];
-  char name[MAX_SUMMIT_CODE_LENGTH];
+  char summit_code[MAX_PROGRAMME_REF_LENGTH];
+  char name[MAX_PROGRAMME_REF_LENGTH];
   char valid_from[DATE_LEN];
   char valid_to[DATE_LEN];
-  position_t position; // Not all member makse sense for a summit. Only lat/lon/alt are used.
+  position_t position; // Not all member makes sense for a summit. Only lat/lon/alt are used.
   int points;
   int bonus_points;
   enum db_data_state data_stat;
   sqlite3_stmt *sq3_stmt;
 } summit_entry_t;
+
+
+typedef struct {
+  uint64_t id;
+  char summit_code[MAX_PROGRAMME_REF_LENGTH];
+  char name[MAX_PROGRAMME_NAME_LENGTH];
+  char valid_from[DATE_LEN];
+  char valid_to[DATE_LEN];
+  position_t position; // Not all member makes sense for a summit. Only lat/lon/alt are used.
+  int points;
+  int bonus_points;
+  enum db_data_state data_stat;
+  sqlite3_stmt *sq3_stmt;
+} park_entry_t;
+
+
+typedef struct {
+  uint64_t id;
+  char wwff_ref[MAX_PROGRAMME_REF_LENGTH];
+  char name[MAX_PROGRAMME_NAME_LENGTH];
+  uint8_t is_active;
+  uint32_t entity_id;
+  char location[MAX_ENTITY_LEN];
+  position_t position; // Not all member makes sense for a summit. Only lat/lon/alt are used.
+  int points;
+  int bonus_points;
+  enum db_data_state data_stat;
+  sqlite3_stmt *sq3_stmt;
+} wwff_entry_t;
+
 
 /*Main data storage*/
 typedef struct {
@@ -173,8 +205,8 @@ typedef struct {
   uint64_t station_id;
   char date[NAME_LEN];
   char utc[NAME_LEN];
-  char summit_ref[MAX_SUMMIT_CODE_LENGTH];
-  char s2s_ref[MAX_SUMMIT_CODE_LENGTH];
+  char summit_ref[MAX_PROGRAMME_REF_LENGTH];
+  char s2s_ref[MAX_PROGRAMME_REF_LENGTH];
   uint32_t data_stat;
   sqlite3_stmt *sq3_stmt;
 } log_entry_t;

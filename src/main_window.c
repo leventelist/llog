@@ -1275,11 +1275,11 @@ static void on_window_main_entry_changed(GtkEditable *editable, gpointer user_da
     break;
 
   case llog_entry_summit_ref:
-    snprintf(log_entry_data.summit_ref, MAX_SUMMIT_CODE_LENGTH, "%s", gtk_entry_buffer_get_text(buffer));
+    snprintf(log_entry_data.summit_ref, MAX_PROGRAMME_REF_LENGTH, "%s", gtk_entry_buffer_get_text(buffer));
     break;
 
   case llog_entry_s2s_ref:
-    snprintf(log_entry_data.s2s_ref, MAX_SUMMIT_CODE_LENGTH, "%s", gtk_entry_buffer_get_text(buffer));
+    snprintf(log_entry_data.s2s_ref, MAX_PROGRAMME_REF_LENGTH, "%s", gtk_entry_buffer_get_text(buffer));
     break;
 
   case llog_entry_qra:
@@ -1461,8 +1461,8 @@ static void on_log_btn_clicked(void) {
   item = gtk_drop_down_get_selected_item(GTK_DROP_DOWN(widgets->log_entries[llog_entry_station_id]));
   log_entry_data.station_id = strtoull(station_entry_get_id(STATIONENTRY_ITEM(item)), NULL, 0);
 
-  snprintf(log_entry_data.summit_ref, MAX_SUMMIT_CODE_LENGTH, gtk_entry_buffer_get_text(widgets->log_entry_buffers[llog_entry_summit_ref]));
-  snprintf(log_entry_data.s2s_ref, MAX_SUMMIT_CODE_LENGTH, gtk_entry_buffer_get_text(widgets->log_entry_buffers[llog_entry_s2s_ref]));
+  snprintf(log_entry_data.summit_ref, MAX_PROGRAMME_REF_LENGTH, gtk_entry_buffer_get_text(widgets->log_entry_buffers[llog_entry_summit_ref]));
+  snprintf(log_entry_data.s2s_ref, MAX_PROGRAMME_REF_LENGTH, gtk_entry_buffer_get_text(widgets->log_entry_buffers[llog_entry_s2s_ref]));
 
   /*This is for debug. Print log data to stdout*/
   //llog_print_log_data(&log_entry_data);

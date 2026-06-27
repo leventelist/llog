@@ -343,14 +343,14 @@ int db_get_log_entry_with_station(llog_t *llog, log_entry_t *entry, station_entr
 
     cell = (char *)sqlite3_column_text(entry->sq3_stmt, 8);
     if (cell != NULL) {
-      strncpy(entry->summit_ref, cell, MAX_SUMMIT_CODE_LENGTH);
+      strncpy(entry->summit_ref, cell, MAX_PROGRAMME_REF_LENGTH);
     } else {
       entry->summit_ref[0] = '\0';
     }
 
     cell = (char *)sqlite3_column_text(entry->sq3_stmt, 9);
     if (cell != NULL) {
-      strncpy(entry->s2s_ref, cell, MAX_SUMMIT_CODE_LENGTH);
+      strncpy(entry->s2s_ref, cell, MAX_PROGRAMME_REF_LENGTH);
     } else {
       entry->s2s_ref[0] = '\0';
     }
@@ -786,7 +786,7 @@ int db_get_summit_entry(llog_t *llog, summit_entry_t *summit, position_t *pos) {
     if (cell == NULL) {
       cell = EMPTY_STRING;
     }
-    strncpy(summit->summit_code, cell, MAX_SUMMIT_CODE_LENGTH);
+    strncpy(summit->summit_code, cell, MAX_PROGRAMME_REF_LENGTH);
 
     cell = (char *)sqlite3_column_text(summit->sq3_stmt, 2); // name
     if (cell == NULL) {
