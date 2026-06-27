@@ -1257,10 +1257,30 @@ static void on_insert_text_uppercase(GtkEditable *editable, const gchar *text, i
 
 
 static void on_window_main_entry_changed(GtkEditable *editable, gpointer user_data) {
+  (void)user_data;
   uint64_t entry_id;
   int ret;
+  char *ref;
+  char *ref2ref;
 
-  (void)user_data;
+  switch (local_llog->programme_id) {
+  case llog_sota:
+    ref = log_entry_data.sota_ref;
+    ref2ref = log_entry_data.s2s_ref;
+    break;
+  case llog_pota:
+    ref = log_entry_data.pota_ref;
+    ref2ref = log_entry_data.p2p_ref;
+    break;
+  case llog_wwff:
+    ref = log_entry_data.wwff_ref;
+    ref2ref = log_entry_data.w2w_ref;
+    break;
+  default:
+    ref = log_entry_data.sota_ref;
+    ref2ref = log_entry_data.s2s_ref;
+    break;
+  }
 
 
   GtkWidget *entry = GTK_WIDGET(editable);
@@ -1295,11 +1315,11 @@ static void on_window_main_entry_changed(GtkEditable *editable, gpointer user_da
     break;
 
   case llog_entry_spw_ref:
-    snprintf(log_entry_data.spw_ref, SPW_REF_LEN, "%s", gtk_entry_buffer_get_text(buffer));
+    snprintf(ref, SPW_REF_LEN, "%s", gtk_entry_buffer_get_text(buffer));
     break;
 
   case llog_entry_spw2spw_ref:
-    snprintf(log_entry_data.spw2spw_ref, SPW_REF_LEN, "%s", gtk_entry_buffer_get_text(buffer));
+    snprintf(ref2ref, SPW_REF_LEN, "%s", gtk_entry_buffer_get_text(buffer));
     break;
 
   case llog_entry_qra:
@@ -1457,6 +1477,28 @@ static void on_log_btn_clicked(void) {
   int ret;
   GObject *item;
 
+  char *ref;
+  char *ref2ref;
+
+  switch (local_llog->programme_id) {
+  case llog_sota:
+    ref = log_entry_data.sota_ref;
+    ref2ref = log_entry_data.s2s_ref;
+    break;
+  case llog_pota:
+    ref = log_entry_data.pota_ref;
+    ref2ref = log_entry_data.p2p_ref;
+    break;
+  case llog_wwff:
+    ref = log_entry_data.wwff_ref;
+    ref2ref = log_entry_data.w2w_ref;
+    break;
+  default:
+    ref = log_entry_data.sota_ref;
+    ref2ref = log_entry_data.s2s_ref;
+    break;
+  }
+
   /*Gather log data*/
   snprintf(log_entry_data.date, NAME_LEN, gtk_entry_buffer_get_text(widgets->log_entry_buffers[llog_entry_date]));
   snprintf(log_entry_data.utc, NAME_LEN, gtk_entry_buffer_get_text(widgets->log_entry_buffers[llog_entry_utc]));
@@ -1481,8 +1523,8 @@ static void on_log_btn_clicked(void) {
   item = gtk_drop_down_get_selected_item(GTK_DROP_DOWN(widgets->log_entries[llog_entry_station_id]));
   log_entry_data.station_id = strtoull(station_entry_get_id(STATIONENTRY_ITEM(item)), NULL, 0);
 
-  snprintf(log_entry_data.spw_ref, SPW_REF_LEN, gtk_entry_buffer_get_text(widgets->log_entry_buffers[llog_entry_spw_ref]));
-  snprintf(log_entry_data.spw2spw_ref, SPW_REF_LEN, gtk_entry_buffer_get_text(widgets->log_entry_buffers[llog_entry_spw2spw_ref]));
+  snprintf(ref, SPW_REF_LEN, gtk_entry_buffer_get_text(widgets->log_entry_buffers[llog_entry_spw_ref]));
+  snprintf(ref2ref, SPW_REF_LEN, gtk_entry_buffer_get_text(widgets->log_entry_buffers[llog_entry_spw2spw_ref]));
 
   /*This is for debug. Print log data to stdout*/
   //llog_print_log_data(&log_entry_data);

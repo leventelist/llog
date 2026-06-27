@@ -351,19 +351,14 @@ out:
 static int exporter_add_adi_qso(log_entry_t *qso, station_entry_t *station) {
   const char *band_str;
   char freq_buffer[20];
-
-  int ret;
+  int ret = export_status_ok;
   int num_bytes;
-
-  ret = export_status_ok;
 
   (void)station;
 
-  // Find the band based on the frequency
   band_str = band_find(qso->qrg);
 
   num_bytes = fprintf(output_txt_file, "<CALL:%lu>%s\n", strlen(qso->call), qso->call);
-
   if (num_bytes < 0) {
     perror("Failed to write to file");
     ret = export_status_file_err;
@@ -376,6 +371,7 @@ static int exporter_add_adi_qso(log_entry_t *qso, station_entry_t *station) {
     ret = export_status_file_err;
     goto out;
   }
+
   num_bytes = fprintf(output_txt_file, "<MODE:%lu>%s\n", strlen(qso->mode.name), qso->mode.name);
   if (num_bytes < 0) {
     perror("Failed to write to file");
@@ -383,7 +379,7 @@ static int exporter_add_adi_qso(log_entry_t *qso, station_entry_t *station) {
     goto out;
   }
 
-  // Convert date from YYYY-MM-DD to YYYYMMDD format
+  // Convert date from YYYY-MM-DD to YYYYMMDD
   char formatted_date[9];
   snprintf(formatted_date, sizeof(formatted_date), "%.4s%.2s%.2s", qso->date, qso->date + 5, qso->date + 8);
 
@@ -393,24 +389,37 @@ static int exporter_add_adi_qso(log_entry_t *qso, station_entry_t *station) {
     ret = export_status_file_err;
     goto out;
   }
+
   num_bytes = fprintf(output_txt_file, "<TIME_ON:%lu>%s\n", strlen(qso->utc), qso->utc);
   if (num_bytes < 0) {
     perror("Failed to write to file");
     ret = export_status_file_err;
     goto out;
   }
+
   num_bytes = fprintf(output_txt_file, "<RST_RCVD:%lu>%s\n", strlen(qso->rxrst), qso->rxrst);
   if (num_bytes < 0) {
     perror("Failed to write to file");
     ret = export_status_file_err;
     goto out;
   }
+
   num_bytes = fprintf(output_txt_file, "<RST_SENT:%lu>%s\n", strlen(qso->txrst), qso->txrst);
   if (num_bytes < 0) {
     perror("Failed to write to file");
     ret = export_status_file_err;
     goto out;
   }
+
+  if (qso->qra[0]!='\0') {
+    num_bytes = fprintf(output_txt_file, "<GRIDSQUARE:%lu>%s\n", strlen(qso->qra), qso->qra);
+    if (num_bytes < 0) {
+      perror("Failed to write to file");
+      ret = export_status_file_err;
+      goto out;
+    }
+  }
+
   sprintf(freq_buffer, "%f", qso->qrg);
   num_bytes = fprintf(output_txt_file, "<FREQ:%lu>%s\n", strlen(freq_buffer), freq_buffer);
   if (num_bytes < 0) {
@@ -418,7 +427,65 @@ static int exporter_add_adi_qso(log_entry_t *qso, station_entry_t *station) {
     ret = export_status_file_err;
     goto out;
   }
-  num_bytes = fprintf(output_txt_file, "<EOR>\n");   // End of Record
+
+  /* SOTA: MY_SOTA_REF = our summit (activation), SOTA_REF = their summit (S2S) */
+  if (qso->sota_ref[0] != '\0') {
+    num_bytes = fprintf(output_txt_file, "<MY_SOTA_REF:%lu>%s\n", strlen(qso->sota_ref), qso->sota_ref);
+    if (num_bytes < 0) {
+      perror("Failed to write to file");
+      ret = export_status_file_err;
+      goto out;
+    }
+  }
+
+  if (qso->s2s_ref[0] != '\0') {
+    num_bytes = fprintf(output_txt_file, "<SOTA_REF:%lu>%s\n", strlen(qso->s2s_ref), qso->s2s_ref);
+    if (num_bytes < 0) {
+      perror("Failed to write to file");
+      ret = export_status_file_err;
+      goto out;
+    }
+  }
+
+  /* POTA: MY_POTA_REF = our park (activation), POTA_REF = their park (P2P) */
+  if (qso->pota_ref[0] != '\0') {
+    num_bytes = fprintf(output_txt_file, "<MY_POTA_REF:%lu>%s\n", strlen(qso->pota_ref), qso->pota_ref);
+    if (num_bytes < 0) {
+      perror("Failed to write to file");
+      ret = export_status_file_err;
+      goto out;
+    }
+  }
+
+  if (qso->p2p_ref[0] != '\0') {
+    num_bytes = fprintf(output_txt_file, "<POTA_REF:%lu>%s\n", strlen(qso->p2p_ref), qso->p2p_ref);
+    if (num_bytes < 0) {
+      perror("Failed to write to file");
+      ret = export_status_file_err;
+      goto out;
+    }
+  }
+
+  /* WWFF: MY_WWFF_REF = our area (activation), WWFF_REF = their area (W2W) */
+  if (qso->wwff_ref[0] != '\0') {
+    num_bytes = fprintf(output_txt_file, "<MY_WWFF_REF:%lu>%s\n", strlen(qso->wwff_ref), qso->wwff_ref);
+    if (num_bytes < 0) {
+      perror("Failed to write to file");
+      ret = export_status_file_err;
+      goto out;
+    }
+  }
+
+  if (qso->w2w_ref[0] != '\0') {
+    num_bytes = fprintf(output_txt_file, "<WWFF_REF:%lu>%s\n", strlen(qso->w2w_ref), qso->w2w_ref);
+    if (num_bytes < 0) {
+      perror("Failed to write to file");
+      ret = export_status_file_err;
+      goto out;
+    }
+  }
+
+  num_bytes = fprintf(output_txt_file, "<EOR>\n");
   if (num_bytes < 0) {
     perror("Failed to write to file");
     ret = export_status_file_err;
@@ -426,7 +493,6 @@ static int exporter_add_adi_qso(log_entry_t *qso, station_entry_t *station) {
   }
 
 out:
-
   return ret;
 }
 
@@ -445,8 +511,6 @@ static int exporter_write_csv_header(const char *filename) {
     return export_status_file_err;
   }
 
-  //fprintf(output_txt_file, "Date,Time,Band,Mode,Call,SOTA Ref,My SOTA Ref,Notes\n");
-
   return export_status_ok;
 }
 
@@ -457,7 +521,7 @@ static int exporter_add_csv_qso(log_entry_t *qso, station_entry_t *station) {
   // Find the band based on the frequency
   band_str = band_find(qso->qrg);
 
-  fprintf(output_txt_file, "V2,%s,%s,%s,%s,%s,%s,%s,%s\n", station->call, qso->spw_ref, qso->date, qso->utc, band_str, qso->mode.name, qso->call, qso->spw2spw_ref);
+  fprintf(output_txt_file, "V2,%s,%s,%s,%s,%s,%s,%s,%s\n", station->call, qso->sota_ref, qso->date, qso->utc, band_str, qso->mode.name, qso->call, qso->s2s_ref);
 
   return export_status_ok;
 }

@@ -189,7 +189,10 @@ int db_get_log_entries(llog_t *llog, log_entry_t *entry) {
   }
 
   if (entry->data_stat == db_data_init) {
-    snprintf(buff, BUF_SIZ, "SELECT rowid, date, UTC, call, rxrst, txrst, QRG, mode FROM log ORDER BY rowid DESC;");
+    snprintf(buff, BUF_SIZ,
+             "SELECT rowid, date, UTC, call, rxrst, txrst, QRG, mode, "
+             "SOTA_REF, S2S_REF, POTA_REF, P2P_REF, WWFF_REF, W2W_REF "
+             "FROM log ORDER BY rowid DESC;");
     sqlite3_prepare_v2(llog->log_db, buff, -1, &entry->sq3_stmt, NULL);
   }
 
@@ -199,49 +202,44 @@ int db_get_log_entries(llog_t *llog, log_entry_t *entry) {
   switch (ret) {
   case SQLITE_ROW:
     entry->id = sqlite3_column_int64(entry->sq3_stmt, 0);
+
     cell = (char *)sqlite3_column_text(entry->sq3_stmt, 1);
-    if (cell != NULL) {
-      strncpy(entry->date, cell, NAME_LEN);
-    } else {
-      entry->date[0] = '\0';
-    }
+    strncpy(entry->date, cell != NULL ? cell : "", NAME_LEN);
 
     cell = (char *)sqlite3_column_text(entry->sq3_stmt, 2);
-    if (cell != NULL) {
-      strncpy(entry->utc, cell, NAME_LEN);
-    } else {
-      entry->utc[0] = '\0';
-    }
+    strncpy(entry->utc, cell != NULL ? cell : "", NAME_LEN);
 
     cell = (char *)sqlite3_column_text(entry->sq3_stmt, 3);
-    if (cell != NULL) {
-      strncpy(entry->call, cell, CALL_LEN);
-    } else {
-      entry->call[0] = '\0';
-    }
+    strncpy(entry->call, cell != NULL ? cell : "", CALL_LEN);
 
     cell = (char *)sqlite3_column_text(entry->sq3_stmt, 4);
-    if (cell != NULL) {
-      strncpy(entry->rxrst, cell, RST_LEN);
-    } else {
-      entry->rxrst[0] = '\0';
-    }
+    strncpy(entry->rxrst, cell != NULL ? cell : "", RST_LEN);
 
     cell = (char *)sqlite3_column_text(entry->sq3_stmt, 5);
-    if (cell != NULL) {
-      strncpy(entry->txrst, cell, RST_LEN);
-    } else {
-      entry->txrst[0] = '\0';
-    }
+    strncpy(entry->txrst, cell != NULL ? cell : "", RST_LEN);
 
     entry->qrg = sqlite3_column_double(entry->sq3_stmt, 6);
 
     cell = (char *)sqlite3_column_text(entry->sq3_stmt, 7);
-    if (cell != NULL) {
-      strncpy(entry->mode.name, cell, MODE_LEN);
-    } else {
-      entry->mode.name[0] = '\0';
-    }
+    strncpy(entry->mode.name, cell != NULL ? cell : "", MODE_LEN);
+
+    cell = (char *)sqlite3_column_text(entry->sq3_stmt, 8);  // SOTA_REF
+    strncpy(entry->sota_ref, cell != NULL ? cell : "", SPW_REF_LEN);
+
+    cell = (char *)sqlite3_column_text(entry->sq3_stmt, 9);  // S2S_REF
+    strncpy(entry->s2s_ref, cell != NULL ? cell : "", SPW_REF_LEN);
+
+    cell = (char *)sqlite3_column_text(entry->sq3_stmt, 10); // POTA_REF
+    strncpy(entry->pota_ref, cell != NULL ? cell : "", SPW_REF_LEN);
+
+    cell = (char *)sqlite3_column_text(entry->sq3_stmt, 11); // P2P_REF
+    strncpy(entry->p2p_ref, cell != NULL ? cell : "", SPW_REF_LEN);
+
+    cell = (char *)sqlite3_column_text(entry->sq3_stmt, 12); // WWFF_REF
+    strncpy(entry->wwff_ref, cell != NULL ? cell : "", SPW_REF_LEN);
+
+    cell = (char *)sqlite3_column_text(entry->sq3_stmt, 13); // W2W_REF
+    strncpy(entry->w2w_ref, cell != NULL ? cell : "", SPW_REF_LEN);
 
     finalize = false;
     ret_val = llog_stat_ok;
@@ -283,129 +281,86 @@ int db_get_log_entry_with_station(llog_t *llog, log_entry_t *entry, station_entr
 
   if (entry->data_stat == db_data_init) {
     snprintf(buff, BUF_SIZ,
-             "SELECT log.rowid, log.date, log.UTC, log.call, log.rxrst, log.txrst, log.QRG, log.mode, log.SOTA_REF, log.S2S_REF, "
+             "SELECT log.rowid, log.date, log.UTC, log.call, log.rxrst, log.txrst, log.QRA ,log.QRG, log.mode, "
+             "log.SOTA_REF, log.S2S_REF, log.POTA_REF, log.P2P_REF, log.WWFF_REF, log.W2W_REF, "
              "station.rowid, station.name, station.CALL, station.QTH, station.QRA, station.ASL, station.rig, station.ant "
              "FROM log "
              "JOIN station ON log.station = station.rowid "
              "ORDER BY log.rowid DESC;");
-
     sqlite3_prepare_v2(llog->log_db, buff, -1, &entry->sq3_stmt, NULL);
   }
+
   entry->data_stat = db_data_err;
 
   ret = sqlite3_step(entry->sq3_stmt);
   switch (ret) {
   case SQLITE_ROW:
     entry->id = sqlite3_column_int64(entry->sq3_stmt, 0);
+
     cell = (char *)sqlite3_column_text(entry->sq3_stmt, 1);
-    if (cell != NULL) {
-      strncpy(entry->date, cell, NAME_LEN);
-    } else {
-      entry->date[0] = '\0';
-    }
+    strncpy(entry->date, cell != NULL ? cell : "", NAME_LEN);
 
     cell = (char *)sqlite3_column_text(entry->sq3_stmt, 2);
-    if (cell != NULL) {
-      strncpy(entry->utc, cell, NAME_LEN);
-    } else {
-      entry->utc[0] = '\0';
-    }
+    strncpy(entry->utc, cell != NULL ? cell : "", NAME_LEN);
 
     cell = (char *)sqlite3_column_text(entry->sq3_stmt, 3);
-    if (cell != NULL) {
-      strncpy(entry->call, cell, CALL_LEN);
-    } else {
-      entry->call[0] = '\0';
-    }
+    strncpy(entry->call, cell != NULL ? cell : "", CALL_LEN);
 
     cell = (char *)sqlite3_column_text(entry->sq3_stmt, 4);
-    if (cell != NULL) {
-      strncpy(entry->rxrst, cell, RST_LEN);
-    } else {
-      entry->rxrst[0] = '\0';
-    }
+    strncpy(entry->rxrst, cell != NULL ? cell : "", RST_LEN);
 
     cell = (char *)sqlite3_column_text(entry->sq3_stmt, 5);
-    if (cell != NULL) {
-      strncpy(entry->txrst, cell, RST_LEN);
-    } else {
-      entry->txrst[0] = '\0';
-    }
+    strncpy(entry->txrst, cell != NULL ? cell : "", RST_LEN);
 
-    entry->qrg = sqlite3_column_double(entry->sq3_stmt, 6);
+    cell = (char *)sqlite3_column_text(entry->sq3_stmt, 6);
+    strncpy(entry->qra, cell != NULL ? cell : "", MODE_LEN);
 
-    cell = (char *)sqlite3_column_text(entry->sq3_stmt, 7);
-    if (cell != NULL) {
-      strncpy(entry->mode.name, cell, MODE_LEN);
-    } else {
-      entry->mode.name[0] = '\0';
-    }
+    entry->qrg = sqlite3_column_double(entry->sq3_stmt, 7);
 
     cell = (char *)sqlite3_column_text(entry->sq3_stmt, 8);
-    if (cell != NULL) {
-      strncpy(entry->spw_ref, cell, SPW_REF_LEN);
-    } else {
-      entry->spw_ref[0] = '\0';
-    }
+    strncpy(entry->mode.name, cell != NULL ? cell : "", MODE_LEN);
 
-    cell = (char *)sqlite3_column_text(entry->sq3_stmt, 9);
-    if (cell != NULL) {
-      strncpy(entry->spw2spw_ref, cell, SPW_REF_LEN);
-    } else {
-      entry->spw2spw_ref[0] = '\0';
-    }
+    cell = (char *)sqlite3_column_text(entry->sq3_stmt, 9);  // SOTA_REF
+    strncpy(entry->sota_ref, cell != NULL ? cell : "", SPW_REF_LEN);
 
-    station->id = sqlite3_column_int64(entry->sq3_stmt, 10);
+    cell = (char *)sqlite3_column_text(entry->sq3_stmt, 10);  // S2S_REF
+    strncpy(entry->s2s_ref, cell != NULL ? cell : "", SPW_REF_LEN);
 
-    cell = (char *)sqlite3_column_text(entry->sq3_stmt, 11);
-    if (cell != NULL) {
-      strncpy(station->name, cell, NAME_LEN);
-    } else {
-      station->name[0] = '\0';
-    }
+    cell = (char *)sqlite3_column_text(entry->sq3_stmt, 11); // POTA_REF
+    strncpy(entry->pota_ref, cell != NULL ? cell : "", SPW_REF_LEN);
 
-    cell = (char *)sqlite3_column_text(entry->sq3_stmt, 12);
-    if (cell != NULL) {
-      strncpy(station->call, cell, CALL_LEN);
-    } else {
-      station->call[0] = '\0';
-    }
+    cell = (char *)sqlite3_column_text(entry->sq3_stmt, 12); // P2P_REF
+    strncpy(entry->p2p_ref, cell != NULL ? cell : "", SPW_REF_LEN);
 
-    cell = (char *)sqlite3_column_text(entry->sq3_stmt, 13);
-    if (cell != NULL) {
-      strncpy(station->QTH, cell, QTH_LEN);
-    } else {
-      station->QTH[0] = '\0';
-    }
+    cell = (char *)sqlite3_column_text(entry->sq3_stmt, 13); // WWFF_REF
+    strncpy(entry->wwff_ref, cell != NULL ? cell : "", SPW_REF_LEN);
 
-    cell = (char *)sqlite3_column_text(entry->sq3_stmt, 14);
-    if (cell != NULL) {
-      strncpy(station->QRA, cell, QRA_LEN);
-    } else {
-      station->QRA[0] = '\0';
-    }
+    cell = (char *)sqlite3_column_text(entry->sq3_stmt, 14); // W2W_REF
+    strncpy(entry->w2w_ref, cell != NULL ? cell : "", SPW_REF_LEN);
 
-    cell = (char *)sqlite3_column_text(entry->sq3_stmt, 15);
-    if (cell != NULL) {
-      strncpy(station->ASL, cell, ASL_LEN);
-    } else {
-      station->ASL[0] = '\0';
-    }
+    /* Station columns — start at 14 */
+    station->id = sqlite3_column_int64(entry->sq3_stmt, 15);
 
     cell = (char *)sqlite3_column_text(entry->sq3_stmt, 16);
-    if (cell != NULL) {
-      strncpy(station->rig, cell, RIG_LEN);
-    } else {
-      station->rig[0] = '\0';
-    }
+    strncpy(station->name, cell != NULL ? cell : "", NAME_LEN);
 
     cell = (char *)sqlite3_column_text(entry->sq3_stmt, 17);
-    if (cell != NULL) {
-      strncpy(station->ant, cell, ANT_LEN);
-    } else {
-      station->ant[0] = '\0';
-    }
+    strncpy(station->call, cell != NULL ? cell : "", CALL_LEN);
 
+    cell = (char *)sqlite3_column_text(entry->sq3_stmt, 18);
+    strncpy(station->QTH, cell != NULL ? cell : "", QTH_LEN);
+
+    cell = (char *)sqlite3_column_text(entry->sq3_stmt, 19);
+    strncpy(station->QRA, cell != NULL ? cell : "", QRA_LEN);
+
+    cell = (char *)sqlite3_column_text(entry->sq3_stmt, 20);
+    strncpy(station->ASL, cell != NULL ? cell : "", ASL_LEN);
+
+    cell = (char *)sqlite3_column_text(entry->sq3_stmt, 21);
+    strncpy(station->rig, cell != NULL ? cell : "", RIG_LEN);
+
+    cell = (char *)sqlite3_column_text(entry->sq3_stmt, 22);
+    strncpy(station->ant, cell != NULL ? cell : "", ANT_LEN);
 
     finalize = false;
     ret_val = llog_stat_ok;
@@ -502,16 +457,22 @@ int db_set_log_entry(llog_t *llog, log_entry_t *entry) {
     return llog_stat_err;
   }
 
-  snprintf(buff, BUF_SIZ, "INSERT INTO log (date, UTC, call, rxrst, txrst, rxnr, txnr, rxextra, txextra, QTH, name, "
-           "QRA, QRG, mode, pwr, rxQSL, txQSL, comment, station, S2S_REF, SOTA_REF) VALUES "
+  snprintf(buff, BUF_SIZ,
+           "INSERT INTO log (date, UTC, call, rxrst, txrst, rxnr, txnr, rxextra, txextra, QTH, name, "
+           "QRA, QRG, mode, pwr, rxQSL, txQSL, comment, station, "
+           "SOTA_REF, S2S_REF, POTA_REF, P2P_REF, WWFF_REF, W2W_REF) VALUES "
            "('%s', '%s', '%s', '%s', '%s', %" PRIu64 ", %" PRIu64 ", '%s', '%s', '%s', '%s', '%s', "
-           "%f, '%s', '%s', %" PRIu64 ", %" PRIu64 ", '%s', %" PRIu64 ", '%s', '%s');",
+           "%f, '%s', '%s', %" PRIu64 ", %" PRIu64 ", '%s', %" PRIu64 ", "
+           "'%s', '%s', '%s', '%s', '%s', '%s');",
            entry->date, entry->utc, entry->call, entry->rxrst, entry->txrst, entry->rxnr,
            entry->txnr, entry->rxextra, entry->txextra, entry->qth, entry->name, entry->qra,
            entry->qrg, entry->mode.name, entry->power, (uint64_t)0U, (uint64_t)0U, entry->comment,
-           entry->station_id, entry->spw2spw_ref, entry->spw_ref);
-  sqlite3_prepare_v2(llog->log_db, buff, -1, &entry->sq3_stmt, NULL);
+           entry->station_id,
+           entry->sota_ref, entry->s2s_ref,
+           entry->pota_ref, entry->p2p_ref,
+           entry->wwff_ref, entry->w2w_ref);
 
+  sqlite3_prepare_v2(llog->log_db, buff, -1, &entry->sq3_stmt, NULL);
 
   ret = sqlite3_step(entry->sq3_stmt);
   switch (ret) {
@@ -533,12 +494,9 @@ int db_set_log_entry(llog_t *llog, log_entry_t *entry) {
     break;
   }
 
-
   sqlite3_finalize(entry->sq3_stmt);
-
   return ret_val;
 }
-
 
 int db_get_station_entry(llog_t *llog, station_entry_t *station) {
   char buff[BUF_SIZ];

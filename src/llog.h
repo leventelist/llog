@@ -198,8 +198,13 @@ typedef struct {
   uint64_t station_id;
   char date[NAME_LEN];
   char utc[NAME_LEN];
-  char spw_ref[SPW_REF_LEN];
-  char spw2spw_ref[SPW_REF_LEN];
+  /* Programme references — one field per column in the log table */
+  char sota_ref[SPW_REF_LEN];
+  char s2s_ref[SPW_REF_LEN];
+  char pota_ref[SPW_REF_LEN];
+  char p2p_ref[SPW_REF_LEN];
+  char wwff_ref[SPW_REF_LEN];
+  char w2w_ref[SPW_REF_LEN];
   uint32_t data_stat;
   sqlite3_stmt *sq3_stmt;
 } log_entry_t;
