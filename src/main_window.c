@@ -1608,7 +1608,6 @@ static void save_response_cb(GObject *source, GAsyncResult *result, gpointer use
 }
 
 
-
 static void on_menuitm_new_activate(app_widgets_t *app_wdgts) {
   (void)app_wdgts;
 
@@ -1629,6 +1628,7 @@ static void on_menuitm_new_activate(app_widgets_t *app_wdgts) {
   g_object_unref(dialog);
 
 }
+
 
 static void on_export_activate(app_widgets_t *app_wdgts) {
   (void)app_wdgts;
@@ -1656,7 +1656,7 @@ static void on_about_menu_activate(app_widgets_t *app_wdgts) {
   gtk_window_set_transient_for(GTK_WINDOW(app_wdgts->about_dialog), GTK_WINDOW(app_wdgts->main_window));
   gtk_about_dialog_set_program_name(GTK_ABOUT_DIALOG(app_wdgts->about_dialog), PROGRAM_NAME);
   gtk_about_dialog_set_version(GTK_ABOUT_DIALOG(app_wdgts->about_dialog), VERSION);
-  gtk_about_dialog_set_comments(GTK_ABOUT_DIALOG(app_wdgts->about_dialog), "Logging program for SOTA.");
+  gtk_about_dialog_set_comments(GTK_ABOUT_DIALOG(app_wdgts->about_dialog), "Logging program for SOTA/POTA/WWFF.");
   gtk_about_dialog_set_website(GTK_ABOUT_DIALOG(app_wdgts->about_dialog), "https://github.com/leventelist/llog");
   gtk_about_dialog_set_authors(GTK_ABOUT_DIALOG(app_wdgts->about_dialog), (const char *[]){ "Levente Kovacs", NULL });
   gtk_about_dialog_set_license_type(GTK_ABOUT_DIALOG(app_wdgts->about_dialog), GTK_LICENSE_GPL_3_0);
