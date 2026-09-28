@@ -32,19 +32,14 @@
 #include "llog.h"
 
 
-typedef enum {
-  position_stat_uninit,
-  position_stat_init,
-  position_stat_running
-} position_status_t;
-
 /*Module Constants*/
 
 #define R_EARTH 6371e3F
 
 /*Module variables*/
 static pthread_t thread_id;
-static position_status_t position_status = position_stat_uninit;
+static bool gps_opened = false;      /*gps_open() succeeded and gps_close() has not been called*/
+static bool thread_running = false;  /*thread_id is a live thread that has to be joined*/
 static gps_data_real_t gpsdata;
 
 static position_t pos;
@@ -69,11 +64,7 @@ int position_init(char *host, uint64_t port, position_callback_t callback) {
 
   printf("Initializing GPSd interface %s, %ld\n", host, port);
 
-  if (position_status != position_stat_uninit) {
-    position_stop();
-  }
-
-  position_status = position_stat_init;
+  position_stop();
 
   snprintf(port_str, sizeof(port_str), "%lu", port);
 
@@ -82,7 +73,7 @@ int position_init(char *host, uint64_t port, position_callback_t callback) {
   switch (ret) {
   case 0:
     ret_val = llog_stat_ok;
-    position_status = position_stat_init;
+    gps_opened = true;
     position_register_callback(callback);
     gps_stream(&gpsdata, WATCH_ENABLE | WATCH_JSON, NULL);
     position_start_thread();
@@ -182,7 +173,7 @@ static void position_thread_cleanup(void *arg) {
   (void)arg;
   gps_stream(&gpsdata, WATCH_DISABLE, NULL);
   gps_close(&gpsdata);
-  position_status = position_stat_uninit;
+  gps_opened = false;
 }
 
 
@@ -206,7 +197,6 @@ static void *position_thread(void *user_data) {
 
   while (1) {
     pthread_testcancel();
-    position_status = position_stat_running;
     ret_val = position_step();
     if (ret_val == llog_stat_ok) {
       position_get(&local_pos);
@@ -289,18 +279,28 @@ void position_to_qra(position_t *pos, char *qra_locator) {
 void position_stop(void) {
   printf("Stopping GPS\n");
   position_register_callback(NULL);
-  if (position_status == position_stat_running || position_status == position_stat_init) {
+
+  /*The thread's cleanup handler closes the GPSd connection*/
+  if (thread_running) {
     pthread_cancel(thread_id);
     pthread_join(thread_id, NULL);
+    thread_running = false;
   }
-  gps_stream(&gpsdata, WATCH_DISABLE, NULL);
-  gps_close(&gpsdata);
-  position_status = position_stat_uninit;
+
+  /*If gps_open() failed, there is no connection to close either*/
+  if (gps_opened) {
+    gps_stream(&gpsdata, WATCH_DISABLE, NULL);
+    gps_close(&gpsdata);
+    gps_opened = false;
+  }
 }
 
 static void position_start_thread(void) {
-  pthread_create(&thread_id, NULL, position_thread, NULL);
-  position_status = position_stat_running;
+  if (pthread_create(&thread_id, NULL, position_thread, NULL) == 0) {
+    thread_running = true;
+  } else {
+    fprintf(stderr, "Could not start the GPS thread\n");
+  }
 }
 
 static void position_set(position_t *new_pos) {
