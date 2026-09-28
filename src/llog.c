@@ -52,6 +52,8 @@ static config_attribute_t llog_ca[] = {
   { "export_filename", CONFIG_String, llog.export_file_name },
   { "tx_nr_per_band", CONFIG_Boolean, &llog.band_nr },
   { "programme", CONFIG_String, &llog.programme_label},
+  { "wrl_api_key", CONFIG_String, llog.wrl_api_key },
+  { "wrl_logbook_id", CONFIG_String, llog.wrl_logbook_id },
   { NULL, CONFIG_Unused, NULL }
 };
 
@@ -77,6 +79,9 @@ llog_t *llog_set_default(void) {
   llog.xmlrpc_port = 7362;
 
   llog.force_generate_aux_db = false;
+
+  llog.wrl_api_key[0] = '\0';
+  llog.wrl_logbook_id[0] = '\0';
   return &llog;
 }
 

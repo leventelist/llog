@@ -37,6 +37,7 @@ file is kept where you want. This make it easy to integrate into your working or
 - **QRZ lookup** — click the Call button to open the browser
 - **FLDIGI integration** via XML-RPC (Get button populates fields from FLDIGI)
 - **ADI, ADX, CSV export**
+- **Upload to World Radio League** via its API, without sending a QSO twice
 - **Auxiliary database rebuild** from Edit menu
 - **GTK4 interface** with resizable column view of logged contacts
 
@@ -54,6 +55,7 @@ libhamlib-dev
 libxml2-dev
 libxmlrpc-core-c3-dev
 libcurl4-openssl-dev
+libjson-c-dev
 ```
 
 ### Runtime dependencies
@@ -119,6 +121,24 @@ You should explicitly request `llog` to update its database from time to time.
 
 Fields that are not cleared after logging (QRG, mode, power, summit ref) are
 intentionally kept so you don't have to re-enter them between contacts.
+
+---
+
+## Uploading to World Radio League
+
+1. In World Radio League, generate an API key under **Integrations → Developer API**.
+1. Open **Upload → World Radio League**, paste the key and click **Check key**.
+   This shows your default logbook and lists your logbooks.
+1. Optionally enter a **Logbook ID** (otherwise your default logbook is used) and a
+   **From date** (`YYYY-MM-DD`) to upload only recent QSOs.
+1. Click **Upload**.
+
+The API takes one QSO per request and at most 60 per minute, so an upload takes
+about one second per QSO. llog records every uploaded QSO in the `upload` table of the
+log file and never sends it again. QSOs that WRL rejects (for example an unknown
+SOTA/POTA/WWFF reference) are listed in the window and are retried on the next upload.
+
+The API key is stored in plain text in llog's configuration file.
 
 ---
 

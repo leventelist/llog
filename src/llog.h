@@ -48,6 +48,8 @@
 #define PWR_LEN 20
 #define X_LEN 40
 #define STATION_LEN 256
+#define API_KEY_LEN 256
+#define LOGBOOK_ID_LEN 64
 
 
 
@@ -165,6 +167,8 @@ typedef struct {
   bool force_generate_aux_db;
   char programme_label[64];
   uint8_t programme_id;
+  char wrl_api_key[API_KEY_LEN];      /*World Radio League API key*/
+  char wrl_logbook_id[LOGBOOK_ID_LEN]; /*Optional WRL logbook ID, empty for the default logbook*/
 } llog_t;
 
 
