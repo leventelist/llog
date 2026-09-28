@@ -15,7 +15,9 @@ set(SOURCES
 	exporter_writer.c
 	export_window.c
 	xml_client.c
-	upload_window.c
+	upload.c
+	wrl_window.c
+	lotw_window.c
 	wrl_client.c
   band.c
 )

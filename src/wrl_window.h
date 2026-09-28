@@ -18,8 +18,8 @@
  * ha5ogl.levente@gmail.com
  */
 
-#ifndef UPLOAD_WINDOW_H
-#define UPLOAD_WINDOW_H
+#ifndef WRL_WINDOW_H
+#define WRL_WINDOW_H
 
 #include <gtk/gtk.h>
 

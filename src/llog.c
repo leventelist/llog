@@ -54,6 +54,8 @@ static config_attribute_t llog_ca[] = {
   { "programme", CONFIG_String, &llog.programme_label},
   { "wrl_api_key", CONFIG_String, llog.wrl_api_key },
   { "wrl_logbook_id", CONFIG_String, llog.wrl_logbook_id },
+  { "tqsl_path", CONFIG_String, llog.tqsl_path },
+  { "tqsl_station_location", CONFIG_String, llog.tqsl_station_location },
   { NULL, CONFIG_Unused, NULL }
 };
 
@@ -82,6 +84,9 @@ llog_t *llog_set_default(void) {
 
   llog.wrl_api_key[0] = '\0';
   llog.wrl_logbook_id[0] = '\0';
+
+  sprintf(llog.tqsl_path, "tqsl");
+  llog.tqsl_station_location[0] = '\0';
   return &llog;
 }
 

@@ -30,12 +30,12 @@
 #include "llog.h"
 #include "db_sqlite.h"
 #include "wrl_client.h"
-#include "upload_window.h"
+#include "upload.h"
+#include "wrl_window.h"
 
 #define WRL_MIN_INTERVAL_US G_USEC_PER_SEC   /*The API allows 60 writes per minute*/
 #define WRL_MAX_WAIT_S 300                   /*Longer waits mean the daily quota is gone*/
 #define WRL_MAX_RETRIES 3
-#define DATE_FILTER_LEN 16
 
 typedef struct upload_ctx upload_ctx_t;
 
@@ -53,11 +53,6 @@ typedef struct {
   upload_ctx_t *running;   /*Worker in progress, or NULL*/
   llog_t *llog;
 } upload_widgets_t;
-
-typedef struct {
-  log_entry_t entry;
-  station_entry_t station;
-} upload_qso_t;
 
 typedef enum {
   upload_job_check,
@@ -104,15 +99,6 @@ static void on_button_stop_clicked(GtkWidget *widget, gpointer data);
 static void on_button_close_clicked(GtkWidget *widget, gpointer data);
 static gpointer upload_worker(gpointer data);
 
-
-static GtkWidget *upload_add_row(GtkWidget *grid, int row, const char *label, GtkWidget *entry) {
-  GtkWidget *lbl = gtk_label_new(label);
-  gtk_widget_set_halign(lbl, GTK_ALIGN_START);
-  gtk_grid_attach(GTK_GRID(grid), lbl, 0, row, 1, 1);
-  gtk_grid_attach(GTK_GRID(grid), entry, 1, row, 1, 1);
-  gtk_widget_set_hexpand(entry, TRUE);
-  return entry;
-}
 
 
 void on_upload_wrl_window_activate(GtkWidget *widget, gpointer data) {
@@ -198,19 +184,6 @@ void on_upload_wrl_window_activate(GtkWidget *widget, gpointer data) {
 }
 
 
-static void upload_append_text(upload_widgets_t *w, const char *text) {
-  GtkTextBuffer *buffer = gtk_text_view_get_buffer(GTK_TEXT_VIEW(w->text_view));
-  GtkTextIter end;
-
-  gtk_text_buffer_get_end_iter(buffer, &end);
-  gtk_text_buffer_insert(buffer, &end, text, -1);
-  gtk_text_buffer_insert(buffer, &end, "\n", -1);
-
-  GtkTextMark *mark = gtk_text_buffer_create_mark(buffer, NULL, &end, FALSE);
-  gtk_text_view_scroll_mark_onscreen(GTK_TEXT_VIEW(w->text_view), mark);
-  gtk_text_buffer_delete_mark(buffer, mark);
-}
-
 
 static void upload_set_running(upload_widgets_t *w, upload_ctx_t *ctx) {
   w->running = ctx;
@@ -252,7 +225,7 @@ static gboolean upload_msg_cb(gpointer data) {
 
   if (w != NULL) {
     if (msg->text != NULL) {
-      upload_append_text(w, msg->text);
+      upload_append_text(w->text_view, msg->text);
     }
 
     if (msg->kind == upload_msg_uploaded || msg->kind == upload_msg_failed) {
@@ -423,7 +396,7 @@ static upload_ctx_t *upload_ctx_new(upload_widgets_t *w, upload_job_t job) {
   llog_save_config_file();
 
   if (llog->wrl_api_key[0] == '\0') {
-    upload_append_text(w, "Enter your World Radio League API key.");
+    upload_append_text(w->text_view, "Enter your World Radio League API key.");
     return NULL;
   }
 
@@ -457,7 +430,7 @@ static void on_button_check_clicked(GtkWidget *widget, gpointer data) {
     return;
   }
 
-  upload_append_text(w, "Checking API key...");
+  upload_append_text(w->text_view, "Checking API key...");
   upload_start(w, ctx);
 }
 
@@ -465,29 +438,23 @@ static void on_button_check_clicked(GtkWidget *widget, gpointer data) {
 static void on_button_upload_clicked(GtkWidget *widget, gpointer data) {
   (void)widget;
   upload_widgets_t *w = (upload_widgets_t *)data;
-  char from_date[DATE_FILTER_LEN];
-  int year, month, day;
+  char from_date[UPLOAD_DATE_LEN];
   guint already_uploaded = 0;
 
-  g_strlcpy(from_date, gtk_editable_get_text(GTK_EDITABLE(w->from_date_entry)), sizeof(from_date));
-  g_strstrip(from_date);
-  if (from_date[0] != '\0') {
-    if (sscanf(from_date, "%4d-%2d-%2d", &year, &month, &day) != 3 ||
-        month < 1 || month > 12 || day < 1 || day > 31) {
-      upload_append_text(w, "From date must be YYYY-MM-DD, or empty for all QSOs.");
-      return;
-    }
-    snprintf(from_date, sizeof(from_date), "%04d-%02d-%02d", year, month, day);
+  if (!upload_parse_from_date(gtk_editable_get_text(GTK_EDITABLE(w->from_date_entry)),
+                              from_date, sizeof(from_date))) {
+    upload_append_text(w->text_view, "From date must be YYYY-MM-DD, or empty for all QSOs.");
+    return;
   }
 
   if (active_workers > 0) {
     /*A stopped upload may still have a request in flight; collecting now could send that QSO twice*/
-    upload_append_text(w, "The previous upload is still stopping, try again in a moment.");
+    upload_append_text(w->text_view, "The previous upload is still stopping, try again in a moment.");
     return;
   }
 
   if (w->llog->log_db == NULL) {
-    upload_append_text(w, "No log file is open.");
+    upload_append_text(w->text_view, "No log file is open.");
     return;
   }
 
@@ -497,32 +464,15 @@ static void on_button_upload_clicked(GtkWidget *widget, gpointer data) {
   }
 
   /*Collect the QSOs here: the database is only used from the main thread*/
-  upload_qso_t qso;
-  qso.entry.data_stat = db_data_init;
-  for (;;) {
-    db_get_log_entry_with_station(w->llog, &qso.entry, &qso.station);
-    if (qso.entry.data_stat != db_data_valid) {
-      break;
-    }
-    if (from_date[0] != '\0' && strcmp(qso.entry.date, from_date) < 0) {
-      continue;
-    }
-    if (db_is_uploaded(w->llog, qso.entry.id, WRL_SERVICE)) {
-      already_uploaded++;
-      continue;
-    }
-    g_array_append_val(ctx->qsos, qso);
-  }
-
-  if (qso.entry.data_stat == db_data_err) {
-    upload_append_text(w, "Error reading the log.");
+  if (upload_collect_qsos(w->llog, WRL_SERVICE, from_date, ctx->qsos, &already_uploaded) != llog_stat_ok) {
+    upload_append_text(w->text_view, "Error reading the log.");
     g_atomic_rc_box_release_full(ctx, upload_ctx_free);
     return;
   }
 
   if (ctx->qsos->len == 0) {
     char *text = g_strdup_printf("Nothing to upload (%u QSOs already uploaded).", already_uploaded);
-    upload_append_text(w, text);
+    upload_append_text(w->text_view, text);
     g_free(text);
     g_atomic_rc_box_release_full(ctx, upload_ctx_free);
     return;
@@ -531,7 +481,7 @@ static void on_button_upload_clicked(GtkWidget *widget, gpointer data) {
   char *text = g_strdup_printf("Uploading %u QSOs (%u already uploaded are skipped). "
                                "This takes about %u seconds.",
                                ctx->qsos->len, already_uploaded, ctx->qsos->len);
-  upload_append_text(w, text);
+  upload_append_text(w->text_view, text);
   g_free(text);
 
   gtk_progress_bar_set_fraction(GTK_PROGRESS_BAR(w->progress_bar), 0.0);
@@ -546,7 +496,7 @@ static void on_button_stop_clicked(GtkWidget *widget, gpointer data) {
   if (w->running != NULL) {
     g_atomic_int_set(&w->running->cancel, 1);
     gtk_widget_set_sensitive(w->button_stop, FALSE);
-    upload_append_text(w, "Stopping...");
+    upload_append_text(w->text_view, "Stopping...");
   }
 }
 

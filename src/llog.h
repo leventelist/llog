@@ -169,6 +169,8 @@ typedef struct {
   uint8_t programme_id;
   char wrl_api_key[API_KEY_LEN];      /*World Radio League API key*/
   char wrl_logbook_id[LOGBOOK_ID_LEN]; /*Optional WRL logbook ID, empty for the default logbook*/
+  char tqsl_path[FILE_LEN];            /*TQSL executable used for LoTW uploads*/
+  char tqsl_station_location[STATION_LEN]; /*TQSL station location to sign with*/
 } llog_t;
 
 
