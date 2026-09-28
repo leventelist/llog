@@ -30,6 +30,7 @@
 #include "db_sqlite.h"
 #include "position.h"
 #include "export_window.h"
+#include "upload_window.h"
 #include "preferences_window.h"
 #include "xml_client.h"
 
@@ -467,6 +468,7 @@ static void on_menuitm_open_activate(app_widgets_t *app_wdgts);
 static void save_response_cb(GObject *source, GAsyncResult *result, gpointer user_data);
 static void on_station_entry_change(GtkEditable *entry, gpointer user_data);
 static void on_export_activate(app_widgets_t *app_wdgts);
+static void on_upload_wrl_activate(app_widgets_t *app_wdgts);
 static void on_insert_text_uppercase(GtkEditable *editable, const gchar *text, int length, int *position, gpointer user_data);
 static gboolean on_close_request(GtkWindow *window, gpointer user_data);
 static void on_rebuild_aux_db_activate(app_widgets_t *app_wdgts);
@@ -944,6 +946,22 @@ static void on_activate(GtkApplication *app, gpointer user_data) {
   g_action_map_add_action(G_ACTION_MAP(app), G_ACTION(act_rebuild_aux_db));
   g_signal_connect_swapped(act_edit_log_db, "activate", G_CALLBACK(on_edit_log_db_activate), widgets);
   g_action_map_add_action(G_ACTION_MAP(app), G_ACTION(act_edit_log_db));
+
+  /*Upload menu*/
+
+  GMenu *upload_menu = g_menu_new();
+  GMenu *upload_section = g_menu_new();
+  GMenuItem *menu_item_upload_wrl = g_menu_item_new("World Radio League", "app.upload_wrl");
+  GSimpleAction *act_upload_wrl = g_simple_action_new("upload_wrl", NULL);
+  g_menu_append_item(upload_section, menu_item_upload_wrl);
+  g_object_unref(menu_item_upload_wrl);
+  g_menu_append_section(upload_menu, NULL, G_MENU_MODEL(upload_section));
+  g_menu_append_submenu(menubar, "Upload", G_MENU_MODEL(upload_menu));
+  g_object_unref(upload_section);
+  g_object_unref(upload_menu);
+
+  g_signal_connect_swapped(act_upload_wrl, "activate", G_CALLBACK(on_upload_wrl_activate), widgets);
+  g_action_map_add_action(G_ACTION_MAP(app), G_ACTION(act_upload_wrl));
 
   /*Help menu*/
   GSimpleAction *act_about = g_simple_action_new("about", NULL);
@@ -1676,6 +1694,13 @@ static void on_export_activate(app_widgets_t *app_wdgts) {
   (void)app_wdgts;
 
   on_exporter_window_activate(NULL, local_llog);
+}
+
+
+static void on_upload_wrl_activate(app_widgets_t *app_wdgts) {
+  (void)app_wdgts;
+
+  on_upload_wrl_window_activate(NULL, local_llog);
 }
 
 

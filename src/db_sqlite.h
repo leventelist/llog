@@ -1,5 +1,5 @@
 /*	This is llog, a minimalist HAM logging software.
- *	Copyright (C) 2013-2024  Levente Kovacs
+ *	Copyright (C) 2013-2026  Levente Kovacs
  *
  *	This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -41,5 +41,7 @@ int db_create_from_schema(llog_t *llog, const char *schema_file);
 int db_get_sota_entry(llog_t *llog, spw_entry_t *summit, position_t *pos);
 int db_get_wwff_entry(llog_t *llog, spw_entry_t *area, position_t *pos);
 int db_get_pota_entry(llog_t *llog, spw_entry_t *park, position_t *pos);
+bool db_is_uploaded(llog_t *llog, uint64_t log_id, const char *service);
+int db_set_uploaded(llog_t *llog, uint64_t log_id, const char *service, const char *remote_id);
 
 #endif

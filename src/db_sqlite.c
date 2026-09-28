@@ -63,6 +63,19 @@ int db_sqlite_init(llog_t *llog) {
     llog->stat = db_opened;
   }
 
+  // Log files created before the upload feature don't have the upload table.
+  ret = sqlite3_exec(llog->log_db,
+                     "CREATE TABLE IF NOT EXISTS upload ("
+                     "log_id INTEGER NOT NULL, "
+                     "service TEXT NOT NULL, "
+                     "remote_id TEXT, "
+                     "uploaded_at TEXT DEFAULT CURRENT_TIMESTAMP, "
+                     "UNIQUE(log_id, service));",
+                     NULL, NULL, NULL);
+  if (ret != SQLITE_OK) {
+    fprintf(stderr, "Failed to create upload table: %s\n", sqlite3_errmsg(llog->log_db));
+  }
+
 
   // Set journal mode
   ret = sqlite3_exec(llog->log_db, "PRAGMA journal_mode=DELETE;", NULL, NULL, NULL);
@@ -283,7 +296,8 @@ int db_get_log_entry_with_station(llog_t *llog, log_entry_t *entry, station_entr
     snprintf(buff, BUF_SIZ,
              "SELECT log.rowid, log.date, log.UTC, log.call, log.rxrst, log.txrst, log.QRA ,log.QRG, log.mode, "
              "log.SOTA_REF, log.S2S_REF, log.POTA_REF, log.P2P_REF, log.WWFF_REF, log.W2W_REF, "
-             "station.rowid, station.name, station.CALL, station.QTH, station.QRA, station.ASL, station.rig, station.ant "
+             "station.rowid, station.name, station.CALL, station.QTH, station.QRA, station.ASL, station.rig, station.ant, "
+             "log.name, log.QTH, log.pwr, log.comment "
              "FROM log "
              "JOIN station ON log.station = station.rowid "
              "ORDER BY log.rowid DESC;");
@@ -361,6 +375,19 @@ int db_get_log_entry_with_station(llog_t *llog, log_entry_t *entry, station_entr
 
     cell = (char *)sqlite3_column_text(entry->sq3_stmt, 22);
     strncpy(station->ant, cell != NULL ? cell : "", ANT_LEN);
+
+    /* Additional log columns */
+    cell = (char *)sqlite3_column_text(entry->sq3_stmt, 23);
+    snprintf(entry->name, NAME_LEN, "%s", cell != NULL ? cell : "");
+
+    cell = (char *)sqlite3_column_text(entry->sq3_stmt, 24);
+    snprintf(entry->qth, QTH_LEN, "%s", cell != NULL ? cell : "");
+
+    cell = (char *)sqlite3_column_text(entry->sq3_stmt, 25);
+    snprintf(entry->power, PWR_LEN, "%s", cell != NULL ? cell : "");
+
+    cell = (char *)sqlite3_column_text(entry->sq3_stmt, 26);
+    snprintf(entry->comment, COMMENT_LEN, "%s", cell != NULL ? cell : "");
 
     finalize = false;
     ret_val = llog_stat_ok;
@@ -980,5 +1007,62 @@ int db_get_wwff_entry(llog_t *llog, spw_entry_t *area, position_t *pos) {
     sqlite3_finalize(area->sq3_stmt);
   }
 
+  return ret_val;
+}
+
+
+/* Returns true if the QSO with the given log rowid has already been uploaded to the service. */
+bool db_is_uploaded(llog_t *llog, uint64_t log_id, const char *service) {
+  sqlite3_stmt *stmt;
+  bool uploaded = false;
+
+  if (llog->log_db == NULL) {
+    return false;
+  }
+
+  if (sqlite3_prepare_v2(llog->log_db,
+                         "SELECT 1 FROM upload WHERE log_id = ? AND service = ?;",
+                         -1, &stmt, NULL) != SQLITE_OK) {
+    printf("Error looking up upload state: %s\n", sqlite3_errmsg(llog->log_db));
+    return false;
+  }
+
+  sqlite3_bind_int64(stmt, 1, (sqlite3_int64)log_id);
+  sqlite3_bind_text(stmt, 2, service, -1, SQLITE_STATIC);
+
+  if (sqlite3_step(stmt) == SQLITE_ROW) {
+    uploaded = true;
+  }
+
+  sqlite3_finalize(stmt);
+  return uploaded;
+}
+
+
+int db_set_uploaded(llog_t *llog, uint64_t log_id, const char *service, const char *remote_id) {
+  sqlite3_stmt *stmt;
+  int ret_val = llog_stat_ok;
+
+  if (llog->log_db == NULL) {
+    return llog_stat_err;
+  }
+
+  if (sqlite3_prepare_v2(llog->log_db,
+                         "INSERT OR REPLACE INTO upload (log_id, service, remote_id) VALUES (?, ?, ?);",
+                         -1, &stmt, NULL) != SQLITE_OK) {
+    printf("Error preparing upload insert: %s\n", sqlite3_errmsg(llog->log_db));
+    return llog_stat_err;
+  }
+
+  sqlite3_bind_int64(stmt, 1, (sqlite3_int64)log_id);
+  sqlite3_bind_text(stmt, 2, service, -1, SQLITE_STATIC);
+  sqlite3_bind_text(stmt, 3, remote_id, -1, SQLITE_STATIC);
+
+  if (sqlite3_step(stmt) != SQLITE_DONE) {
+    printf("Error recording upload: %s\n", sqlite3_errmsg(llog->log_db));
+    ret_val = llog_stat_err;
+  }
+
+  sqlite3_finalize(stmt);
   return ret_val;
 }

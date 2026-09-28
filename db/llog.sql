@@ -43,6 +43,15 @@ CREATE TABLE log (
 	station INTEGER default 1
 );
 
+/*QSOs uploaded to online services, e.g. service = 'WRL'*/
+CREATE TABLE upload (
+	log_id INTEGER NOT NULL,
+	service TEXT NOT NULL,
+	remote_id TEXT,
+	uploaded_at TEXT DEFAULT CURRENT_TIMESTAMP,
+	UNIQUE(log_id, service)
+);
+
 /*Insert some (non)sensible data to the station table*/
 INSERT INTO station(name, CALL) VALUES ("default", "NOCALL");
 

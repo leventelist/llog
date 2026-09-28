@@ -15,6 +15,8 @@ set(SOURCES
 	exporter_writer.c
 	export_window.c
 	xml_client.c
+	upload_window.c
+	wrl_client.c
   band.c
 )
 
@@ -63,6 +65,7 @@ endif()
 # to be installed, and fail at configuration time if it
 # is not found.
 pkg_check_modules(CURL REQUIRED IMPORTED_TARGET libcurl)
+pkg_check_modules(JSONC REQUIRED IMPORTED_TARGET json-c)
 
 string(STRIP ${XMLRPC_LIBS} XMLRPC_LIBS)
 string(STRIP ${XMLRPC_CFLAGS} XMLRPC_CFLAGS)
@@ -72,6 +75,8 @@ target_link_libraries(${PROJECT_NAME} PUBLIC
 				PkgConfig::GTK
 				PkgConfig::GPS
 				PkgConfig::XML
+				PkgConfig::CURL
+				PkgConfig::JSONC
 				${MATH_LIBRARY}
 				${XMLRPC_LIBS}) #Manually add the xmlrpc_client and xmlrpc_util libraries
 
