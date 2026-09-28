@@ -38,6 +38,7 @@ file is kept where you want. This make it easy to integrate into your working or
 - **FLDIGI integration** via XML-RPC (Get button populates fields from FLDIGI)
 - **ADI, ADX, CSV export**
 - **Upload to World Radio League** via its API, without sending a QSO twice
+- **Upload to LoTW** through TQSL
 - **Auxiliary database rebuild** from Edit menu
 - **GTK4 interface** with resizable column view of logged contacts
 
@@ -65,6 +66,7 @@ gpsd
 gpsd-tools
 gpsd-clients
 sqlitebrowser    (for Edit → Log database)
+trustedqsl       (TQSL, for Upload → LoTW)
 python3 + sqlite3 module
 ```
 
@@ -139,6 +141,24 @@ log file and never sends it again. QSOs that WRL rejects (for example an unknown
 SOTA/POTA/WWFF reference) are listed in the window and are retried on the next upload.
 
 The API key is stored in plain text in llog's configuration file.
+
+## Uploading to LoTW
+
+LoTW only accepts logs signed with your callsign certificate, so llog uses ARRL's TQSL
+program (Debian package `trustedqsl`) to sign and upload them.
+
+1. In TQSL, install your callsign certificate and create a station location.
+1. Open **Upload → LoTW** and enter the station location's name exactly as in TQSL.
+   If `tqsl` is not on your `PATH`, enter its full path as the TQSL program.
+1. Optionally enter a **From date** (`YYYY-MM-DD`), then click **Upload**.
+
+llog writes the QSOs to a temporary ADIF file and runs
+`tqsl -x -d -u -a compliant -l <station location> <file>`. TQSL's output is shown in
+the window. TQSL reports a single result for the whole file, so when it succeeds, or
+only skips QSOs that are duplicates or outside the certificate's date range, every QSO
+in the file is recorded as uploaded. If it fails, nothing is recorded and the next
+upload sends the same QSOs again. llog does not pass a certificate password to TQSL,
+so an unprotected certificate is the simplest setup.
 
 ---
 
