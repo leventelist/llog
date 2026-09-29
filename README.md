@@ -109,6 +109,8 @@ also be missing.
 
 You should explicitly request `llog` to update its database from time to time.
 
+You need Internet access for the aux database rebuild.
+
 ---
 
 ## Logging a contact
@@ -172,6 +174,15 @@ so an unprotected certificate is the simplest setup.
 | `-h` | Print help and exit |
 
 ---
+
+
+## Known issues and limitations
+
+When uploading to WRL, and the Logbook ID is empty, you might get internal error
+from WRL. To mitigate this, do the following:
+
+1. Click on "Check key"
+1. Copy the logbook ID to the 'Logbook ID:' field above.
 
 ## License
 

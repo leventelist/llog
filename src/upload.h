@@ -31,6 +31,7 @@
 typedef struct {
   log_entry_t entry;
   station_entry_t station;
+  char super_mode[MODE_LEN];   /*ADIF mode of entry.mode, e.g. OLIVIA for "OLIVIA 8/250"*/
 } upload_qso_t;
 
 GtkWidget *upload_add_row(GtkWidget *grid, int row, const char *label, GtkWidget *entry);

@@ -171,6 +171,7 @@ static json_object *wrl_parse_envelope(const char *response, json_object **data,
     const char *hint = wrl_json_get_string(error, "hint");
 
     snprintf(result->code, WRL_CODE_LEN, "%s", code != NULL ? code : "");
+    snprintf(result->field, WRL_CODE_LEN, "%s", field != NULL ? field : "");
     snprintf(result->message, WRL_MSG_LEN, "%s%s%s%s%s%s",
              message != NULL ? message : "Unknown error",
              field != NULL ? " (field: " : "", field != NULL ? field : "", field != NULL ? ")" : "",
@@ -382,7 +383,7 @@ static bool wrl_make_timestamp(const log_entry_t *entry, char *out, size_t len) 
 }
 
 
-static json_object *wrl_build_contact(const char *logbook_id, const log_entry_t *entry,
+static json_object *wrl_build_contact(const char *logbook_id, const log_entry_t *entry, const char *mode,
                                       const station_entry_t *station, wrl_result_t *result) {
   char timestamp[32];
   char freq[32];
@@ -394,7 +395,7 @@ static json_object *wrl_build_contact(const char *logbook_id, const log_entry_t 
     return NULL;
   }
 
-  if (entry->mode.name[0] == '\0') {
+  if (mode[0] == '\0') {
     snprintf(result->message, WRL_MSG_LEN, "No mode");
     return NULL;
   }
@@ -427,7 +428,7 @@ static json_object *wrl_build_contact(const char *logbook_id, const log_entry_t 
   json_object_object_add(obj, "timestamp", json_object_new_string(timestamp));
   json_object_object_add(obj, "freq", json_object_new_double_s(entry->qrg, freq));
   json_object_object_add(obj, "band", json_object_new_string(band));
-  json_object_object_add(obj, "mode", json_object_new_string(entry->mode.name));
+  json_object_object_add(obj, "mode", json_object_new_string(mode));
 
   wrl_add_string(obj, "rstSent", entry->txrst);
   wrl_add_string(obj, "rstRcvd", entry->rxrst);
@@ -465,7 +466,7 @@ static json_object *wrl_build_contact(const char *logbook_id, const log_entry_t 
 
 
 wrl_status_t wrl_post_contact(const char *api_key, const char *logbook_id,
-                              const log_entry_t *entry, const station_entry_t *station,
+                              const log_entry_t *entry, const char *mode, const station_entry_t *station,
                               wrl_result_t *result) {
   json_object *contact, *root, *data, *meta, *warnings;
   char *response;
@@ -474,7 +475,7 @@ wrl_status_t wrl_post_contact(const char *api_key, const char *logbook_id,
 
   memset(result, 0, sizeof(*result));
 
-  contact = wrl_build_contact(logbook_id, entry, station, result);
+  contact = wrl_build_contact(logbook_id, entry, mode, station, result);
   if (contact == NULL) {
     return wrl_stat_skipped;
   }
