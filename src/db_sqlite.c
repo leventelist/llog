@@ -1039,6 +1039,37 @@ bool db_is_uploaded(llog_t *llog, uint64_t log_id, const char *service) {
 }
 
 
+/* Looks up the ADIF mode a mode name belongs to, e.g. OLIVIA for "OLIVIA 8/250".
+ * super_mode is left empty if the mode is not in the mode table or has no super mode.
+ */
+int db_get_super_mode(llog_t *llog, const char *mode, char *super_mode, size_t len) {
+  sqlite3_stmt *stmt;
+  const char *cell;
+
+  super_mode[0] = '\0';
+
+  if (llog->aux_db == NULL) {
+    return llog_stat_err;
+  }
+
+  if (sqlite3_prepare_v2(llog->aux_db, "SELECT super_mode FROM mode WHERE name = ? LIMIT 1;",
+                         -1, &stmt, NULL) != SQLITE_OK) {
+    printf("Error looking up super mode: %s\n", sqlite3_errmsg(llog->aux_db));
+    return llog_stat_err;
+  }
+
+  sqlite3_bind_text(stmt, 1, mode, -1, SQLITE_STATIC);
+
+  if (sqlite3_step(stmt) == SQLITE_ROW) {
+    cell = (const char *)sqlite3_column_text(stmt, 0);
+    snprintf(super_mode, len, "%s", cell != NULL ? cell : "");
+  }
+
+  sqlite3_finalize(stmt);
+  return llog_stat_ok;
+}
+
+
 int db_set_uploaded(llog_t *llog, uint64_t log_id, const char *service, const char *remote_id) {
   sqlite3_stmt *stmt;
   int ret_val = llog_stat_ok;

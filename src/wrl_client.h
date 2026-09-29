@@ -47,6 +47,7 @@ typedef struct {
   long http_status;
   char id[WRL_ID_LEN];         /*ID of the created contact*/
   char code[WRL_CODE_LEN];     /*error.code, e.g. VALIDATION_ERROR*/
+  char field[WRL_CODE_LEN];    /*error.field, the request field the error is about*/
   char message[WRL_MSG_LEN];   /*Human readable error, or warnings on success*/
   long retry_after;            /*Seconds, set on wrl_stat_rate_limited*/
 } wrl_result_t;
@@ -54,7 +55,7 @@ typedef struct {
 void wrl_client_init(void);
 wrl_status_t wrl_check_key(const char *api_key, wrl_result_t *result);
 wrl_status_t wrl_post_contact(const char *api_key, const char *logbook_id,
-                              const log_entry_t *entry, const station_entry_t *station,
+                              const log_entry_t *entry, const char *mode, const station_entry_t *station,
                               wrl_result_t *result);
 
 #endif

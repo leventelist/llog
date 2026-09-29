@@ -101,6 +101,7 @@ int upload_collect_qsos(llog_t *llog, const char *service, const char *from_date
       (*already_uploaded)++;
       continue;
     }
+    db_get_super_mode(llog, qso.entry.mode.name, qso.super_mode, sizeof(qso.super_mode));
     g_array_append_val(qsos, qso);
   }
 

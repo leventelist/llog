@@ -42,6 +42,7 @@ int db_get_sota_entry(llog_t *llog, spw_entry_t *summit, position_t *pos);
 int db_get_wwff_entry(llog_t *llog, spw_entry_t *area, position_t *pos);
 int db_get_pota_entry(llog_t *llog, spw_entry_t *park, position_t *pos);
 bool db_is_uploaded(llog_t *llog, uint64_t log_id, const char *service);
+int db_get_super_mode(llog_t *llog, const char *mode, char *super_mode, size_t len);
 int db_set_uploaded(llog_t *llog, uint64_t log_id, const char *service, const char *remote_id);
 
 #endif

@@ -301,6 +301,7 @@ static void upload_run_upload(upload_ctx_t *ctx) {
   for (guint i = ctx->qsos->len; i > 0 && !stop; i--) {
     upload_qso_t *qso = &g_array_index(ctx->qsos, upload_qso_t, i - 1);
     log_entry_t *e = &qso->entry;
+    const char *mode = e->mode.name;
     int retries = 0;
 
     for (;;) {
@@ -310,7 +311,15 @@ static void upload_run_upload(upload_ctx_t *ctx) {
       }
       next_request = g_get_monotonic_time() + WRL_MIN_INTERVAL_US;
 
-      status = wrl_post_contact(ctx->api_key, ctx->logbook_id, e, &qso->station, &result);
+      status = wrl_post_contact(ctx->api_key, ctx->logbook_id, e, mode, &qso->station, &result);
+
+      /*WRL doesn't know every ADIF submode (e.g. "OLIVIA 8/250"); try again with the ADIF mode*/
+      if (status == wrl_stat_rejected && strcmp(result.field, "mode") == 0 &&
+          mode == e->mode.name && qso->super_mode[0] != '\0' &&
+          g_ascii_strcasecmp(qso->super_mode, e->mode.name) != 0) {
+        mode = qso->super_mode;
+        continue;
+      }
 
       if (status != wrl_stat_rate_limited) {
         break;
@@ -338,7 +347,10 @@ static void upload_run_upload(upload_ctx_t *ctx) {
     case wrl_stat_ok:
       ctx->n_ok++;
       upload_post(ctx, upload_msg_uploaded, done, e->id, result.id,
-                  g_strdup_printf("OK      %s %s %-12s %s%s", e->date, e->utc, e->call,
+                  g_strdup_printf("OK      %s %s %-12s %s%s%s%s%s", e->date, e->utc, e->call,
+                                  mode != e->mode.name ? "  Sent mode " : "",
+                                  mode != e->mode.name ? mode : "",
+                                  mode != e->mode.name ? "." : "",
                                   result.message[0] != '\0' ? "  " : "", result.message));
       break;
 
