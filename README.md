@@ -137,6 +137,10 @@ intentionally kept so you don't have to re-enter them between contacts.
    **From date** (`YYYY-MM-DD`) to upload only recent QSOs.
 1. Click **Upload**.
 
+If the Logbook ID is empty, llog looks up your default logbook at the start of every upload
+and saves it in its configuration file. If the lookup fails, the saved one is used. If you
+have several logbooks and none is set as the default, enter a Logbook ID.
+
 The API takes one QSO per request and at most 60 per minute, so an upload takes
 about one second per QSO. llog records every uploaded QSO in the `upload` table of the
 log file and never sends it again. QSOs that WRL rejects (for example an unknown
@@ -174,15 +178,6 @@ so an unprotected certificate is the simplest setup.
 | `-h` | Print help and exit |
 
 ---
-
-
-## Known issues and limitations
-
-When uploading to WRL, and the Logbook ID is empty, you might get internal error
-from WRL. To mitigate this, do the following:
-
-1. Click on "Check key"
-1. Copy the logbook ID to the 'Logbook ID:' field above.
 
 ## License
 

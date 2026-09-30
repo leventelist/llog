@@ -66,7 +66,8 @@ struct upload_ctx {
   llog_t *llog;
   char log_file_name[FILE_LEN];    /*The log the QSOs came from*/
   char api_key[API_KEY_LEN];
-  char logbook_id[LOGBOOK_ID_LEN];
+  char logbook_id[LOGBOOK_ID_LEN];         /*Empty: look up the default logbook first*/
+  char default_logbook_id[LOGBOOK_ID_LEN]; /*Saved default, used if the lookup fails*/
   GArray *qsos;                    /*upload_qso_t, newest first*/
   gint cancel;
   guint n_ok;
@@ -77,6 +78,7 @@ typedef enum {
   upload_msg_log,
   upload_msg_uploaded,
   upload_msg_failed,
+  upload_msg_default_logbook,   /*remote_id is the default logbook, empty if there is none*/
   upload_msg_done
 } upload_msg_kind_t;
 
@@ -98,6 +100,16 @@ static void on_button_upload_clicked(GtkWidget *widget, gpointer data);
 static void on_button_stop_clicked(GtkWidget *widget, gpointer data);
 static void on_button_close_clicked(GtkWidget *widget, gpointer data);
 static gpointer upload_worker(gpointer data);
+
+
+static void upload_set_logbook_placeholder(upload_widgets_t *w) {
+  char *text = w->llog->wrl_default_logbook_id[0] != '\0' ?
+               g_strdup_printf("Empty: your default logbook (%s)", w->llog->wrl_default_logbook_id) :
+               g_strdup("Empty: your default logbook");
+
+  gtk_entry_set_placeholder_text(GTK_ENTRY(w->logbook_entry), text);
+  g_free(text);
+}
 
 
 
@@ -136,7 +148,7 @@ void on_upload_wrl_window_activate(GtkWidget *widget, gpointer data) {
   gtk_editable_set_text(GTK_EDITABLE(widgets->api_key_entry), widgets->llog->wrl_api_key);
 
   widgets->logbook_entry = upload_add_row(grid, 1, "Logbook ID:", gtk_entry_new());
-  gtk_entry_set_placeholder_text(GTK_ENTRY(widgets->logbook_entry), "Empty: your default logbook");
+  upload_set_logbook_placeholder(widgets);
   gtk_editable_set_text(GTK_EDITABLE(widgets->logbook_entry), widgets->llog->wrl_logbook_id);
 
   widgets->from_date_entry = upload_add_row(grid, 2, "From date:", gtk_entry_new());
@@ -219,6 +231,12 @@ static gboolean upload_msg_cb(gpointer data) {
     }
   }
 
+  if (msg->kind == upload_msg_default_logbook &&
+      strcmp(ctx->llog->wrl_default_logbook_id, msg->remote_id) != 0) {
+    g_strlcpy(ctx->llog->wrl_default_logbook_id, msg->remote_id, sizeof(ctx->llog->wrl_default_logbook_id));
+    llog_save_config_file();
+  }
+
   if (msg->kind == upload_msg_done) {
     active_workers--;
   }
@@ -233,6 +251,10 @@ static gboolean upload_msg_cb(gpointer data) {
       snprintf(progress, sizeof(progress), "%u / %u", msg->done, ctx->qsos->len);
       gtk_progress_bar_set_fraction(GTK_PROGRESS_BAR(w->progress_bar), (double)msg->done / ctx->qsos->len);
       gtk_progress_bar_set_text(GTK_PROGRESS_BAR(w->progress_bar), progress);
+    }
+
+    if (msg->kind == upload_msg_default_logbook) {
+      upload_set_logbook_placeholder(w);
     }
 
     if (msg->kind == upload_msg_done) {
@@ -287,6 +309,47 @@ static void upload_run_check(upload_ctx_t *ctx) {
   upload_post(ctx, upload_msg_log, 0, 0, NULL,
               status == wrl_stat_ok ? g_strdup(result.message) :
               g_strdup_printf("Key check failed: %s", result.message));
+  if (status == wrl_stat_ok) {
+    upload_post(ctx, upload_msg_default_logbook, 0, 0, result.logbook_id, NULL);
+  }
+}
+
+
+/* Worker thread: the API doesn't fall back to the default logbook when logbookId is left out,
+ * so look it up and send it explicitly. Returns false if there is no logbook to upload to.
+ */
+static bool upload_resolve_logbook(upload_ctx_t *ctx) {
+  wrl_result_t result;
+
+  if (ctx->logbook_id[0] != '\0') {
+    return true;
+  }
+
+  if (wrl_check_key(ctx->api_key, &result) != wrl_stat_ok) {
+    if (ctx->default_logbook_id[0] == '\0') {
+      upload_post(ctx, upload_msg_log, 0, 0, NULL,
+                  g_strdup_printf("Could not look up your default logbook: %s\nUpload stopped.", result.message));
+      return false;
+    }
+    g_strlcpy(ctx->logbook_id, ctx->default_logbook_id, sizeof(ctx->logbook_id));
+    upload_post(ctx, upload_msg_log, 0, 0, NULL,
+                g_strdup_printf("Could not look up your default logbook (%s), using the saved one: %s",
+                                result.message, ctx->logbook_id));
+    return true;
+  }
+
+  upload_post(ctx, upload_msg_default_logbook, 0, 0, result.logbook_id, NULL);
+
+  if (result.logbook_id[0] == '\0') {
+    upload_post(ctx, upload_msg_log, 0, 0, NULL,
+                g_strdup_printf("%s\nUpload stopped.", result.message));
+    return false;
+  }
+
+  g_strlcpy(ctx->logbook_id, result.logbook_id, sizeof(ctx->logbook_id));
+  upload_post(ctx, upload_msg_log, 0, 0, NULL,
+              g_strdup_printf("Uploading to your default logbook: %s", ctx->logbook_id));
+  return true;
 }
 
 
@@ -296,6 +359,10 @@ static void upload_run_upload(upload_ctx_t *ctx) {
   gint64 next_request = 0;
   guint done = 0;
   bool stop = false;
+
+  if (!upload_resolve_logbook(ctx)) {
+    return;
+  }
 
   /*The array is newest first; upload in the order the QSOs were made*/
   for (guint i = ctx->qsos->len; i > 0 && !stop; i--) {
@@ -419,6 +486,7 @@ static upload_ctx_t *upload_ctx_new(upload_widgets_t *w, upload_job_t job) {
   g_strlcpy(ctx->log_file_name, llog->log_file_name, sizeof(ctx->log_file_name));
   g_strlcpy(ctx->api_key, llog->wrl_api_key, sizeof(ctx->api_key));
   g_strlcpy(ctx->logbook_id, llog->wrl_logbook_id, sizeof(ctx->logbook_id));
+  g_strlcpy(ctx->default_logbook_id, llog->wrl_default_logbook_id, sizeof(ctx->default_logbook_id));
   ctx->qsos = g_array_new(FALSE, FALSE, sizeof(upload_qso_t));
 
   return ctx;

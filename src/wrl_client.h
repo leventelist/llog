@@ -46,6 +46,7 @@ typedef enum {
 typedef struct {
   long http_status;
   char id[WRL_ID_LEN];         /*ID of the created contact*/
+  char logbook_id[WRL_ID_LEN]; /*Default logbook found by wrl_check_key, empty if there is none*/
   char code[WRL_CODE_LEN];     /*error.code, e.g. VALIDATION_ERROR*/
   char field[WRL_CODE_LEN];    /*error.field, the request field the error is about*/
   char message[WRL_MSG_LEN];   /*Human readable error, or warnings on success*/

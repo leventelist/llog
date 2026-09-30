@@ -240,6 +240,7 @@ wrl_status_t wrl_check_key(const char *api_key, wrl_result_t *result) {
     const char *id = wrl_json_get_string(obj, "logbookId");
     const char *resolution = wrl_json_get_string(obj, "resolution");
     if (id != NULL) {
+      snprintf(result->logbook_id, WRL_ID_LEN, "%s", id);
       g_string_append_printf(msg, "\nDefault logbook: %s (%s).", id, resolution != NULL ? resolution : "?");
     } else {
       g_string_append_printf(msg, "\nNo default logbook (%s): set a logbook ID below, "
