@@ -1,7 +1,7 @@
 BEGIN TRANSACTION;
 
 
-CREATE TABLE station (
+CREATE TABLE IF NOT EXISTS station (
 	name TEXT,
 	CALL TEXT,
 	OPERATOR_CALL TEXT,
@@ -15,7 +15,7 @@ CREATE TABLE station (
 );
 
 
-CREATE TABLE log (
+CREATE TABLE IF NOT EXISTS log (
 	date TEXT,
 	UTC TEXT,
 	call TEXT,
@@ -44,7 +44,7 @@ CREATE TABLE log (
 );
 
 /*QSOs uploaded to online services, e.g. service = 'WRL'*/
-CREATE TABLE upload (
+CREATE TABLE IF NOT EXISTS upload (
 	log_id INTEGER NOT NULL,
 	service TEXT NOT NULL,
 	remote_id TEXT,
@@ -52,7 +52,7 @@ CREATE TABLE upload (
 	UNIQUE(log_id, service)
 );
 
-/*Insert some (non)sensible data to the station table*/
-INSERT INTO station(name, CALL) VALUES ("default", "NOCALL");
+/*Insert some (non)sensible data to the station table, unless it already has stations*/
+INSERT INTO station(name, CALL) SELECT 'default', 'NOCALL' WHERE NOT EXISTS (SELECT 1 FROM station);
 
 COMMIT;

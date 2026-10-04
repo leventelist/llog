@@ -46,7 +46,7 @@
 #define COMMENT_LEN 2048
 #define ASL_LEN 20
 #define PWR_LEN 20
-#define X_LEN 40
+#define X_LEN 2048
 #define STATION_LEN 256
 #define API_KEY_LEN 256
 #define LOGBOOK_ID_LEN 64

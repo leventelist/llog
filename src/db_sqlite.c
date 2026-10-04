@@ -26,6 +26,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <sqlite3.h>
+#include <glib.h>
 #include <stdbool.h>
 #include "db_sqlite.h"
 #include "llog.h"
@@ -42,7 +43,74 @@
 #define SQLITE_FLAGS SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE | SQLITE_OPEN_FULLMUTEX
 
 
-int db_sqlite_init(llog_t *llog) {
+/*Run the schema file on the open log database. The schema only creates what is
+  missing, so this also repairs a log file that lacks some of its tables.*/
+static int db_apply_schema(llog_t *llog, const char *schema_file) {
+  gchar *schema = NULL;
+  GError *error = NULL;
+  char *err_msg = NULL;
+  int ret_val = llog_stat_ok;
+
+  if (!g_file_get_contents(schema_file, &schema, NULL, &error)) {
+    printf("Error opening schema file '%s': %s\n", schema_file, error->message);
+    g_error_free(error);
+    return llog_stat_file_err;
+  }
+
+  if (sqlite3_exec(llog->log_db, schema, NULL, NULL, &err_msg) != SQLITE_OK) {
+    printf("Error creating database schema: %s\n", err_msg);
+    sqlite3_free(err_msg);
+    /*Don't leave the schema's transaction open on the connection*/
+    if (!sqlite3_get_autocommit(llog->log_db)) {
+      sqlite3_exec(llog->log_db, "ROLLBACK;", NULL, NULL, NULL);
+    }
+    ret_val = llog_stat_err;
+  }
+
+  g_free(schema);
+  return ret_val;
+}
+
+
+/*True if the log file has every table the schema creates and at least one station.*/
+static bool db_schema_complete(llog_t *llog) {
+  sqlite3_stmt *stmt = NULL;
+  bool complete = false;
+
+  if (sqlite3_prepare_v2(llog->log_db,
+                         "SELECT (SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name IN ('log', 'station')) = 2 "
+                         "AND EXISTS (SELECT 1 FROM station);",
+                         -1, &stmt, NULL) == SQLITE_OK) {
+    complete = sqlite3_step(stmt) == SQLITE_ROW && sqlite3_column_int(stmt, 0) == 1;
+  }
+  sqlite3_finalize(stmt);
+  return complete;
+}
+
+
+/*Bring log files created by older versions up to the current schema.
+  Must run after the schema of a new log file has been created, otherwise
+  the schema's own CREATE TABLE statements fail on the tables added here.*/
+static void db_upgrade_schema(llog_t *llog) {
+  int ret;
+
+  // Log files created before the upload feature don't have the upload table.
+  ret = sqlite3_exec(llog->log_db,
+                     "CREATE TABLE IF NOT EXISTS upload ("
+                     "log_id INTEGER NOT NULL, "
+                     "service TEXT NOT NULL, "
+                     "remote_id TEXT, "
+                     "uploaded_at TEXT DEFAULT CURRENT_TIMESTAMP, "
+                     "UNIQUE(log_id, service));",
+                     NULL, NULL, NULL);
+  if (ret != SQLITE_OK) {
+    fprintf(stderr, "Failed to create upload table: %s\n", sqlite3_errmsg(llog->log_db));
+  }
+}
+
+
+/*Open the log and aux databases without touching the log's schema.*/
+static int db_open(llog_t *llog) {
   int ret;
   int ret_val = llog_stat_ok;
 
@@ -63,20 +131,6 @@ int db_sqlite_init(llog_t *llog) {
     llog->stat = db_opened;
   }
 
-  // Log files created before the upload feature don't have the upload table.
-  ret = sqlite3_exec(llog->log_db,
-                     "CREATE TABLE IF NOT EXISTS upload ("
-                     "log_id INTEGER NOT NULL, "
-                     "service TEXT NOT NULL, "
-                     "remote_id TEXT, "
-                     "uploaded_at TEXT DEFAULT CURRENT_TIMESTAMP, "
-                     "UNIQUE(log_id, service));",
-                     NULL, NULL, NULL);
-  if (ret != SQLITE_OK) {
-    fprintf(stderr, "Failed to create upload table: %s\n", sqlite3_errmsg(llog->log_db));
-  }
-
-
   // Set journal mode
   ret = sqlite3_exec(llog->log_db, "PRAGMA journal_mode=DELETE;", NULL, NULL, NULL);
   if (ret != SQLITE_OK) {
@@ -95,6 +149,24 @@ int db_sqlite_init(llog_t *llog) {
   }
 
 out:
+  return ret_val;
+}
+
+
+int db_sqlite_init(llog_t *llog) {
+  int ret_val = db_open(llog);
+
+  /*The log may be usable even if the aux database failed to open*/
+  if (llog->stat == db_opened) {
+    /*A configured log file that didn't exist was just created empty by SQLite*/
+    if (!db_schema_complete(llog)) {
+      printf("Log file '%s' is missing tables or stations, applying %s\n", llog->log_file_name, LLOG_DB_PATH);
+      if (db_apply_schema(llog, LLOG_DB_PATH) != llog_stat_ok) {
+        ret_val = llog_stat_err;
+      }
+    }
+    db_upgrade_schema(llog);
+  }
   return ret_val;
 }
 
@@ -488,53 +560,57 @@ int db_get_max_nr(llog_t *llog, log_entry_t *entry, double qrg_mhz) {
 
 
 int db_set_log_entry(llog_t *llog, log_entry_t *entry) {
-  int ret, ret_val = llog_stat_ok;
-  char buff[BUF_SIZ];
+  sqlite3_stmt *stmt = NULL;
+  int ret_val = llog_stat_err;
 
   if (llog->log_db == NULL) {
     return llog_stat_err;
   }
 
-  snprintf(buff, BUF_SIZ,
-           "INSERT INTO log (date, UTC, call, rxrst, txrst, rxnr, txnr, rxextra, txextra, QTH, name, "
-           "QRA, QRG, mode, pwr, rxQSL, txQSL, comment, station, "
-           "SOTA_REF, S2S_REF, POTA_REF, P2P_REF, WWFF_REF, W2W_REF) VALUES "
-           "('%s', '%s', '%s', '%s', '%s', %" PRIu64 ", %" PRIu64 ", '%s', '%s', '%s', '%s', '%s', "
-           "%f, '%s', '%s', %" PRIu64 ", %" PRIu64 ", '%s', %" PRIu64 ", "
-           "'%s', '%s', '%s', '%s', '%s', '%s');",
-           entry->date, entry->utc, entry->call, entry->rxrst, entry->txrst, entry->rxnr,
-           entry->txnr, entry->rxextra, entry->txextra, entry->qth, entry->name, entry->qra,
-           entry->qrg, entry->mode.name, entry->power, (uint64_t)0U, (uint64_t)0U, entry->comment,
-           entry->station_id,
-           entry->sota_ref, entry->s2s_ref,
-           entry->pota_ref, entry->p2p_ref,
-           entry->wwff_ref, entry->w2w_ref);
-
-  sqlite3_prepare_v2(llog->log_db, buff, -1, &entry->sq3_stmt, NULL);
-
-  ret = sqlite3_step(entry->sq3_stmt);
-  switch (ret) {
-  case SQLITE_ROW:
-    /*This should not happen.*/
-    break;
-
-  case SQLITE_DONE:
-    ret_val = llog_stat_ok;
-    break;
-
-  case SQLITE_BUSY:
-    ret_val = llog_stat_err;
-    break;
-
-  default:
-    ret_val = llog_stat_err;
-    printf("Error inserting log entry: %s\n", sqlite3_errmsg(llog->log_db));
-    break;
+  if (sqlite3_prepare_v2(llog->log_db,
+                         "INSERT INTO log (date, UTC, call, rxrst, txrst, rxnr, txnr, rxextra, txextra, QTH, name, "
+                         "QRA, QRG, mode, pwr, rxQSL, txQSL, comment, station, "
+                         "SOTA_REF, S2S_REF, POTA_REF, P2P_REF, WWFF_REF, W2W_REF) VALUES "
+                         "(?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, 0, 0, ?16, ?17, "
+                         "?18, ?19, ?20, ?21, ?22, ?23);", -1, &stmt, NULL) != SQLITE_OK) {
+    printf("Error preparing log entry insert: %s\n", sqlite3_errmsg(llog->log_db));
+    return llog_stat_err;
   }
 
-  sqlite3_finalize(entry->sq3_stmt);
+  sqlite3_bind_text(stmt, 1, entry->date, -1, SQLITE_TRANSIENT);
+  sqlite3_bind_text(stmt, 2, entry->utc, -1, SQLITE_TRANSIENT);
+  sqlite3_bind_text(stmt, 3, entry->call, -1, SQLITE_TRANSIENT);
+  sqlite3_bind_text(stmt, 4, entry->rxrst, -1, SQLITE_TRANSIENT);
+  sqlite3_bind_text(stmt, 5, entry->txrst, -1, SQLITE_TRANSIENT);
+  sqlite3_bind_int64(stmt, 6, (sqlite3_int64)entry->rxnr);
+  sqlite3_bind_int64(stmt, 7, (sqlite3_int64)entry->txnr);
+  sqlite3_bind_text(stmt, 8, entry->rxextra, -1, SQLITE_TRANSIENT);
+  sqlite3_bind_text(stmt, 9, entry->txextra, -1, SQLITE_TRANSIENT);
+  sqlite3_bind_text(stmt, 10, entry->qth, -1, SQLITE_TRANSIENT);
+  sqlite3_bind_text(stmt, 11, entry->name, -1, SQLITE_TRANSIENT);
+  sqlite3_bind_text(stmt, 12, entry->qra, -1, SQLITE_TRANSIENT);
+  sqlite3_bind_double(stmt, 13, entry->qrg);
+  sqlite3_bind_text(stmt, 14, entry->mode.name, -1, SQLITE_TRANSIENT);
+  sqlite3_bind_text(stmt, 15, entry->power, -1, SQLITE_TRANSIENT);
+  sqlite3_bind_text(stmt, 16, entry->comment, -1, SQLITE_TRANSIENT);
+  sqlite3_bind_int64(stmt, 17, (sqlite3_int64)entry->station_id);
+  sqlite3_bind_text(stmt, 18, entry->sota_ref, -1, SQLITE_TRANSIENT);
+  sqlite3_bind_text(stmt, 19, entry->s2s_ref, -1, SQLITE_TRANSIENT);
+  sqlite3_bind_text(stmt, 20, entry->pota_ref, -1, SQLITE_TRANSIENT);
+  sqlite3_bind_text(stmt, 21, entry->p2p_ref, -1, SQLITE_TRANSIENT);
+  sqlite3_bind_text(stmt, 22, entry->wwff_ref, -1, SQLITE_TRANSIENT);
+  sqlite3_bind_text(stmt, 23, entry->w2w_ref, -1, SQLITE_TRANSIENT);
+
+  if (sqlite3_step(stmt) == SQLITE_DONE) {
+    ret_val = llog_stat_ok;
+  } else {
+    printf("Error inserting log entry: %s\n", sqlite3_errmsg(llog->log_db));
+  }
+
+  sqlite3_finalize(stmt);
   return ret_val;
 }
+
 
 /*Read every editable column of one QSO, selected by entry->id.*/
 int db_get_log_entry_by_id(llog_t *llog, log_entry_t *entry) {
@@ -936,48 +1012,16 @@ int db_get_mode_entry(llog_t *llog, mode_entry_t *mode, uint64_t *id) {
 
 
 int db_create_from_schema(llog_t *llog, const char *schema_file) {
-  FILE *file;
-  char *schema;
-  long length;
-  int ret_val = llog_stat_ok;
-  char *err_msg = NULL;
-
-  file = fopen(schema_file, "rb");
-  if (!file) {
-    printf("Error opening schema file '%s'.\n", schema_file);
-    return llog_stat_file_err;
-  }
-
-  fseek(file, 0, SEEK_END);
-  length = ftell(file);
-  fseek(file, 0, SEEK_SET);
-
-  schema = malloc(length + 1);
-  if (!schema) {
-    fclose(file);
-    printf("Memory allocation error.\n");
-    return llog_stat_mem_err;
-  }
-
-  fread(schema, 1, length, file);
-  fclose(file);
-  schema[length] = '\0';
-
-  ret_val = db_sqlite_init(llog);
+  int ret_val = db_open(llog);
 
   if (ret_val != llog_stat_ok) {
     printf("Error opening database.\n");
     return ret_val;
   }
 
-  ret_val = sqlite3_exec(llog->log_db, schema, 0, 0, &err_msg);
-  if (ret_val != SQLITE_OK) {
-    printf("Error creating database schema: %s\n", err_msg);
-    sqlite3_free(err_msg);
-    ret_val = llog_stat_err;
-  }
+  ret_val = db_apply_schema(llog, schema_file);
+  db_upgrade_schema(llog);
 
-  free(schema);
   return ret_val;
 }
 

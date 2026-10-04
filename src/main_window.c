@@ -1461,7 +1461,7 @@ static void on_get_btn_clicked(void) {
     g_signal_handlers_block_by_func(widgets->log_entries[llog_entry_call], on_window_main_entry_changed, NULL);
     gtk_entry_buffer_delete_text(widgets->log_entry_buffers[llog_entry_call], 0, -1);
     gtk_entry_buffer_insert_text(widgets->log_entry_buffers[llog_entry_call], 0, buff, -1);
-    strcpy(log_entry_data.call, buff);
+    g_strlcpy(log_entry_data.call, buff, CALL_LEN);
     int ret = llog_check_dup_qso(&log_entry_data);
     switch (ret) {
     case llog_stat_dup:
@@ -1570,31 +1570,33 @@ static void on_log_btn_clicked(void) {
   }
 
   /*Gather log data*/
-  snprintf(log_entry_data.date, NAME_LEN, gtk_entry_buffer_get_text(widgets->log_entry_buffers[llog_entry_date]));
-  snprintf(log_entry_data.utc, NAME_LEN, gtk_entry_buffer_get_text(widgets->log_entry_buffers[llog_entry_utc]));
-  snprintf(log_entry_data.rxrst, RST_LEN, gtk_entry_buffer_get_text(widgets->log_entry_buffers[llog_entry_rxrst]));
-  snprintf(log_entry_data.txrst, RST_LEN, gtk_entry_buffer_get_text(widgets->log_entry_buffers[llog_entry_txrst]));
-  snprintf(log_entry_data.qth, QTH_LEN, gtk_entry_buffer_get_text(widgets->log_entry_buffers[llog_entry_qth]));
-  snprintf(log_entry_data.name, NAME_LEN, gtk_entry_buffer_get_text(widgets->log_entry_buffers[llog_entry_name]));
-  snprintf(log_entry_data.qra, QRA_LEN, gtk_entry_buffer_get_text(widgets->log_entry_buffers[llog_entry_qra]));
+  snprintf(log_entry_data.date, NAME_LEN, "%s", gtk_entry_buffer_get_text(widgets->log_entry_buffers[llog_entry_date]));
+  snprintf(log_entry_data.utc, NAME_LEN, "%s", gtk_entry_buffer_get_text(widgets->log_entry_buffers[llog_entry_utc]));
+  snprintf(log_entry_data.rxrst, RST_LEN, "%s", gtk_entry_buffer_get_text(widgets->log_entry_buffers[llog_entry_rxrst]));
+  snprintf(log_entry_data.txrst, RST_LEN, "%s", gtk_entry_buffer_get_text(widgets->log_entry_buffers[llog_entry_txrst]));
+  snprintf(log_entry_data.qth, QTH_LEN, "%s", gtk_entry_buffer_get_text(widgets->log_entry_buffers[llog_entry_qth]));
+  snprintf(log_entry_data.name, NAME_LEN, "%s", gtk_entry_buffer_get_text(widgets->log_entry_buffers[llog_entry_name]));
+  snprintf(log_entry_data.qra, QRA_LEN, "%s", gtk_entry_buffer_get_text(widgets->log_entry_buffers[llog_entry_qra]));
   log_entry_data.qrg = atof(gtk_entry_buffer_get_text(widgets->log_entry_buffers[llog_entry_qrg]));
 
   item = gtk_drop_down_get_selected_item(GTK_DROP_DOWN(widgets->log_entries[llog_entry_mode]));
 
-  strcpy(log_entry_data.mode.name, mode_entry_get_name(MODEENTRY_ITEM(item)));
+  char *mode_name = mode_entry_get_name(MODEENTRY_ITEM(item));
+  g_strlcpy(log_entry_data.mode.name, mode_name, MODE_LEN);
+  g_free(mode_name);
 
-  snprintf(log_entry_data.power, NAME_LEN, gtk_entry_buffer_get_text(widgets->log_entry_buffers[llog_entry_power]));
+  snprintf(log_entry_data.power, PWR_LEN, "%s", gtk_entry_buffer_get_text(widgets->log_entry_buffers[llog_entry_power]));
   log_entry_data.rxnr = strtoul(gtk_entry_buffer_get_text(widgets->log_entry_buffers[llog_entry_rxnr]), NULL, 10);
   log_entry_data.txnr = strtoul(gtk_entry_buffer_get_text(widgets->log_entry_buffers[llog_entry_txnr]), NULL, 10);
-  snprintf(log_entry_data.rxextra, X_LEN, gtk_entry_buffer_get_text(widgets->log_entry_buffers[llog_entry_rxextra]));
-  snprintf(log_entry_data.txextra, X_LEN, gtk_entry_buffer_get_text(widgets->log_entry_buffers[llog_entry_txextra]));
-  snprintf(log_entry_data.comment, X_LEN, gtk_entry_buffer_get_text(widgets->log_entry_buffers[llog_entry_comment]));
+  snprintf(log_entry_data.rxextra, X_LEN, "%s", gtk_entry_buffer_get_text(widgets->log_entry_buffers[llog_entry_rxextra]));
+  snprintf(log_entry_data.txextra, X_LEN, "%s", gtk_entry_buffer_get_text(widgets->log_entry_buffers[llog_entry_txextra]));
+  snprintf(log_entry_data.comment, COMMENT_LEN, "%s", gtk_entry_buffer_get_text(widgets->log_entry_buffers[llog_entry_comment]));
 
   item = gtk_drop_down_get_selected_item(GTK_DROP_DOWN(widgets->log_entries[llog_entry_station_id]));
   log_entry_data.station_id = strtoull(station_entry_get_id(STATIONENTRY_ITEM(item)), NULL, 0);
 
-  snprintf(ref, SPW_REF_LEN, gtk_entry_buffer_get_text(widgets->log_entry_buffers[llog_entry_spw_ref]));
-  snprintf(ref2ref, SPW_REF_LEN, gtk_entry_buffer_get_text(widgets->log_entry_buffers[llog_entry_spw2spw_ref]));
+  snprintf(ref, SPW_REF_LEN, "%s", gtk_entry_buffer_get_text(widgets->log_entry_buffers[llog_entry_spw_ref]));
+  snprintf(ref2ref, SPW_REF_LEN, "%s", gtk_entry_buffer_get_text(widgets->log_entry_buffers[llog_entry_spw2spw_ref]));
 
   /*This is for debug. Print log data to stdout*/
   //llog_print_log_data(&log_entry_data);
