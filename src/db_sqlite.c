@@ -297,7 +297,8 @@ int db_get_log_entry_with_station(llog_t *llog, log_entry_t *entry, station_entr
              "SELECT log.rowid, log.date, log.UTC, log.call, log.rxrst, log.txrst, log.QRA ,log.QRG, log.mode, "
              "log.SOTA_REF, log.S2S_REF, log.POTA_REF, log.P2P_REF, log.WWFF_REF, log.W2W_REF, "
              "station.rowid, station.name, station.CALL, station.QTH, station.QRA, station.ASL, station.rig, station.ant, "
-             "log.name, log.QTH, log.pwr, log.comment "
+             "log.name, log.QTH, log.pwr, log.comment, "
+             "station.OPERATOR_CALL, station.OPERATOR_NAME, station.comment "
              "FROM log "
              "JOIN station ON log.station = station.rowid "
              "ORDER BY log.rowid DESC;");
@@ -388,6 +389,16 @@ int db_get_log_entry_with_station(llog_t *llog, log_entry_t *entry, station_entr
 
     cell = (char *)sqlite3_column_text(entry->sq3_stmt, 26);
     snprintf(entry->comment, COMMENT_LEN, "%s", cell != NULL ? cell : "");
+
+    /* Additional station columns */
+    cell = (char *)sqlite3_column_text(entry->sq3_stmt, 27);
+    snprintf(station->operator_call, CALL_LEN, "%s", cell != NULL ? cell : "");
+
+    cell = (char *)sqlite3_column_text(entry->sq3_stmt, 28);
+    snprintf(station->operator_name, NAME_LEN, "%s", cell != NULL ? cell : "");
+
+    cell = (char *)sqlite3_column_text(entry->sq3_stmt, 29);
+    snprintf(station->comment, COMMENT_LEN, "%s", cell != NULL ? cell : "");
 
     finalize = false;
     ret_val = llog_stat_ok;
@@ -525,6 +536,124 @@ int db_set_log_entry(llog_t *llog, log_entry_t *entry) {
   return ret_val;
 }
 
+/*Read every editable column of one QSO, selected by entry->id.*/
+int db_get_log_entry_by_id(llog_t *llog, log_entry_t *entry) {
+  sqlite3_stmt *stmt = NULL;
+  int ret, ret_val = llog_stat_err;
+  const char *cell;
+
+  if (llog->log_db == NULL) {
+    return llog_stat_err;
+  }
+
+  if (sqlite3_prepare_v2(llog->log_db,
+                         "SELECT date, UTC, call, rxrst, txrst, rxnr, txnr, rxextra, txextra, QTH, name, "
+                         "QRA, QRG, mode, pwr, comment, station, "
+                         "SOTA_REF, S2S_REF, POTA_REF, P2P_REF, WWFF_REF, W2W_REF "
+                         "FROM log WHERE rowid=?1;", -1, &stmt, NULL) != SQLITE_OK) {
+    printf("Error preparing log entry query: %s\n", sqlite3_errmsg(llog->log_db));
+    return llog_stat_err;
+  }
+
+  sqlite3_bind_int64(stmt, 1, (sqlite3_int64)entry->id);
+
+#define LOG_TEXT_COL(col, dst) \
+  cell = (const char *)sqlite3_column_text(stmt, col); \
+  snprintf(dst, sizeof(dst), "%s", cell != NULL ? cell : "")
+
+  ret = sqlite3_step(stmt);
+  if (ret == SQLITE_ROW) {
+    LOG_TEXT_COL(0, entry->date);
+    LOG_TEXT_COL(1, entry->utc);
+    LOG_TEXT_COL(2, entry->call);
+    LOG_TEXT_COL(3, entry->rxrst);
+    LOG_TEXT_COL(4, entry->txrst);
+    entry->rxnr = (uint64_t)sqlite3_column_int64(stmt, 5);
+    entry->txnr = (uint64_t)sqlite3_column_int64(stmt, 6);
+    LOG_TEXT_COL(7, entry->rxextra);
+    LOG_TEXT_COL(8, entry->txextra);
+    LOG_TEXT_COL(9, entry->qth);
+    LOG_TEXT_COL(10, entry->name);
+    LOG_TEXT_COL(11, entry->qra);
+    entry->qrg = sqlite3_column_double(stmt, 12);
+    LOG_TEXT_COL(13, entry->mode.name);
+    LOG_TEXT_COL(14, entry->power);
+    LOG_TEXT_COL(15, entry->comment);
+    entry->station_id = (uint64_t)sqlite3_column_int64(stmt, 16);
+    LOG_TEXT_COL(17, entry->sota_ref);
+    LOG_TEXT_COL(18, entry->s2s_ref);
+    LOG_TEXT_COL(19, entry->pota_ref);
+    LOG_TEXT_COL(20, entry->p2p_ref);
+    LOG_TEXT_COL(21, entry->wwff_ref);
+    LOG_TEXT_COL(22, entry->w2w_ref);
+    ret_val = llog_stat_ok;
+  } else if (ret == SQLITE_DONE) {
+    ret_val = llog_no_data;
+  } else {
+    printf("Error reading log entry: %s\n", sqlite3_errmsg(llog->log_db));
+  }
+
+#undef LOG_TEXT_COL
+
+  sqlite3_finalize(stmt);
+  return ret_val;
+}
+
+
+/*Overwrite the QSO selected by entry->id with the contents of entry.*/
+int db_update_log_entry(llog_t *llog, log_entry_t *entry) {
+  sqlite3_stmt *stmt = NULL;
+  int ret_val = llog_stat_err;
+
+  if (llog->log_db == NULL) {
+    return llog_stat_err;
+  }
+
+  if (sqlite3_prepare_v2(llog->log_db,
+                         "UPDATE log SET date=?1, UTC=?2, call=?3, rxrst=?4, txrst=?5, rxnr=?6, txnr=?7, "
+                         "rxextra=?8, txextra=?9, QTH=?10, name=?11, QRA=?12, QRG=?13, mode=?14, pwr=?15, "
+                         "comment=?16, station=?17, SOTA_REF=?18, S2S_REF=?19, POTA_REF=?20, P2P_REF=?21, "
+                         "WWFF_REF=?22, W2W_REF=?23 WHERE rowid=?24;", -1, &stmt, NULL) != SQLITE_OK) {
+    printf("Error preparing log entry update: %s\n", sqlite3_errmsg(llog->log_db));
+    return llog_stat_err;
+  }
+
+  sqlite3_bind_text(stmt, 1, entry->date, -1, SQLITE_TRANSIENT);
+  sqlite3_bind_text(stmt, 2, entry->utc, -1, SQLITE_TRANSIENT);
+  sqlite3_bind_text(stmt, 3, entry->call, -1, SQLITE_TRANSIENT);
+  sqlite3_bind_text(stmt, 4, entry->rxrst, -1, SQLITE_TRANSIENT);
+  sqlite3_bind_text(stmt, 5, entry->txrst, -1, SQLITE_TRANSIENT);
+  sqlite3_bind_int64(stmt, 6, (sqlite3_int64)entry->rxnr);
+  sqlite3_bind_int64(stmt, 7, (sqlite3_int64)entry->txnr);
+  sqlite3_bind_text(stmt, 8, entry->rxextra, -1, SQLITE_TRANSIENT);
+  sqlite3_bind_text(stmt, 9, entry->txextra, -1, SQLITE_TRANSIENT);
+  sqlite3_bind_text(stmt, 10, entry->qth, -1, SQLITE_TRANSIENT);
+  sqlite3_bind_text(stmt, 11, entry->name, -1, SQLITE_TRANSIENT);
+  sqlite3_bind_text(stmt, 12, entry->qra, -1, SQLITE_TRANSIENT);
+  sqlite3_bind_double(stmt, 13, entry->qrg);
+  sqlite3_bind_text(stmt, 14, entry->mode.name, -1, SQLITE_TRANSIENT);
+  sqlite3_bind_text(stmt, 15, entry->power, -1, SQLITE_TRANSIENT);
+  sqlite3_bind_text(stmt, 16, entry->comment, -1, SQLITE_TRANSIENT);
+  sqlite3_bind_int64(stmt, 17, (sqlite3_int64)entry->station_id);
+  sqlite3_bind_text(stmt, 18, entry->sota_ref, -1, SQLITE_TRANSIENT);
+  sqlite3_bind_text(stmt, 19, entry->s2s_ref, -1, SQLITE_TRANSIENT);
+  sqlite3_bind_text(stmt, 20, entry->pota_ref, -1, SQLITE_TRANSIENT);
+  sqlite3_bind_text(stmt, 21, entry->p2p_ref, -1, SQLITE_TRANSIENT);
+  sqlite3_bind_text(stmt, 22, entry->wwff_ref, -1, SQLITE_TRANSIENT);
+  sqlite3_bind_text(stmt, 23, entry->w2w_ref, -1, SQLITE_TRANSIENT);
+  sqlite3_bind_int64(stmt, 24, (sqlite3_int64)entry->id);
+
+  if (sqlite3_step(stmt) == SQLITE_DONE) {
+    ret_val = llog_stat_ok;
+  } else {
+    printf("Error updating log entry: %s\n", sqlite3_errmsg(llog->log_db));
+  }
+
+  sqlite3_finalize(stmt);
+  return ret_val;
+}
+
+
 int db_get_station_entry(llog_t *llog, station_entry_t *station) {
   char buff[BUF_SIZ];
   int ret, ret_val = llog_stat_err;
@@ -537,9 +666,9 @@ int db_get_station_entry(llog_t *llog, station_entry_t *station) {
 
   if (station->data_stat == db_data_init) {
     if (station->id == 0) {
-      sprintf(buff, "SELECT rowid, name, CALL, QTH, QRA, ASL, rig, ant FROM station ORDER BY rowid DESC;");
+      sprintf(buff, "SELECT rowid, name, CALL, QTH, QRA, ASL, rig, ant, OPERATOR_CALL, OPERATOR_NAME, comment FROM station ORDER BY rowid DESC;");
     } else {
-      sprintf(buff, "SELECT rowid, name, CALL, QTH, QRA, ASL, rig, ant FROM station WHERE rowid=%" PRIu64 " ORDER BY rowid DESC;", station->id);
+      sprintf(buff, "SELECT rowid, name, CALL, QTH, QRA, ASL, rig, ant, OPERATOR_CALL, OPERATOR_NAME, comment FROM station WHERE rowid=%" PRIu64 " ORDER BY rowid DESC;", station->id);
     }
     sqlite3_prepare_v2(llog->log_db, buff, -1, &station->sq3_stmt, NULL);
   }
@@ -585,6 +714,21 @@ int db_get_station_entry(llog_t *llog, station_entry_t *station) {
       cell = EMPTY_STRING;
     }
     strncpy(station->ant, cell, ANT_LEN);
+    cell = (char *)sqlite3_column_text(station->sq3_stmt, 8);
+    if (cell == NULL) {
+      cell = EMPTY_STRING;
+    }
+    strncpy(station->operator_call, cell, CALL_LEN);
+    cell = (char *)sqlite3_column_text(station->sq3_stmt, 9);
+    if (cell == NULL) {
+      cell = EMPTY_STRING;
+    }
+    strncpy(station->operator_name, cell, NAME_LEN);
+    cell = (char *)sqlite3_column_text(station->sq3_stmt, 10);
+    if (cell == NULL) {
+      cell = EMPTY_STRING;
+    }
+    strncpy(station->comment, cell, COMMENT_LEN);
     ret_val = llog_stat_ok;
     finalize = false;
     station->data_stat = db_data_valid;
@@ -610,6 +754,115 @@ int db_get_station_entry(llog_t *llog, station_entry_t *station) {
     sqlite3_finalize(station->sq3_stmt);
   }
 
+  return ret_val;
+}
+
+
+/*Insert the station if its id is 0, update the row otherwise.
+  On insert, the new rowid is stored in station->id.*/
+int db_set_station_entry(llog_t *llog, station_entry_t *station) {
+  sqlite3_stmt *stmt = NULL;
+  int ret, ret_val = llog_stat_err;
+  const char *sql;
+
+  if (llog->log_db == NULL) {
+    return llog_stat_err;
+  }
+
+  if (station->id == 0) {
+    sql = "INSERT INTO station (name, CALL, QTH, QRA, ASL, rig, ant, OPERATOR_CALL, OPERATOR_NAME, comment) "
+          "VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10);";
+  } else {
+    sql = "UPDATE station SET name=?1, CALL=?2, QTH=?3, QRA=?4, ASL=?5, rig=?6, ant=?7, "
+          "OPERATOR_CALL=?8, OPERATOR_NAME=?9, comment=?10 WHERE rowid=?11;";
+  }
+
+  if (sqlite3_prepare_v2(llog->log_db, sql, -1, &stmt, NULL) != SQLITE_OK) {
+    printf("Error preparing station statement: %s\n", sqlite3_errmsg(llog->log_db));
+    return llog_stat_err;
+  }
+
+  sqlite3_bind_text(stmt, 1, station->name, -1, SQLITE_TRANSIENT);
+  sqlite3_bind_text(stmt, 2, station->call, -1, SQLITE_TRANSIENT);
+  sqlite3_bind_text(stmt, 3, station->QTH, -1, SQLITE_TRANSIENT);
+  sqlite3_bind_text(stmt, 4, station->QRA, -1, SQLITE_TRANSIENT);
+  sqlite3_bind_text(stmt, 5, station->ASL, -1, SQLITE_TRANSIENT);
+  sqlite3_bind_text(stmt, 6, station->rig, -1, SQLITE_TRANSIENT);
+  sqlite3_bind_text(stmt, 7, station->ant, -1, SQLITE_TRANSIENT);
+  sqlite3_bind_text(stmt, 8, station->operator_call, -1, SQLITE_TRANSIENT);
+  sqlite3_bind_text(stmt, 9, station->operator_name, -1, SQLITE_TRANSIENT);
+  sqlite3_bind_text(stmt, 10, station->comment, -1, SQLITE_TRANSIENT);
+  if (station->id != 0) {
+    sqlite3_bind_int64(stmt, 11, (sqlite3_int64)station->id);
+  }
+
+  ret = sqlite3_step(stmt);
+  if (ret == SQLITE_DONE) {
+    ret_val = llog_stat_ok;
+    if (station->id == 0) {
+      station->id = (uint64_t)sqlite3_last_insert_rowid(llog->log_db);
+    }
+  } else {
+    printf("Error writing station entry: %s\n", sqlite3_errmsg(llog->log_db));
+  }
+
+  sqlite3_finalize(stmt);
+  return ret_val;
+}
+
+
+/*Number of QSOs logged with the given station.*/
+int db_get_station_use_count(llog_t *llog, uint64_t station_id, uint64_t *count) {
+  sqlite3_stmt *stmt = NULL;
+  int ret_val = llog_stat_err;
+
+  *count = 0;
+
+  if (llog->log_db == NULL) {
+    return llog_stat_err;
+  }
+
+  if (sqlite3_prepare_v2(llog->log_db, "SELECT COUNT(*) FROM log WHERE station=?1;", -1, &stmt, NULL) != SQLITE_OK) {
+    printf("Error preparing station count: %s\n", sqlite3_errmsg(llog->log_db));
+    return llog_stat_err;
+  }
+
+  sqlite3_bind_int64(stmt, 1, (sqlite3_int64)station_id);
+
+  if (sqlite3_step(stmt) == SQLITE_ROW) {
+    *count = (uint64_t)sqlite3_column_int64(stmt, 0);
+    ret_val = llog_stat_ok;
+  } else {
+    printf("Error counting station use: %s\n", sqlite3_errmsg(llog->log_db));
+  }
+
+  sqlite3_finalize(stmt);
+  return ret_val;
+}
+
+
+int db_delete_station_entry(llog_t *llog, uint64_t station_id) {
+  sqlite3_stmt *stmt = NULL;
+  int ret_val = llog_stat_err;
+
+  if (llog->log_db == NULL) {
+    return llog_stat_err;
+  }
+
+  if (sqlite3_prepare_v2(llog->log_db, "DELETE FROM station WHERE rowid=?1;", -1, &stmt, NULL) != SQLITE_OK) {
+    printf("Error preparing station delete: %s\n", sqlite3_errmsg(llog->log_db));
+    return llog_stat_err;
+  }
+
+  sqlite3_bind_int64(stmt, 1, (sqlite3_int64)station_id);
+
+  if (sqlite3_step(stmt) == SQLITE_DONE) {
+    ret_val = llog_stat_ok;
+  } else {
+    printf("Error deleting station entry: %s\n", sqlite3_errmsg(llog->log_db));
+  }
+
+  sqlite3_finalize(stmt);
   return ret_val;
 }
 

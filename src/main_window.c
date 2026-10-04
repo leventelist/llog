@@ -35,6 +35,8 @@
 #include "lotw_window.h"
 #include "eqsl_window.h"
 #include "preferences_window.h"
+#include "station_window.h"
+#include "qso_window.h"
 #include "xml_client.h"
 
 #define LLOG_COLUMNS 16
@@ -463,6 +465,7 @@ static void on_log_btn_clicked(void);
 static void on_get_btn_clicked(void);
 static void on_edit_preferences_activate(app_widgets_t *app_wdgts);
 static void on_edit_log_db_activate(app_widgets_t *app_wdgts);
+static void on_edit_station_activate(app_widgets_t *app_wdgts);
 static void on_menuitm_new_activate(app_widgets_t *app_wdgts);
 static void on_qrt_activate(GtkApplication *app);
 static void on_about_menu_activate(app_widgets_t *app_wdgts);
@@ -481,6 +484,7 @@ static void on_rebuild_aux_db_activate(app_widgets_t *app_wdgts);
 static int filter_by_call(void *item, gpointer user_data);
 static void on_search_entry_changed(GtkSearchEntry *entry, gpointer user_data);
 static void on_programme_changed(GtkDropDown *dropdown, GParamSpec *pspec, gpointer user_data);
+static void on_logged_row_activate(GtkColumnView *view, guint position, gpointer user_data);
 
 
 
@@ -509,6 +513,19 @@ static void on_search_entry_changed(GtkSearchEntry *entry, gpointer user_data) {
   (void)entry;
   (void)user_data;
   gtk_filter_changed(GTK_FILTER(widgets->call_filter), GTK_FILTER_CHANGE_DIFFERENT);
+}
+
+static void on_logged_row_activate(GtkColumnView *view, guint position, gpointer user_data) {
+  (void)user_data;
+  GListModel *model = G_LIST_MODEL(gtk_column_view_get_model(view));
+  LogEntryDisplayItem *item = g_list_model_get_item(model, position);
+
+  if (item == NULL) {
+    return;
+  }
+
+  qso_window_open(GTK_WINDOW(widgets->main_window), local_llog, g_ascii_strtoull(item->id, NULL, 10));
+  g_object_unref(item);
 }
 
 static void on_programme_changed(GtkDropDown *dropdown, GParamSpec *pspec, gpointer user_data) {
@@ -731,6 +748,9 @@ static void on_activate(GtkApplication *app, gpointer user_data) {
   gtk_column_view_set_show_column_separators(GTK_COLUMN_VIEW(widgets->logged_column_view), TRUE);
   gtk_column_view_set_show_row_separators(GTK_COLUMN_VIEW(widgets->logged_column_view), TRUE);
 
+  /*Double click (or Enter) on a row opens the QSO editor*/
+  g_signal_connect(widgets->logged_column_view, "activate", G_CALLBACK(on_logged_row_activate), NULL);
+
   // Build the station list store
   widgets->station_list_store = g_list_store_new(G_TYPE_OBJECT);
 
@@ -938,6 +958,15 @@ static void on_activate(GtkApplication *app, gpointer user_data) {
 
   g_signal_connect_swapped(act_preferences, "activate", G_CALLBACK(on_edit_preferences_activate), widgets);
   g_action_map_add_action(G_ACTION_MAP(app), G_ACTION(act_preferences));
+
+  GMenuItem *menu_item_edit_station = g_menu_item_new("Station", "app.edit_station");
+  GSimpleAction *act_edit_station = g_simple_action_new("edit_station", NULL);
+
+  g_menu_append_item(edit_section, menu_item_edit_station);
+  g_object_unref(menu_item_edit_station);
+
+  g_signal_connect_swapped(act_edit_station, "activate", G_CALLBACK(on_edit_station_activate), widgets);
+  g_action_map_add_action(G_ACTION_MAP(app), G_ACTION(act_edit_station));
 
   GMenuItem *menu_item_edit_log_db = g_menu_item_new("Log database", "app.edit_log_db");
   GSimpleAction *act_edit_log_db = g_simple_action_new("edit_log_db", NULL);
@@ -1777,6 +1806,13 @@ static void on_edit_preferences_activate(app_widgets_t *app_wdgts) {
 }
 
 
+static void on_edit_station_activate(app_widgets_t *app_wdgts) {
+  (void)app_wdgts;
+
+  on_station_window_activate(NULL, local_llog);
+}
+
+
 static void on_edit_log_db_activate(app_widgets_t *app_wdgts) {
   (void)app_wdgts;
 
@@ -1842,6 +1878,29 @@ void main_window_clear_log_list(void) {
 
 void main_window_clear_station_list(void) {
   g_list_store_remove_all(widgets->station_list_store);
+}
+
+
+/*Reload the station list after the station table changed, keeping the selected station if it still exists*/
+void main_window_reload_stations(void) {
+  GtkDropDown *dropdown = GTK_DROP_DOWN(widgets->log_entries[llog_entry_station_id]);
+  GObject *item = gtk_drop_down_get_selected_item(dropdown);
+  char *selected_id = item != NULL ? g_strdup(station_entry_get_id(STATIONENTRY_ITEM(item))) : NULL;
+  GListModel *model = G_LIST_MODEL(widgets->station_list_store);
+
+  llog_add_station_entries();
+
+  for (guint i = 0; selected_id != NULL && i < g_list_model_get_n_items(model); i++) {
+    StationEntry *station = g_list_model_get_item(model, i);
+    gboolean match = g_strcmp0(station->id, selected_id) == 0;
+
+    g_object_unref(station);
+    if (match) {
+      gtk_drop_down_set_selected(dropdown, i);
+      break;
+    }
+  }
+  g_free(selected_id);
 }
 
 

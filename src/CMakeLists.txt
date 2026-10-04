@@ -11,6 +11,8 @@ set(SOURCES
   main_window.c
   position.c
   preferences_window.c
+  station_window.c
+  qso_window.c
   conf.c
 	exporter_writer.c
 	export_window.c

@@ -1,5 +1,5 @@
 /*	This is llog, a minimalist HAM logging software.
- *	Copyright (C) 2013-2024  Levente Kovacs
+ *	Copyright (C) 2013-2026  Levente Kovacs
  *
  *	This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -18,24 +18,15 @@
  * ha5ogl.levente@gmail.com
  */
 
+#ifndef __QSO_WINDOW_H__
+#define __QSO_WINDOW_H__
 
-#ifndef __MAIN_WINDOW_H__
-#define __MAIN_WINDOW_H__
+#include <gtk/gtk.h>
+#include <stdint.h>
 
 #include "llog.h"
 
 
-int main_window_draw(int argc, char *argv[]);
-void main_window_update_txnr(void);
-void main_window_set_llog(llog_t *llog);
-void main_window_add_log_entry_to_list(log_entry_t *entry);
-void main_window_add_station_entry_to_list(station_entry_t *station);
-void main_window_add_mode_entry_to_list(mode_entry_t *mode);
-void main_window_clear_log_list(void);
-void main_window_clear_station_list(void);
-void main_window_reload_stations(void);
-void main_window_clear_modes_list(void);
-void main_window_update_position_labels(position_t *position);
-void main_window_clear_position_labels(void);
+void qso_window_open(GtkWindow *parent, llog_t *llog, uint64_t log_id);
 
 #endif

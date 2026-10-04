@@ -235,6 +235,9 @@ typedef struct {
   char ASL[ASL_LEN];
   char rig[RIG_LEN];
   char ant[ANT_LEN];
+  char operator_call[CALL_LEN];
+  char operator_name[NAME_LEN];
+  char comment[COMMENT_LEN];
   uint32_t data_stat;
   sqlite3_stmt *sq3_stmt;
 } station_entry_t;
