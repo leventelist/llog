@@ -297,9 +297,13 @@ int llog_open_db(void) {
 }
 
 
-int llog_get_initial_station(station_entry_t **station) {
-  *station = &initial_station;
-  return llog_stat_ok;
+/*The station selected in the main window is saved, so it is selected again at the next start*/
+int llog_set_last_station_id(uint64_t id) {
+  if (initial_station.id == id) {
+    return llog_stat_ok;
+  }
+  initial_station.id = id;
+  return llog_save_config_file();
 }
 
 
@@ -388,6 +392,8 @@ int llog_add_station_entries(void) {
       break;
     }
   }
+
+  main_window_select_station(initial_station.id);
 
   return ret_val;
 }

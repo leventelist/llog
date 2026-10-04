@@ -33,6 +33,7 @@ void main_window_add_station_entry_to_list(station_entry_t *station);
 void main_window_add_mode_entry_to_list(mode_entry_t *mode);
 void main_window_clear_log_list(void);
 void main_window_clear_station_list(void);
+void main_window_select_station(uint64_t id);
 void main_window_reload_stations(void);
 void main_window_clear_modes_list(void);
 void main_window_update_position_labels(position_t *position);

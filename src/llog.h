@@ -253,7 +253,7 @@ int llog_open_db(void);
 void llog_shutdown(void);
 int llog_add_log_entries(void);
 int llog_add_station_entries(void);
-int llog_get_initial_station(station_entry_t **station);
+int llog_set_last_station_id(uint64_t id);
 int llog_save_config_file(void);
 int llog_parse_config_file(void);
 int llog_add_modes_entries(void);

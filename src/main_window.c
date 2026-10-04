@@ -450,6 +450,9 @@ static void bind_mode_cb(GtkSignalListItemFactory *factory, GtkListItem *listite
 static app_widgets_t *widgets = NULL;
 static log_entry_t log_entry_data;
 static llog_t *local_llog;
+
+/*Set while the station list is rebuilt, so the rebuild does not overwrite the saved station*/
+static gboolean station_list_loading = FALSE;
 static const char *ref_labels[] = { "Summit ref", "Park ref",  "WWFF ref" };
 static const char *x2x_labels[] = { "S2S ref",    "P2P ref",   "W2W ref"  };
 
@@ -654,7 +657,6 @@ static gpointer init_thread_func(gpointer user_data) {
 
 static void on_activate(GtkApplication *app, gpointer user_data) {
   int entry_index;
-  station_entry_t *initial_station;
 
   (void)user_data;
 
@@ -880,19 +882,6 @@ static void on_activate(GtkApplication *app, gpointer user_data) {
   gtk_grid_attach(GTK_GRID(entry_grid), widgets->get_button, 0, llog_entry_station_id + 1, 1, 1);
 
   gtk_box_append(GTK_BOX(widgets->vertical_box), GTK_WIDGET(entry_grid));
-
-  llog_get_initial_station(&initial_station);
-  if (initial_station->name[0] != '\0') {
-    GListModel *model = G_LIST_MODEL(widgets->station_list_store);
-    for (guint i = 0; i < g_list_model_get_n_items(model); i++) {
-      GObject *item = g_list_model_get_item(model, i);
-      StationEntry *station_entry = STATIONENTRY_ITEM(item);
-      if (station_entry != NULL) {
-        g_print("Station: %s\n", station_entry->name);
-      }
-      g_object_unref(item);
-    }
-  }
 
   /*Menu*/
   GSimpleAction *act_quit = g_simple_action_new("quit", NULL);
@@ -1433,6 +1422,9 @@ static void on_station_entry_change(GtkEditable *entry, gpointer user_data) {
   if (selected_item != NULL) {
     StationEntry *station_entry = STATIONENTRY_ITEM(selected_item);
     g_print("Selected station: %s\n", station_entry->name);
+    if (!station_list_loading) {
+      llog_set_last_station_id(g_ascii_strtoull(station_entry->id, NULL, 10));
+    }
   }
 }
 
@@ -1878,31 +1870,47 @@ void main_window_clear_log_list(void) {
 }
 
 
+/*Ends with main_window_select_station(), which restores the saved station*/
 void main_window_clear_station_list(void) {
+  station_list_loading = TRUE;
   g_list_store_remove_all(widgets->station_list_store);
+}
+
+
+/*Select the station with the given id, or the first one if it is gone, and remember the selection*/
+void main_window_select_station(uint64_t id) {
+  GtkDropDown *dropdown = GTK_DROP_DOWN(widgets->log_entries[llog_entry_station_id]);
+  GListModel *model = G_LIST_MODEL(widgets->station_list_store);
+  guint n_items = g_list_model_get_n_items(model);
+  guint i;
+
+  for (i = 0; i < n_items; i++) {
+    StationEntry *station = g_list_model_get_item(model, i);
+    gboolean match = g_ascii_strtoull(station->id, NULL, 10) == id;
+
+    g_object_unref(station);
+    if (match) {
+      break;
+    }
+  }
+
+  if (n_items > 0) {
+    if (i == n_items) {
+      i = 0;
+    }
+    gtk_drop_down_set_selected(dropdown, i);
+
+    StationEntry *station = g_list_model_get_item(model, i);
+    llog_set_last_station_id(g_ascii_strtoull(station->id, NULL, 10));
+    g_object_unref(station);
+  }
+  station_list_loading = FALSE;
 }
 
 
 /*Reload the station list after the station table changed, keeping the selected station if it still exists*/
 void main_window_reload_stations(void) {
-  GtkDropDown *dropdown = GTK_DROP_DOWN(widgets->log_entries[llog_entry_station_id]);
-  GObject *item = gtk_drop_down_get_selected_item(dropdown);
-  char *selected_id = item != NULL ? g_strdup(station_entry_get_id(STATIONENTRY_ITEM(item))) : NULL;
-  GListModel *model = G_LIST_MODEL(widgets->station_list_store);
-
   llog_add_station_entries();
-
-  for (guint i = 0; selected_id != NULL && i < g_list_model_get_n_items(model); i++) {
-    StationEntry *station = g_list_model_get_item(model, i);
-    gboolean match = g_strcmp0(station->id, selected_id) == 0;
-
-    g_object_unref(station);
-    if (match) {
-      gtk_drop_down_set_selected(dropdown, i);
-      break;
-    }
-  }
-  g_free(selected_id);
 }
 
 
