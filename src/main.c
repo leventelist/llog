@@ -25,14 +25,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <getopt.h>
-#include <signal.h>
 
 #include "main_window.h"
 #include "xml_client.h"
 
 static void print_ver(void);
 static void print_help(void);
-static void signal_handler(int sig);
 
 static llog_t *llog;
 
@@ -40,22 +38,6 @@ static llog_t *llog;
 int main(int argc, char *argv[]) {
 
 	int opt;
-
-
-	struct sigaction sa;
-	sa.sa_handler = signal_handler;
-	sigemptyset(&sa.sa_mask);
-	sa.sa_flags = 0;
-
-	if (sigaction(SIGINT, &sa, NULL) == -1) {
-		perror("sigaction");
-		exit(EXIT_FAILURE);
-	}
-
-	if (sigaction(SIGTERM, &sa, NULL) == -1) {
-		perror("sigaction");
-		exit(EXIT_FAILURE);
-	}
 
 	/*Initialize main data structures*/
 	llog = llog_set_default();
@@ -115,11 +97,4 @@ static void print_help(void) {
 	printf("\t-s\t\tForce generate the static database\n");
 	printf("\t-h\t\tGet help.\n");
 	printf("\t-v\t\tPrint version information.\n\n");
-}
-
-
-static void signal_handler(int sig) {
-	printf("Caught signal %d, shutting down.\n", sig);
-	llog_shutdown();
-	exit(EXIT_SUCCESS);
 }

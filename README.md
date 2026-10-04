@@ -58,6 +58,7 @@ libxml2-dev
 libxmlrpc-core-c3-dev
 libcurl4-openssl-dev
 libjson-c-dev
+libsecret-1-dev  (optional, see "Passwords and API keys")
 ```
 
 ### Runtime dependencies
@@ -69,6 +70,7 @@ gpsd-clients
 sqlitebrowser    (for Edit → Log database)
 trustedqsl       (TQSL, for Upload → LoTW)
 python3 + sqlite3 module
+gnome-keyring    (or any other Secret Service provider, e.g. KWallet; optional)
 ```
 
 ### Internet connection
@@ -147,7 +149,7 @@ about one second per QSO. llog records every uploaded QSO in the `upload` table 
 log file and never sends it again. QSOs that WRL rejects (for example an unknown
 SOTA/POTA/WWFF reference) are listed in the window and are retried on the next upload.
 
-The API key is stored in plain text in llog's configuration file.
+The API key is stored in your desktop keyring, see [Passwords and API keys](#passwords-and-api-keys).
 
 ## Uploading to LoTW
 
@@ -180,7 +182,79 @@ QSOs eQSL.cc rejects (e.g. a date your account does not cover) are listed in the
 and retried on the next upload. A wrong user name or password, a network error or eQSL.cc
 maintenance stops the upload.
 
-The password is stored in plain text in llog's configuration file.
+The password is stored in your desktop keyring, see [Passwords and API keys](#passwords-and-api-keys).
+
+---
+
+## Passwords and API keys
+
+llog keeps two secrets: the World Radio League API key (`wrl_api_key`) and the eQSL.cc
+password (`eqsl_password`). They are stored in the desktop keyring through the
+[Secret Service](https://specifications.freedesktop.org/secret-service/) API (libsecret),
+the same place where your browser and mail client keep their passwords. GNOME Keyring and
+KWallet both provide it. The keyring is encrypted and is unlocked when you log in.
+
+Only when no keyring can be reached are the secrets written to the configuration file
+`~/.config/llog/llog.cf` in plain text. The configuration file is always created with,
+or tightened to, owner-only permissions (`0600`).
+
+There is no "encrypted password in the config file" mode. llog is open source, so any
+key built into the program is public, and a password encrypted with it would only be
+obfuscated, not protected.
+
+### In the keyring
+
+Each secret is one keyring item with the schema `eu.logonex.llog.Secret` and the attribute
+`key` set to the config option name. In Seahorse ("Passwords and Keys") they show up as
+`llog wrl_api_key` and `llog eqsl_password`. You can view, change or delete them there,
+or with `secret-tool`:
+
+```bash
+secret-tool lookup key eqsl_password
+secret-tool clear key eqsl_password
+```
+
+llog reads the keyring only at startup, so restart it after changing an item outside llog.
+
+### Loading at startup
+
+For each secret, in this order:
+
+1. If the configuration file holds a value, that value is used. This happens with a
+   configuration file written by an older llog, or while no keyring was available.
+1. Otherwise llog looks the secret up in the keyring. If there is no such item, the
+   secret is empty.
+1. If the keyring can not be reached (no Secret Service running, no D-Bus session,
+   llog built without libsecret, or you dismissed the unlock prompt), the secret is
+   empty and llog does not try the keyring again until it is restarted.
+
+### Saving
+
+Whenever llog saves its configuration (for example when you click **Upload** or **Check key**),
+for each secret:
+
+1. If the secret is unchanged since it was read from or written to the keyring, nothing
+   is done, so the keyring is not contacted on every save.
+1. If it changed, it is written to the keyring, and the configuration file gets an empty
+   value. An emptied secret is removed from the keyring.
+1. If the keyring refuses it, the secret is written to the configuration file in plain
+   text, and a warning is printed on the terminal.
+1. If the keyring could not be read at startup and the secret is empty, llog leaves the
+   keyring alone. An unreadable keyring never makes llog delete an item stored in it.
+
+### Moving from plain text to the keyring
+
+No action is needed. A secret found in the configuration file is moved to the keyring
+the first time llog saves its configuration, which happens right after startup, and the
+configuration file no longer contains it. The same happens on the next start after a
+session in which the keyring was unavailable.
+
+### Without a keyring
+
+On a minimal desktop or a headless machine with no Secret Service, llog works the same as
+before: the secrets live in the configuration file in plain text, protected only by the
+file's `0600` permissions. If `libsecret-1-dev` is missing at build time, CMake prints a
+warning and llog is built without keyring support.
 
 ---
 

@@ -21,6 +21,7 @@ set(SOURCES
 	eqsl_window.c
 	wrl_client.c
 	eqsl_client.c
+	secret_store.c
   band.c
 )
 
@@ -70,6 +71,16 @@ endif()
 # is not found.
 pkg_check_modules(CURL REQUIRED IMPORTED_TARGET libcurl)
 pkg_check_modules(JSONC REQUIRED IMPORTED_TARGET json-c)
+
+# Optional: keep passwords and API keys in the desktop keyring.
+# Without it they are stored in the config file as plain text.
+pkg_check_modules(SECRET IMPORTED_TARGET libsecret-1)
+if(SECRET_FOUND)
+  target_compile_definitions(${PROJECT_NAME} PRIVATE HAVE_LIBSECRET)
+  target_link_libraries(${PROJECT_NAME} PUBLIC PkgConfig::SECRET)
+else()
+  message(WARNING "libsecret-1 not found: passwords will be stored in the config file as plain text")
+endif()
 
 string(STRIP ${XMLRPC_LIBS} XMLRPC_LIBS)
 string(STRIP ${XMLRPC_CFLAGS} XMLRPC_CFLAGS)

@@ -19,6 +19,7 @@
  */
 
 #include <gtk/gtk.h>
+#include <glib-unix.h>
 #include <inttypes.h>
 #include <unistd.h>
 #include <gps.h>
@@ -475,6 +476,7 @@ static void on_upload_lotw_activate(app_widgets_t *app_wdgts);
 static void on_upload_eqsl_activate(app_widgets_t *app_wdgts);
 static void on_insert_text_uppercase(GtkEditable *editable, const gchar *text, int length, int *position, gpointer user_data);
 static gboolean on_close_request(GtkWindow *window, gpointer user_data);
+static gboolean on_unix_signal(gpointer user_data);
 static void on_rebuild_aux_db_activate(app_widgets_t *app_wdgts);
 static int filter_by_call(void *item, gpointer user_data);
 static void on_search_entry_changed(GtkSearchEntry *entry, gpointer user_data);
@@ -545,6 +547,11 @@ int main_window_draw(int argc, char *argv[]) {
 
   app = gtk_application_new(NULL, G_APPLICATION_NON_UNIQUE);
   g_signal_connect(app, "activate", G_CALLBACK(on_activate), NULL);
+
+  /*SIGINT and SIGTERM are dispatched from the main loop, so they shut down the same way as QRT*/
+  g_unix_signal_add(SIGINT, on_unix_signal, app);
+  g_unix_signal_add(SIGTERM, on_unix_signal, app);
+
   status = g_application_run(G_APPLICATION(app), 0, NULL);
   g_object_unref(app);
 
@@ -1852,6 +1859,15 @@ static gboolean on_close_request(GtkWindow *window, gpointer user_data) {
   on_qrt_activate(app);
 
   return TRUE;  // TRUE means "I handled it, don't destroy the window"
+}
+
+
+static gboolean on_unix_signal(gpointer user_data) {
+  printf("Caught signal, shutting down.\n");
+  widgets = NULL;         // prevent any remaining callbacks from touching widgets
+  on_qrt_activate(GTK_APPLICATION(user_data));
+
+  return G_SOURCE_REMOVE;
 }
 
 

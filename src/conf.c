@@ -25,6 +25,7 @@
 #include <errno.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <fcntl.h>
 
 #include "conf.h"
 
@@ -38,6 +39,7 @@
 static char config_file_path[PATH_LEN];
 
 static int parse_config_line(char *line, char *attr, char *value);
+static FILE *fopen_private(const char *path, const char *mode, int flags);
 static int config_lookup(config_attribute_t *ca, char *option);
 static int config_set(config_attribute_t *ca, char *option, char *value);
 
@@ -95,6 +97,26 @@ static int parse_config_line(char *line, char *option, char *value) {
 }
 
 
+/* The config file may hold passwords: create it, or tighten an existing one, to owner only. */
+static FILE *fopen_private(const char *path, const char *mode, int flags) {
+  int fd;
+  FILE *fp;
+
+  fd = open(path, flags, 0600);
+  if (fd < 0) {
+    return NULL;
+  }
+  if (fchmod(fd, 0600) != 0) {
+    perror("fopen_private: fchmod");
+  }
+  fp = fdopen(fd, mode);
+  if (fp == NULL) {
+    close(fd);
+  }
+  return fp;
+}
+
+
 static FILE *open_config_file(char *app_name) {
     const char *home = getenv("HOME");
     if (!home) {
@@ -123,7 +145,7 @@ static FILE *open_config_file(char *app_name) {
     }
 
     /* Try to open the config file for reading + writing */
-    FILE *fp = fopen(config_file_path, "r+");
+    FILE *fp = fopen_private(config_file_path, "r+", O_RDWR);
     if (fp) {
         printf("open_config_file: opened existing config: %s\n", config_file_path);
         return fp;
@@ -168,7 +190,7 @@ static FILE *open_config_file(char *app_name) {
     }
 
     /* Create the config file */
-    fp = fopen(config_file_path, "w+");
+    fp = fopen_private(config_file_path, "w+", O_RDWR | O_CREAT | O_TRUNC);
     if (!fp) {
         perror("open_config_file: fopen (create)");
         return NULL;
@@ -294,7 +316,7 @@ int config_print_file(config_attribute_t *ca) {
 
   ret = CONF_OK;
 
-  dest_fd = fopen(config_file_path, "w");
+  dest_fd = fopen_private(config_file_path, "w", O_WRONLY | O_CREAT | O_TRUNC);
 
   if (dest_fd != NULL) {
     for (i = 0; ca[i].name != NULL; ++i) {

@@ -36,12 +36,36 @@
 #include "position.h"
 #include "xml_client.h"
 #include "llog_config.h"
+#include "secret_store.h"
 
 #define BUF_SIZ 1024
 #define CND_SIZ 2048
 
 static llog_t llog;
 static station_entry_t initial_station;
+
+static void llog_load_secrets(void);
+static void llog_store_secrets(void);
+
+/*Passwords and API keys. They go to the keyring when it can be reached, and to the
+ * config file as plain text only when it can not. The config file entries point to
+ * file_value, not to the llog_t field.*/
+typedef struct {
+  const char *key;                  /*Config file option and keyring item name*/
+  char *value;                      /*The secret in use, a field of llog_t*/
+  char file_value[API_KEY_LEN];     /*What the config file holds*/
+  char keyring_value[API_KEY_LEN];  /*What the keyring is known to hold*/
+  bool keyring_known;               /*keyring_value is valid*/
+} llog_secret_t;
+
+static llog_secret_t llog_secrets[] = {
+  { "wrl_api_key", llog.wrl_api_key, "", "", false },
+  { "eqsl_password", llog.eqsl_password, "", "", false },
+  { NULL, NULL, "", "", false }
+};
+
+/*Set after the first failed keyring call, so the session does not keep retrying it*/
+static bool keyring_unavailable = false;
 
 /*Define configuration items*/
 static config_attribute_t llog_ca[] = {
@@ -52,13 +76,13 @@ static config_attribute_t llog_ca[] = {
   { "export_filename", CONFIG_String, llog.export_file_name },
   { "tx_nr_per_band", CONFIG_Boolean, &llog.band_nr },
   { "programme", CONFIG_String, &llog.programme_label},
-  { "wrl_api_key", CONFIG_String, llog.wrl_api_key },
+  { "wrl_api_key", CONFIG_String, llog_secrets[0].file_value },
   { "wrl_logbook_id", CONFIG_String, llog.wrl_logbook_id },
   { "wrl_default_logbook_id", CONFIG_String, llog.wrl_default_logbook_id },
   { "tqsl_path", CONFIG_String, llog.tqsl_path },
   { "tqsl_station_location", CONFIG_String, llog.tqsl_station_location },
   { "eqsl_user", CONFIG_String, llog.eqsl_user },
-  { "eqsl_password", CONFIG_String, llog.eqsl_password },
+  { "eqsl_password", CONFIG_String, llog_secrets[1].file_value },
   { "eqsl_qth_nickname", CONFIG_String, llog.eqsl_qth_nickname },
   { NULL, CONFIG_Unused, NULL }
 };
@@ -209,7 +233,58 @@ int llog_parse_config_file(void) {
     ret = llog_stat_err;
   }
 
+  llog_load_secrets();
+
   return ret;
+}
+
+
+/*A secret left in the config file (by an older llog, or while the keyring was not
+ * reachable) wins, and the next save moves it to the keyring.*/
+static void llog_load_secrets(void) {
+  llog_secret_t *s;
+
+  for (s = llog_secrets; s->key != NULL; s++) {
+    if (s->file_value[0] != '\0') {
+      g_strlcpy(s->value, s->file_value, API_KEY_LEN);
+      s->keyring_known = false;
+    } else if (!keyring_unavailable &&
+               secret_store_load(s->key, s->keyring_value, sizeof(s->keyring_value))) {
+      g_strlcpy(s->value, s->keyring_value, API_KEY_LEN);
+      s->keyring_known = true;
+    } else {
+      s->value[0] = '\0';
+      s->keyring_known = false;
+      keyring_unavailable = true;
+    }
+  }
+}
+
+
+/*Only talks to the keyring when the secret changed, and falls back to the config file if
+ * the keyring refuses it. An empty secret never clears a keyring item that could not be read.*/
+static void llog_store_secrets(void) {
+  llog_secret_t *s;
+
+  for (s = llog_secrets; s->key != NULL; s++) {
+    s->file_value[0] = '\0';
+
+    if (s->keyring_known && strcmp(s->value, s->keyring_value) == 0) {
+      continue;
+    }
+    if (!s->keyring_known && s->value[0] == '\0') {
+      continue;
+    }
+
+    if (!keyring_unavailable && secret_store_save(s->key, s->value)) {
+      g_strlcpy(s->keyring_value, s->value, sizeof(s->keyring_value));
+      s->keyring_known = true;
+    } else {
+      keyring_unavailable = true;
+      fprintf(stderr, "Keyring is not available, saving `%s` to the config file as plain text\n", s->key);
+      g_strlcpy(s->file_value, s->value, sizeof(s->file_value));
+    }
+  }
 }
 
 
@@ -231,6 +306,7 @@ int llog_get_initial_station(station_entry_t **station) {
 int llog_save_config_file(void) {
   int ret;
 
+  llog_store_secrets();
   ret = config_print_file(llog.ca);
   return ret;
 }
