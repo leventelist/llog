@@ -39,6 +39,7 @@ file is kept where you want. This make it easy to integrate into your working or
 - **ADI, ADX, CSV export**
 - **Upload to World Radio League** via its API, without sending a QSO twice
 - **Upload to LoTW** through TQSL
+- **Upload to eQSL.cc**, without sending a QSO twice
 - **Auxiliary database rebuild** from Edit menu
 - **GTK4 interface** with resizable column view of logged contacts
 
@@ -165,6 +166,21 @@ only skips QSOs that are duplicates or outside the certificate's date range, eve
 in the file is recorded as uploaded. If it fails, nothing is recorded and the next
 upload sends the same QSOs again. llog does not pass a certificate password to TQSL,
 so an unprotected certificate is the simplest setup.
+
+## Uploading to eQSL.cc
+
+1. Open **Upload → eQSL.cc** and enter your eQSL.cc user name (callsign) and password.
+1. If your eQSL.cc account has several QTHs, enter the **QTH nickname** to upload to.
+1. Optionally enter a **From date** (`YYYY-MM-DD`), then click **Upload**.
+
+Each QSO is uploaded on its own, oldest first, with its callsign, date, time, band,
+frequency, mode (as ADIF mode and submode), sent RST and power. A QSO is recorded as
+uploaded when eQSL.cc accepts it or reports it as a duplicate, so it is not sent again.
+QSOs eQSL.cc rejects (e.g. a date your account does not cover) are listed in the window
+and retried on the next upload. A wrong user name or password, a network error or eQSL.cc
+maintenance stops the upload.
+
+The password is stored in plain text in llog's configuration file.
 
 ---
 

@@ -56,18 +56,37 @@ static int parse_config_line(char *line, char *option, char *value) {
   while (*ss && *ss != '=' && *ss != ':')
     ++ss;
   n = ss - s;
-  if (n > OPTSIZE) {
+  while (n > 0 && (s[n - 1] == ' ' || s[n - 1] == '\t'))
+    --n;
+  if (n >= OPTSIZE) {
     return CONF_OUT_OF_MEM_ERR;
   }
   strncpy(option, s, n);
   option[n] = '\0';
-  while (*ss == ' ' || *ss == '\t' || *ss == ':' || *ss == '=' || *ss == '"')
+  while (*ss == ' ' || *ss == '\t' || *ss == ':' || *ss == '=')
     ++ss;
+
+  /*Quoted value: runs to the closing quote and may hold '#'; \" and \\ stand for " and \*/
+  if (*ss == '"') {
+    ++ss;
+    n = 0;
+    while (*ss && *ss != '"' && *ss != '\n') {
+      if (*ss == '\\' && (ss[1] == '"' || ss[1] == '\\'))
+        ++ss;
+      if (n >= VALUESIZE - 1) {
+        return CONF_OUT_OF_MEM_ERR;
+      }
+      value[n++] = *ss++;
+    }
+    value[n] = '\0';
+    return n;
+  }
+
   s = ss;
   while (*s && *s != '\n' && *s != '"' && *s != '#')
     ++s;
   n = s - ss;
-  if (n > VALUESIZE) {
+  if (n >= VALUESIZE) {
     return CONF_OUT_OF_MEM_ERR;
   }
   strncpy(value, ss, n);
@@ -195,7 +214,7 @@ static int config_lookup(config_attribute_t *ca, char *option) {
   int i;
 
   for (i = 0; ca[i].name != NULL; ++i) {
-    if (strstr(option, ca[i].name) != NULL)
+    if (strcmp(option, ca[i].name) == 0)
       return i;
   }
   return CONF_LOOKUP_NO_MATCH;
@@ -238,6 +257,28 @@ static int config_set(config_attribute_t *ca, char *option, char *value) {
   return CONF_OK;
 }
 
+/* Writes name=value, quoting the value only if the reader would not get it back unquoted. */
+static void config_print_string(FILE *dest_fd, const char *name, const char *value) {
+  size_t len = strlen(value);
+
+  if (strpbrk(value, "#\"") == NULL &&
+      (len == 0 || (value[0] != ' ' && value[0] != '\t' && value[0] != ':' && value[0] != '=' &&
+                    value[len - 1] != ' ' && value[len - 1] != '\t'))) {
+    fprintf(dest_fd, "%s=%s\n", name, value);
+    return;
+  }
+
+  fprintf(dest_fd, "%s=\"", name);
+  for (const char *p = value; *p != '\0'; p++) {
+    if (*p == '"' || *p == '\\') {
+      fputc('\\', dest_fd);
+    }
+    fputc(*p, dest_fd);
+  }
+  fprintf(dest_fd, "\"\n");
+}
+
+
 int config_print(config_attribute_t *ca) {
   int ret;
 
@@ -259,7 +300,7 @@ int config_print_file(config_attribute_t *ca) {
     for (i = 0; ca[i].name != NULL; ++i) {
       switch ((ca[i]).type) {
       case CONFIG_String:
-        fprintf(dest_fd, "%s=%s\n", ca[i].name, (char *)ca[i].value);
+        config_print_string(dest_fd, ca[i].name, (char *)ca[i].value);
         break;
 
       case CONFIG_Boolean:

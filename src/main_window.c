@@ -32,6 +32,7 @@
 #include "export_window.h"
 #include "wrl_window.h"
 #include "lotw_window.h"
+#include "eqsl_window.h"
 #include "preferences_window.h"
 #include "xml_client.h"
 
@@ -471,6 +472,7 @@ static void on_station_entry_change(GtkEditable *entry, gpointer user_data);
 static void on_export_activate(app_widgets_t *app_wdgts);
 static void on_upload_wrl_activate(app_widgets_t *app_wdgts);
 static void on_upload_lotw_activate(app_widgets_t *app_wdgts);
+static void on_upload_eqsl_activate(app_widgets_t *app_wdgts);
 static void on_insert_text_uppercase(GtkEditable *editable, const gchar *text, int length, int *position, gpointer user_data);
 static gboolean on_close_request(GtkWindow *window, gpointer user_data);
 static void on_rebuild_aux_db_activate(app_widgets_t *app_wdgts);
@@ -961,6 +963,10 @@ static void on_activate(GtkApplication *app, gpointer user_data) {
   GSimpleAction *act_upload_lotw = g_simple_action_new("upload_lotw", NULL);
   g_menu_append_item(upload_section, menu_item_upload_lotw);
   g_object_unref(menu_item_upload_lotw);
+  GMenuItem *menu_item_upload_eqsl = g_menu_item_new("eQSL.cc", "app.upload_eqsl");
+  GSimpleAction *act_upload_eqsl = g_simple_action_new("upload_eqsl", NULL);
+  g_menu_append_item(upload_section, menu_item_upload_eqsl);
+  g_object_unref(menu_item_upload_eqsl);
   g_menu_append_section(upload_menu, NULL, G_MENU_MODEL(upload_section));
   g_menu_append_submenu(menubar, "Upload", G_MENU_MODEL(upload_menu));
   g_object_unref(upload_section);
@@ -970,6 +976,8 @@ static void on_activate(GtkApplication *app, gpointer user_data) {
   g_action_map_add_action(G_ACTION_MAP(app), G_ACTION(act_upload_wrl));
   g_signal_connect_swapped(act_upload_lotw, "activate", G_CALLBACK(on_upload_lotw_activate), widgets);
   g_action_map_add_action(G_ACTION_MAP(app), G_ACTION(act_upload_lotw));
+  g_signal_connect_swapped(act_upload_eqsl, "activate", G_CALLBACK(on_upload_eqsl_activate), widgets);
+  g_action_map_add_action(G_ACTION_MAP(app), G_ACTION(act_upload_eqsl));
 
   /*Help menu*/
   GSimpleAction *act_about = g_simple_action_new("about", NULL);
@@ -1716,6 +1724,13 @@ static void on_upload_lotw_activate(app_widgets_t *app_wdgts) {
   (void)app_wdgts;
 
   on_upload_lotw_window_activate(NULL, local_llog);
+}
+
+
+static void on_upload_eqsl_activate(app_widgets_t *app_wdgts) {
+  (void)app_wdgts;
+
+  on_upload_eqsl_window_activate(NULL, local_llog);
 }
 
 

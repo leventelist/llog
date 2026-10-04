@@ -18,7 +18,9 @@ set(SOURCES
 	upload.c
 	wrl_window.c
 	lotw_window.c
+	eqsl_window.c
 	wrl_client.c
+	eqsl_client.c
   band.c
 )
 

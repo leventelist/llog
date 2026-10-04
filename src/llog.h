@@ -172,6 +172,9 @@ typedef struct {
   char wrl_default_logbook_id[LOGBOOK_ID_LEN]; /*Default logbook the last key check found*/
   char tqsl_path[FILE_LEN];            /*TQSL executable used for LoTW uploads*/
   char tqsl_station_location[STATION_LEN]; /*TQSL station location to sign with*/
+  char eqsl_user[CALL_LEN];             /*eQSL.cc user name*/
+  char eqsl_password[API_KEY_LEN];      /*eQSL.cc password*/
+  char eqsl_qth_nickname[STATION_LEN];  /*Optional eQSL.cc QTH nickname*/
 } llog_t;
 
 

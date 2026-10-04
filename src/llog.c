@@ -57,6 +57,9 @@ static config_attribute_t llog_ca[] = {
   { "wrl_default_logbook_id", CONFIG_String, llog.wrl_default_logbook_id },
   { "tqsl_path", CONFIG_String, llog.tqsl_path },
   { "tqsl_station_location", CONFIG_String, llog.tqsl_station_location },
+  { "eqsl_user", CONFIG_String, llog.eqsl_user },
+  { "eqsl_password", CONFIG_String, llog.eqsl_password },
+  { "eqsl_qth_nickname", CONFIG_String, llog.eqsl_qth_nickname },
   { NULL, CONFIG_Unused, NULL }
 };
 
@@ -89,6 +92,10 @@ llog_t *llog_set_default(void) {
 
   sprintf(llog.tqsl_path, "tqsl");
   llog.tqsl_station_location[0] = '\0';
+
+  llog.eqsl_user[0] = '\0';
+  llog.eqsl_password[0] = '\0';
+  llog.eqsl_qth_nickname[0] = '\0';
   return &llog;
 }
 

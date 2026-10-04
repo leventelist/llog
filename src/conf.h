@@ -28,7 +28,7 @@
 
 /*Internals*/
 
-#define BUFFER_SIZE 255
+#define BUFFER_SIZE 1024
 #define OPTSIZE 64
 #define VALUESIZE 255
 
