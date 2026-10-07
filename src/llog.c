@@ -35,6 +35,7 @@
 #include "conf.h"
 #include "position.h"
 #include "xml_client.h"
+#include "wsjtx_client.h"
 #include "llog_config.h"
 #include "secret_store.h"
 
@@ -73,6 +74,8 @@ static config_attribute_t llog_ca[] = {
   { "station", CONFIG_ULLInteger, &initial_station.id },
   { "gpsd_host", CONFIG_String, llog.gpsd_host },
   { "gpsd_port", CONFIG_ULLInteger, &llog.gpsd_port },
+  { "xmlrpc_host", CONFIG_String, llog.xmlrpc_host },
+  { "xmlrpc_port", CONFIG_ULLInteger, &llog.xmlrpc_port },
   { "export_filename", CONFIG_String, llog.export_file_name },
   { "tx_nr_per_band", CONFIG_Boolean, &llog.band_nr },
   { "programme", CONFIG_String, &llog.programme_label},
@@ -84,6 +87,10 @@ static config_attribute_t llog_ca[] = {
   { "eqsl_user", CONFIG_String, llog.eqsl_user },
   { "eqsl_password", CONFIG_String, llog_secrets[1].file_value },
   { "eqsl_qth_nickname", CONFIG_String, llog.eqsl_qth_nickname },
+  { "wsjtx_enabled", CONFIG_Boolean, &llog.wsjtx_enabled },
+  { "wsjtx_addr", CONFIG_String, llog.wsjtx_addr },
+  { "wsjtx_port", CONFIG_ULLInteger, &llog.wsjtx_port },
+  { "wsjtx_auto_log", CONFIG_Boolean, &llog.wsjtx_auto_log },
   { NULL, CONFIG_Unused, NULL }
 };
 
@@ -107,6 +114,11 @@ llog_t *llog_set_default(void) {
 
   sprintf(llog.xmlrpc_host, "localhost");
   llog.xmlrpc_port = 7362;
+
+  llog.wsjtx_enabled = true;
+  sprintf(llog.wsjtx_addr, WSJTX_DEFAULT_ADDR);
+  llog.wsjtx_port = WSJTX_DEFAULT_PORT;
+  llog.wsjtx_auto_log = false;
 
   llog.force_generate_aux_db = false;
 
@@ -167,6 +179,8 @@ llog_t *llog_init() {
   position_init(llog.gpsd_host, llog.gpsd_port, main_window_update_position_labels);
 
   xml_client_init(llog.xmlrpc_host, llog.xmlrpc_port);
+
+  llog_wsjtx_init();
 
 out:
   return &llog;
@@ -517,4 +531,14 @@ void llog_shutdown(void) {
   position_stop();
   db_close(&llog);
   xml_client_shutdown();
+  wsjtx_client_shutdown();
+}
+
+
+/*(Re)starts the WSJT-X listener according to the settings*/
+void llog_wsjtx_init(void) {
+  wsjtx_client_shutdown();
+  if (llog.wsjtx_enabled) {
+    wsjtx_client_init(llog.wsjtx_addr, llog.wsjtx_port, main_window_wsjtx_status, main_window_wsjtx_qso_logged);
+  }
 }

@@ -47,6 +47,10 @@ typedef struct {
   GtkWidget *button_ok;
   GtkWidget *button_cancel;
   GtkWidget *band_nr_check;
+  GtkWidget *wsjtx_enabled_check;
+  GtkWidget *wsjtx_addr_entry;
+  GtkWidget *wsjtx_port_entry;
+  GtkWidget *wsjtx_auto_log_check;
   llog_t *llog;
 } app_widgets_t;
 
@@ -121,6 +125,33 @@ void on_preferences_window_activate(GtkWidget *widget, gpointer data) {
                             preferences_widgets->llog->band_nr);
   gtk_grid_attach(GTK_GRID(grid), preferences_widgets->band_nr_check, 1, 4, 1, 1);
 
+  GtkWidget *wsjtx_enabled_label = gtk_label_new("WSJT-X listener:");
+  gtk_grid_attach(GTK_GRID(grid), wsjtx_enabled_label, 0, 5, 1, 1);
+  preferences_widgets->wsjtx_enabled_check = gtk_check_button_new();
+  gtk_check_button_set_active(GTK_CHECK_BUTTON(preferences_widgets->wsjtx_enabled_check),
+                              preferences_widgets->llog->wsjtx_enabled);
+  gtk_grid_attach(GTK_GRID(grid), preferences_widgets->wsjtx_enabled_check, 1, 5, 1, 1);
+
+  GtkWidget *wsjtx_addr_label = gtk_label_new("WSJT-X UDP Address:");
+  preferences_widgets->wsjtx_addr_entry = gtk_entry_new();
+  gtk_grid_attach(GTK_GRID(grid), wsjtx_addr_label, 0, 6, 1, 1);
+  gtk_grid_attach(GTK_GRID(grid), preferences_widgets->wsjtx_addr_entry, 1, 6, 1, 1);
+  gtk_editable_set_text(GTK_EDITABLE(preferences_widgets->wsjtx_addr_entry), preferences_widgets->llog->wsjtx_addr);
+
+  GtkWidget *wsjtx_port_label = gtk_label_new("WSJT-X UDP Port:");
+  preferences_widgets->wsjtx_port_entry = gtk_entry_new();
+  gtk_grid_attach(GTK_GRID(grid), wsjtx_port_label, 0, 7, 1, 1);
+  gtk_grid_attach(GTK_GRID(grid), preferences_widgets->wsjtx_port_entry, 1, 7, 1, 1);
+  snprintf(port, PORT_LEN, "%lu", preferences_widgets->llog->wsjtx_port);
+  gtk_editable_set_text(GTK_EDITABLE(preferences_widgets->wsjtx_port_entry), port);
+
+  GtkWidget *wsjtx_auto_log_label = gtk_label_new("WSJT-X auto log:");
+  gtk_grid_attach(GTK_GRID(grid), wsjtx_auto_log_label, 0, 8, 1, 1);
+  preferences_widgets->wsjtx_auto_log_check = gtk_check_button_new();
+  gtk_check_button_set_active(GTK_CHECK_BUTTON(preferences_widgets->wsjtx_auto_log_check),
+                              preferences_widgets->llog->wsjtx_auto_log);
+  gtk_grid_attach(GTK_GRID(grid), preferences_widgets->wsjtx_auto_log_check, 1, 8, 1, 1);
+
   preferences_widgets->button_box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
   gtk_box_append(GTK_BOX(preferences_widgets->box), preferences_widgets->button_box);
 
@@ -161,6 +192,17 @@ static void on_button_ok_clicked(GtkWidget *widget, gpointer data) {
 
   widgets->llog->band_nr = gtk_check_button_get_active(GTK_CHECK_BUTTON(widgets->band_nr_check));
 
+  host = gtk_editable_get_text(GTK_EDITABLE(widgets->wsjtx_addr_entry));
+  port = gtk_editable_get_text(GTK_EDITABLE(widgets->wsjtx_port_entry));
+
+  g_strlcpy(widgets->llog->wsjtx_addr, host, sizeof(widgets->llog->wsjtx_addr));
+  val = strtoul(port, &endptr, 10);
+  if (endptr != port && *endptr == '\0' && val <= 65535) {
+    widgets->llog->wsjtx_port = val;
+  }
+  widgets->llog->wsjtx_enabled = gtk_check_button_get_active(GTK_CHECK_BUTTON(widgets->wsjtx_enabled_check));
+  widgets->llog->wsjtx_auto_log = gtk_check_button_get_active(GTK_CHECK_BUTTON(widgets->wsjtx_auto_log_check));
+
   llog_save_config_file();
   main_window_update_txnr();
 
@@ -169,6 +211,8 @@ static void on_button_ok_clicked(GtkWidget *widget, gpointer data) {
 
   xml_client_shutdown();
   xml_client_init(widgets->llog->xmlrpc_host, widgets->llog->xmlrpc_port);
+
+  llog_wsjtx_init();
 
   on_button_cancel_clicked(widget, data); // Close the window
 }

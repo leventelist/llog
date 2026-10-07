@@ -156,6 +156,10 @@ typedef struct {
   char export_file_name[FILE_LEN];
   char xmlrpc_host[FILE_LEN];
   uint64_t xmlrpc_port;
+  bool wsjtx_enabled;                  /*Listen for WSJT-X UDP messages*/
+  char wsjtx_addr[FILE_LEN];           /*Address to listen on, may be a multicast group*/
+  uint64_t wsjtx_port;
+  bool wsjtx_auto_log;                 /*Log QSOs from WSJT-X without pressing Log*/
   uint64_t station_id;
   sqlite3 *log_db;
   sqlite3 *aux_db;
@@ -251,6 +255,7 @@ int llog_set_log_file(char *log_file_name, bool check);
 int llog_get_log_file_path(char **path);
 int llog_open_db(void);
 void llog_shutdown(void);
+void llog_wsjtx_init(void);
 int llog_add_log_entries(void);
 int llog_add_station_entries(void);
 int llog_set_last_station_id(uint64_t id);

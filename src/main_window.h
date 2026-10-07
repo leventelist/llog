@@ -23,6 +23,7 @@
 #define __MAIN_WINDOW_H__
 
 #include "llog.h"
+#include "wsjtx_client.h"
 
 
 int main_window_draw(int argc, char *argv[]);
@@ -38,5 +39,7 @@ void main_window_reload_stations(void);
 void main_window_clear_modes_list(void);
 void main_window_update_position_labels(position_t *position);
 void main_window_clear_position_labels(void);
+void main_window_wsjtx_status(const wsjtx_status_t *status);
+void main_window_wsjtx_qso_logged(const wsjtx_qso_t *qso);
 
 #endif

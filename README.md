@@ -36,6 +36,7 @@ file is kept where you want. This make it easy to integrate into your working or
 - **Duplicate QSO detection** with visual warning
 - **QRZ lookup** — click the Call button to open the browser
 - **FLDIGI integration** via XML-RPC (Get button populates fields from FLDIGI)
+- **WSJT-X integration** via its UDP messages, with optional automatic logging
 - **ADI, ADX, CSV export**
 - **Upload to World Radio League** via its API, without sending a QSO twice
 - **Upload to LoTW** through TQSL
@@ -128,6 +129,30 @@ You need Internet access for the aux database rebuild.
 
 Fields that are not cleared after logging (QRG, mode, power, summit ref) are
 intentionally kept so you don't have to re-enter them between contacts.
+
+---
+
+## Logging from WSJT-X
+
+llog listens for the UDP messages of WSJT-X (and compatible programs, such as
+JTDX). It can be used together with the FLDIGI integration.
+
+1. In WSJT-X, open **File → Settings → Reporting**. Set **UDP Server** to
+   `127.0.0.1` and **UDP Server port number** to `2237` (the defaults).
+2. In llog, open **Edit → Preferences** and make sure **WSJT-X listener** is
+   ticked, with the same address and port.
+
+While you work a station, llog follows WSJT-X: the QRG, mode, call, grid and
+sent report are updated when they change in WSJT-X. Fields WSJT-X has not
+changed are left alone, so you can still edit them.
+
+When you log the QSO in WSJT-X, llog fills in the entries from it, including
+the QSO start time and both reports. Press **Log** to save it, or tick
+**WSJT-X auto log** in Preferences to have it saved right away.
+
+Only one program receives a unicast UDP port. To share WSJT-X with GridTracker
+or JTAlert, use a multicast address (for example `239.255.0.1`) in WSJT-X and
+in every listening program.
 
 ---
 

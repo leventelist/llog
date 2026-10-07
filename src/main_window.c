@@ -1535,6 +1535,161 @@ static void on_get_btn_clicked(void) {
 }
 
 
+
+/*WSJT-X*/
+
+/*The last Status message, so only what changed in WSJT-X overwrites the entries*/
+static wsjtx_status_t last_wsjtx_status;
+
+/*Not blocking the changed handler, so it keeps log_entry_data in sync like typing would*/
+static void wsjtx_set_entry(enum llog_entry_pos pos, const char *text) {
+  gtk_entry_buffer_delete_text(widgets->log_entry_buffers[pos], 0, -1);
+  gtk_entry_buffer_insert_text(widgets->log_entry_buffers[pos], 0, text, -1);
+}
+
+static void wsjtx_set_qrg(double qrg) {
+  gchar *qrg_str = g_strdup_printf("%.6f", qrg);
+
+  wsjtx_set_entry(llog_entry_qrg, qrg_str);
+  g_free(qrg_str);
+}
+
+/*Exact match first, then the first mode starting with the name (JT65 -> JT65A)*/
+static gboolean wsjtx_select_mode(const char *name) {
+  GListModel *modes = G_LIST_MODEL(widgets->mode_list_store);
+  guint n_modes = g_list_model_get_n_items(modes);
+  guint found = GTK_INVALID_LIST_POSITION;
+  size_t name_len = strlen(name);
+
+  if (name_len == 0) {
+    return FALSE;
+  }
+
+  for (guint i = 0; i < n_modes && found == GTK_INVALID_LIST_POSITION; i++) {
+    ModeEntry *mode = g_list_model_get_item(modes, i);
+    if (mode->name != NULL && g_ascii_strcasecmp(mode->name, name) == 0) {
+      found = i;
+    }
+    g_object_unref(mode);
+  }
+
+  for (guint i = 0; i < n_modes && found == GTK_INVALID_LIST_POSITION; i++) {
+    ModeEntry *mode = g_list_model_get_item(modes, i);
+    if (mode->name != NULL && g_ascii_strncasecmp(mode->name, name, name_len) == 0) {
+      found = i;
+    }
+    g_object_unref(mode);
+  }
+
+  if (found == GTK_INVALID_LIST_POSITION) {
+    printf("WSJT-X: mode %s is not in the mode list\n", name);
+    return FALSE;
+  }
+
+  /*Selecting a mode resets the RSTs, so only do it if it really changes*/
+  if (gtk_drop_down_get_selected(GTK_DROP_DOWN(widgets->log_entries[llog_entry_mode])) != found) {
+    gtk_drop_down_set_selected(GTK_DROP_DOWN(widgets->log_entries[llog_entry_mode]), found);
+  }
+  return TRUE;
+}
+
+static void wsjtx_select_mode_with_sub_mode(const char *mode, const char *sub_mode) {
+  if (sub_mode[0] != '\0') {
+    gchar *full_name = g_strconcat(mode, sub_mode, NULL);
+    gboolean found = wsjtx_select_mode(full_name);
+    g_free(full_name);
+    if (found) {
+      return;
+    }
+  }
+  wsjtx_select_mode(mode);
+}
+
+
+void main_window_wsjtx_status(const wsjtx_status_t *status) {
+  if (widgets == NULL) {
+    return;
+  }
+
+  /*Mode first: changing it resets the reports*/
+  if (strcmp(status->mode, last_wsjtx_status.mode) != 0 ||
+      strcmp(status->sub_mode, last_wsjtx_status.sub_mode) != 0) {
+    wsjtx_select_mode_with_sub_mode(status->mode, status->sub_mode);
+  }
+
+  if (status->qrg > 0 && status->qrg != last_wsjtx_status.qrg) {
+    wsjtx_set_qrg(status->qrg);
+  }
+
+  /*Empty fields mean WSJT-X cleared them; keep what is in the entries*/
+  if (status->dx_call[0] != '\0' && strcmp(status->dx_call, last_wsjtx_status.dx_call) != 0) {
+    wsjtx_set_entry(llog_entry_call, status->dx_call);
+  }
+
+  if (status->dx_grid[0] != '\0' && strcmp(status->dx_grid, last_wsjtx_status.dx_grid) != 0) {
+    wsjtx_set_entry(llog_entry_qra, status->dx_grid);
+  }
+
+  if (status->report[0] != '\0' && strcmp(status->report, last_wsjtx_status.report) != 0) {
+    wsjtx_set_entry(llog_entry_txrst, status->report);
+  }
+
+  last_wsjtx_status = *status;
+}
+
+
+void main_window_wsjtx_qso_logged(const wsjtx_qso_t *qso) {
+  struct tm bdt;
+  char buff[DATE_LEN];
+
+  if (widgets == NULL) {
+    return;
+  }
+
+  printf("WSJT-X: QSO logged with %s\n", qso->dx_call);
+
+  /*Mode first: changing it resets the reports*/
+  wsjtx_select_mode(qso->mode);
+
+  if (qso->qrg > 0) {
+    wsjtx_set_qrg(qso->qrg);
+  }
+
+  /*Setting the call also sets the time to now and checks for DUP; the QSO time is set after it*/
+  wsjtx_set_entry(llog_entry_call, qso->dx_call);
+
+  gmtime_r(&qso->time_on, &bdt);
+  strftime(buff, sizeof(buff), "%Y-%m-%d", &bdt);
+  wsjtx_set_entry(llog_entry_date, buff);
+  strftime(buff, sizeof(buff), "%H%M", &bdt);
+  wsjtx_set_entry(llog_entry_utc, buff);
+
+  wsjtx_set_entry(llog_entry_txrst, qso->report_sent);
+  wsjtx_set_entry(llog_entry_rxrst, qso->report_rcvd);
+  wsjtx_set_entry(llog_entry_qra, qso->dx_grid);
+
+  /*Optional fields in WSJT-X: don't wipe what the user typed*/
+  if (qso->name[0] != '\0') {
+    wsjtx_set_entry(llog_entry_name, qso->name);
+  }
+  if (qso->power[0] != '\0') {
+    wsjtx_set_entry(llog_entry_power, qso->power);
+  }
+  if (qso->comment[0] != '\0') {
+    wsjtx_set_entry(llog_entry_comment, qso->comment);
+  }
+  if (qso->exchange_sent[0] != '\0') {
+    wsjtx_set_entry(llog_entry_txextra, qso->exchange_sent);
+  }
+  if (qso->exchange_rcvd[0] != '\0') {
+    wsjtx_set_entry(llog_entry_rxextra, qso->exchange_rcvd);
+  }
+
+  if (local_llog->wsjtx_auto_log) {
+    on_log_btn_clicked();
+  }
+}
+
 static void on_log_btn_clicked(void) {
   int ret;
   GObject *item;
@@ -1771,6 +1926,7 @@ static void on_reload_activate(GMenuItem *menuitem, app_widgets_t *app_wdgts) {
   llog_shutdown();
   llog_open_db();
   xml_client_init(local_llog->xmlrpc_host, local_llog->xmlrpc_port);
+  llog_wsjtx_init();
   llog_load_static_data(&log_entry_data);
   set_static_data();
   position_init(local_llog->gpsd_host, local_llog->gpsd_port, main_window_update_position_labels);

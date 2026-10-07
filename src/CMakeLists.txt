@@ -17,6 +17,7 @@ set(SOURCES
 	exporter_writer.c
 	export_window.c
 	xml_client.c
+	wsjtx_client.c
 	upload.c
 	wrl_window.c
 	lotw_window.c
